@@ -1,0 +1,34 @@
+{
+  "name": "@uwacwy/print",
+  "private": true,
+  "workspaces": [
+    "shared",
+    "server",
+    "agent"
+  ],
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b shared server && npm run build -w agent",
+    "typecheck": "tsc -b shared server && tsc -p agent --noEmit && npm run typecheck:tests",
+    "typecheck:tests": "tsc -b shared && tsc -p server/tsconfig.test.json && tsc -p agent/tsconfig.test.json",
+    "test": "vitest run",
+    "dev:server": "npm run build && node --env-file-if-exists=server/.env server/dist/index.js",
+    "dev:agent": "npm run build -w agent && node --env-file-if-exists=agent/.env agent/dist/print-agent.cjs",
+    "admin": "node --env-file-if-exists=server/.env server/dist/cli.js",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "oxfmt": "^0.75.0",
+    "oxlint": "^1.90.0",
+    "tsx": "^4.23.15",
+    "typescript": "~5.9.3",
+    "vitest": "^4.0.8"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

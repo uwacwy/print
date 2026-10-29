@@ -1,0 +1,25 @@
+[Unit]
+Description=Omega secure print agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=omega-print
+EnvironmentFile=/etc/omega-print-agent.env
+ExecStart=/usr/bin/node /opt/omega-print-agent/print-agent.cjs
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+LockPersonality=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

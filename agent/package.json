@@ -1,0 +1,21 @@
+{
+  "name": "@uwacwy/print-agent",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit && esbuild src/index.ts --bundle --platform=node --target=node20 --format=cjs --external:ipp --external:bufferutil --external:utf-8-validate --outfile=dist/print-agent.cjs",
+    "package": "npm run build && tar -czf dist/omega-print-agent.tar.gz --transform 's,^,omega-print-agent/,' -C dist print-agent.cjs -C .. install.sh omega-print-agent.service -C .. node_modules/ipp"
+  },
+  "dependencies": {
+    "@uwacwy/print-shared": "1.0.0",
+    "ipp": "^1.1.0",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/ws": "^8.18.1",
+    "esbuild": "^0.25.0",
+    "typescript": "~5.9.3"
+  }
+}

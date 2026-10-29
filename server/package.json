@@ -1,0 +1,39 @@
+{
+  "name": "@uwacwy/print-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^11.0.2",
+    "@fastify/formbody": "^8.0.2",
+    "@fastify/multipart": "^9.0.3",
+    "@fastify/rate-limit": "^10.3.0",
+    "@fastify/websocket": "^11.2.0",
+    "@uwacwy/print-shared": "1.0.0",
+    "better-sqlite3": "^12.4.1",
+    "bootstrap": "^5.3.8",
+    "fastify": "^5.6.0",
+    "file-type": "^21.0.0",
+    "fluent-html": "^5.7.0",
+    "heic-convert": "^2.1.0",
+    "ipp": "^1.1.0",
+    "mysql2": "^3.15.0",
+    "openid-client": "^6.8.0",
+    "pdf-lib": "^1.17.1",
+    "qrcode": "^1.5.4",
+    "sharp": "^0.34.4",
+    "ws": "^8.18.3",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/heic-convert": "^2.1.1",
+    "@types/ipp": "^2.0.5",
+    "@types/qrcode": "^1.5.6",
+    "@types/ws": "^8.18.1"
+  }
+}
