@@ -13,7 +13,7 @@ import {
   PAGE_HEIGHT,
   PAGE_WIDTH,
   winAnsi,
-} from '../pdf-layout/pdf-layout.js';
+} from '../pdf-layout/pdf-layout';
 
 export interface QrPosterOptions {
   siteTitle: string;

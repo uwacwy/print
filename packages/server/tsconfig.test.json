@@ -1,0 +1,9 @@
+/* Typechecks the vitest API tests (`*.test.ts`); Angular specs use tsconfig.spec.json. */
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["src/**/*.test.ts", "src/**/*.d.ts"],
+  "exclude": []
+}

@@ -109,13 +109,13 @@ export interface ServerConfig {
 }
 
 /**
- * Loads local settings (default `server/.env`, relative to the working directory) so a bare
+ * Loads local settings (default `packages/server/.env`, relative to the working directory) so a bare
  * `ng serve` behaves like `npm start`. Variables already present in the environment win.
  * Production images ship without this file and configure the process environment directly.
  */
 export function loadLocalEnvFile(
   env: NodeJS.ProcessEnv = process.env,
-  file = resolve(env['PRINT_ENV_FILE'] ?? 'server/.env'),
+  file = resolve(env['PRINT_ENV_FILE'] ?? 'packages/server/.env'),
 ): void {
   if (!existsSync(file)) {
     return;

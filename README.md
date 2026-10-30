@@ -17,7 +17,7 @@ Once the server is running, open your browser and navigate to `http://localhost:
 Point a print agent at `PRINT_SERVER_URL=http://localhost:4200`. The Angular dev server cannot hand
 WebSocket upgrades to `server.ts`, so under `ng serve` the server runs socket.io on a loopback-only
 side port 4201 (`SOCKET_DEV_PORT`), and `proxy.conf.json` forwards `/socket.io` to it. The server
-loads `server/.env` itself, so `ng serve` and `npm start` behave the same.
+loads `packages/server/.env` itself, so `ng serve` and `npm start` behave the same.
 Agent state is kept on `globalThis`, so connected agents survive rebuilds. An edit to
 `api/sockets/agent-hub/agent-hub.ts` disconnects agents and live clients so they reconnect to the new
 code; edits to the namespaces in `api/sockets/` need a dev-server restart.
@@ -38,18 +38,17 @@ Everything the Angular server runs lives in `packages/server/src`:
     - `handshake/`: authenticates `auth.token` with the same Passport strategies as the REST API
   - `middleware/auth/`: Passport strategies and `authenticate(...)`, plus the upload token and PIN code they verify
   - `middleware/`: rate limits and the same-origin upload guard
-  - `helpers/`: pure helpers grouped by topic
-  - `pdf/`: PDF builders for uploads (`document` normalisation, `cover-page`, `qr-poster`, shared `pdf-layout`)
+  - `helpers/`: helpers grouped by topic
+    - `database/`: the SQLite database and job file storage
+    - `pdf/`: PDF builders for uploads (`document` normalisation, `cover-page`, `qr-poster`, shared `pdf-layout`)
   - `test-support.ts`: `useApiServer()`, which serves the API over a temporary database in tests
 
   Each router and middleware lives in its own directory beside its tests, for example
   `middleware/auth/pin/pin.strategy.ts` and `pin.strategy.test.ts`.
 - `realtime/`: process-wide runtime state (database, hub, cleanup timer, dev socket server)
-- `lib/database/`: the SQLite database and job file storage, shared by `api/` and `realtime/`
 
-The legacy Fastify server in `server/src` (`npm run dev:server`, `npm run admin`) is being replaced by
-this application and will be deleted. Until then it imports the database and PDF code from
-`packages/server/src`, so there is one copy of it.
+The legacy Fastify server in `server/` is retired: its sources are kept only as `*.ts.bak` and nothing
+builds or imports them.
 
 ### API authentication
 

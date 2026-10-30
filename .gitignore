@@ -47,6 +47,6 @@ agent/dist/
 server/dist/
 shared/dist/
 
-*/.env
+.env
 */tsconfig.tsbuildinfo
 data/
