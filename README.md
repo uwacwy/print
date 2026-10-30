@@ -30,13 +30,20 @@ Everything the Angular server runs lives in `packages/server/src`:
 
 - `api/`: the REST API, uploads, and SSE
   - `routers/`: one router per path segment (`printers`, `events`, `session`, `agent`)
-  - `middleware/auth/`: Passport strategies and `authenticate(...)`
+  - `middleware/auth/`: Passport strategies and `authenticate(...)`, plus the upload token and PIN code they verify
+  - `middleware/`: rate limits and the same-origin upload guard
   - `helpers/`: pure helpers grouped by topic
-- `realtime/`: the agent WebSocket hub and gateway
-- `lib/`: domain code (SQLite database, job storage, document normalisation, cover pages, QR posters, signed upload tokens)
+  - `pdf/`: PDF builders for uploads (`document` normalisation, `cover-page`, `qr-poster`, shared `pdf-layout`)
+  - `test-support.ts`: `useApiServer()`, which serves the API over a temporary database in tests
 
-The legacy Fastify server in `server/src` (`npm run dev:server`, `npm run admin`) imports its shared
-domain code from `packages/server/src/lib`, so there is one copy of it.
+  Each router and middleware lives in its own directory beside its tests, for example
+  `middleware/auth/pin/pin.strategy.ts` and `pin.strategy.test.ts`.
+- `realtime/`: the agent WebSocket hub and gateway
+- `lib/database/`: the SQLite database and job file storage, shared by `api/` and `realtime/`
+
+The legacy Fastify server in `server/src` (`npm run dev:server`, `npm run admin`) is being replaced by
+this application and will be deleted. Until then it imports the database and PDF code from
+`packages/server/src`, so there is one copy of it.
 
 ### API authentication
 

@@ -50,8 +50,8 @@ import {
   type PrinterRow,
 } from '../../../packages/server/src/lib/database/database.js';
 import { isEntraAdmin } from '../entra.js';
-import { enqueueJob } from '../../../packages/server/src/lib/jobs.js';
-import { buildQrPoster } from '../../../packages/server/src/lib/qr-poster/qr-poster.js';
+import { enqueueJob } from '../../../packages/server/src/lib/database/jobs.js';
+import { buildQrPoster } from '../../../packages/server/src/api/pdf/qr-poster/qr-poster.js';
 import type { PrintSession, SessionCookies } from '../session.js';
 import {
   alert,

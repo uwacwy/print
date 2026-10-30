@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { z } from 'zod';
-import type { PasscodeConfig } from '../../../packages/server/src/lib/passcode.js';
+import type { PasscodeConfig } from './passcode.js';
 
 export type { PasscodeConfig };
 

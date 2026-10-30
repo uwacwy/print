@@ -1,9 +1,4 @@
-import {
-  createHash,
-  randomBytes,
-  randomInt,
-  timingSafeEqual,
-} from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { PRINTER_SLUG_PATTERN } from '@uwacwy/print-shared';
@@ -287,41 +282,6 @@ export function rotatePrinterToken(
     )
     .run(tokenHash(token), id);
   return result.changes === 1 ? token : undefined;
-}
-
-export const PIN_LENGTH = 9;
-
-export function generatePin(): string {
-  return String(randomInt(0, 10 ** PIN_LENGTH)).padStart(
-    PIN_LENGTH,
-    '0',
-  );
-}
-
-/** Formats a PIN as three hyphenated groups (111-222-333) for display. */
-export function formatPin(pin: string): string {
-  return pin.match(/\d{3}/g)?.join('-') ?? pin;
-}
-
-/** Accepts the PIN with or without separators; compares in constant time. */
-export function pinMatches(
-  printer: Pick<PrinterRow, 'pin'>,
-  entered: unknown,
-): boolean {
-  if (!printer.pin || typeof entered !== 'string') {
-    return false;
-  }
-  const digits = entered.replace(/[\s-]/g, '');
-  if (
-    !/^\d+$/.test(digits) ||
-    digits.length !== printer.pin.length
-  ) {
-    return false;
-  }
-  return timingSafeEqual(
-    Buffer.from(digits),
-    Buffer.from(printer.pin),
-  );
 }
 
 /** Sets (or with null, clears) the upload PIN; returns false for an unknown printer. */

@@ -5,8 +5,6 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   bumpQrEpoch,
   expireStaleJobs,
-  formatPin,
-  generatePin,
   getPrinterById,
   getJobForPrinter,
   getPrinterByToken,
@@ -14,7 +12,6 @@ import {
   insertJob,
   markJobsPrinting,
   openDatabase,
-  pinMatches,
   purgeFinishedJobs,
   reportJob,
   setPrinterPin,
@@ -67,25 +64,11 @@ describe('upload PINs and token epochs', () => {
     });
   });
 
-  it('generates nine-digit PINs and formats them in groups of three', () => {
-    for (let i = 0; i < 50; i++) {
-      expect(generatePin()).toMatch(/^\d{9}$/);
-    }
-    expect(formatPin('012345678')).toBe('012-345-678');
-  });
-
-  it('stores, matches, and clears the PIN', () => {
+  it('stores and clears the PIN', () => {
     expect(setPrinterPin(db, printerId, '012345678')).toBe(true);
-    const printer = getPrinterById(db, printerId)!;
-    expect(pinMatches(printer, '012-345-678')).toBe(true);
-    expect(pinMatches(printer, ' 012 345 678 ')).toBe(true);
-    expect(pinMatches(printer, '012345679')).toBe(false);
-    expect(pinMatches(printer, '12345678')).toBe(false);
-    expect(pinMatches(printer, 12345678)).toBe(false);
+    expect(getPrinterById(db, printerId)?.pin).toBe('012345678');
     expect(setPrinterPin(db, printerId, null)).toBe(true);
-    expect(
-      pinMatches(getPrinterById(db, printerId)!, '012345678'),
-    ).toBe(false);
+    expect(getPrinterById(db, printerId)?.pin).toBeNull();
     expect(setPrinterPin(db, 9999, '000000000')).toBe(false);
   });
 

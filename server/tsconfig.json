@@ -5,10 +5,19 @@
     "rootDir": "..",
     "outDir": "dist"
   },
-  "include": ["src/**/*.ts", "../packages/server/src/lib/**/*.ts"],
+  "include": [
+    "src/**/*.ts",
+    "../packages/server/src/lib/**/*.ts",
+    "../packages/server/src/api/pdf/**/*.ts"
+  ],
   "exclude": [
     "src/**/*.test.ts",
-    "../packages/server/src/lib/**/*.test.ts"
+    "../packages/server/src/lib/**/*.test.ts",
+    "../packages/server/src/api/pdf/**/*.test.ts"
   ],
-  "references": [{ "path": "../shared" }]
+  "references": [
+    {
+      "path": "../shared"
+    }
+  ]
 }

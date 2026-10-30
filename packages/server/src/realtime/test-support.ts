@@ -16,7 +16,7 @@ import {
 import type { UploadConfig } from '../server-config';
 import { generateKeyPairSync } from 'node:crypto';
 import { SignJWT, type JWTPayload } from 'jose';
-import type { EntraUserOptions } from '../api/middleware/auth/entra-user.strategy';
+import type { EntraUserOptions } from '../api/middleware/auth/entra-user/entra-user.strategy';
 
 export const testUploadConfig: UploadConfig = {
   siteTitle: 'Test Print',

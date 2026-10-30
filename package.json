@@ -15,7 +15,7 @@
     "watch": "ng build print-server --watch --configuration development",
     "test": "ng test print-server --watch=false && npm run test:api",
     "test:spa": "ng test print-server --watch=false",
-    "test:api": "vitest run server/src/**/*.test.ts agent/src/**/*.test.ts packages/server/src/*.test.ts packages/server/src/api/*.test.ts packages/server/src/realtime/*.test.ts packages/server/src/lib/*/*.test.ts packages/server/src/app/auth/msal.config.spec.ts",
+    "test:api": "vitest run server/src/**/*.test.ts agent/src/**/*.test.ts packages/server/src/*.test.ts packages/server/src/api/ packages/server/src/realtime/*.test.ts packages/server/src/lib/*/*.test.ts packages/server/src/app/auth/msal.config.spec.ts",
     "build:api": "tsc -b shared server && npm run build -w agent",
     "typecheck:api": "tsc -b shared server && tsc -p agent --noEmit && npm run typecheck:api:tests",
     "typecheck:api:tests": "tsc -b shared && tsc -p server/tsconfig.test.json && tsc -p agent/tsconfig.test.json",

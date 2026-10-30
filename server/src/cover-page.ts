@@ -7,7 +7,7 @@ import {
   PAGE_HEIGHT,
   PAGE_WIDTH,
   winAnsi,
-} from '../../packages/server/src/lib/pdf-layout.js';
+} from '../../packages/server/src/api/pdf/pdf-layout/pdf-layout.js';
 
 export interface CoverPageOptions {
   siteTitle: string;

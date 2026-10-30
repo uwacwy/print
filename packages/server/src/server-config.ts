@@ -2,11 +2,11 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseEnv } from 'node:util';
 import { z } from 'zod';
-import type { EntraUserOptions } from './api/middleware/auth/entra-user.strategy';
+import type { EntraUserOptions } from './api/middleware/auth/entra-user/entra-user.strategy';
 import {
   DEFAULT_UPLOAD_TOKEN_ISSUER,
   type UploadTokenKey,
-} from './lib/upload-token/upload-token.js';
+} from './api/middleware/auth/upload-token/upload-token';
 
 const ServerEnvironment = z.object({
   PORT: z.coerce.number().int().positive().default(4000),

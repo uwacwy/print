@@ -7,7 +7,7 @@ import {
 import express from 'express';
 import { join } from 'node:path';
 import apiRoot from './api';
-import agentRouter from './api/routers/agent.router';
+import agentRouter from './api/routers/agent/agent.router';
 import { attachAgentGateway } from './realtime/agent-gateway';
 import {
   authenticateAgent,
