@@ -17,6 +17,7 @@ import {
   startJobCleanup,
 } from './realtime/runtime';
 import { loadLocalEnvFile, loadServerConfig } from './server-config';
+import { attachWebSockets } from './api/sockets/sockets';
 
 const browserDistFolder = join(import.meta.dirname, '../browser');
 
@@ -93,6 +94,11 @@ if (isMainModule(import.meta.url) || process.env['pm_id']) {
       `Node Express server listening on http://localhost:${config.port}`,
     );
   });
+
+  // attachWebSockets and the socket.io impl should replace
+  // the old SSE/websocket "agent gateway" kludge
+  attachWebSockets(server);
+
   const detachGateway = attachAgentGateway(server, {
     getHub,
     authenticate: (token) => authenticateAgent(runtime, token),
