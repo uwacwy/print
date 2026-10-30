@@ -1,5 +1,5 @@
 import { createHmac, hkdfSync, timingSafeEqual } from 'node:crypto';
-import type { PrinterRow } from '../../../helpers/database/database.js';
+import type { PrinterRow } from '../../../helpers/database/database';
 
 /** HKDF salt when no Entra client ID is configured. */
 export const DEFAULT_UPLOAD_TOKEN_ISSUER = 'uwacwy-print';

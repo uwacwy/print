@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { insertJob, type PrintDatabase } from './database.js';
+import { insertJob, type PrintDatabase } from './database';
 
 export interface NewJob {
   printerId: number;

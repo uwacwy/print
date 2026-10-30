@@ -17,7 +17,7 @@ import {
   setPrinterPin,
   tokenHash,
   type PrintDatabase,
-} from './database.js';
+} from './database';
 
 let directory: string;
 let db: PrintDatabase;

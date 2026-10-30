@@ -2,7 +2,7 @@ import { z } from 'zod';
 import {
   validatePrinterFields,
   type PrinterRow,
-} from './database/database.js';
+} from './database/database';
 import { formatPin } from '../middleware/auth/pin/pin';
 
 const printerInput = z.object({

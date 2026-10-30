@@ -7,7 +7,7 @@ import {
   getPrinterBySlug,
   getPrinterByToken,
   type PrintDatabase,
-} from './helpers/database/database.js';
+} from './helpers/database/database';
 import { signUploadToken } from './middleware/auth/upload-token/upload-token';
 import { attachAgentGateway } from '../realtime/agent-gateway';
 import { AgentHub } from '../realtime/agent-hub';

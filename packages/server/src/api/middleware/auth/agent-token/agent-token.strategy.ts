@@ -3,7 +3,7 @@ import { Strategy } from 'passport-strategy';
 import {
   getPrinterByToken,
   type PrintDatabase,
-} from '../../../helpers/database/database.js';
+} from '../../../helpers/database/database';
 import { bearer } from '../credentials';
 import type { AuthChallenge, Principal } from '../principal';
 

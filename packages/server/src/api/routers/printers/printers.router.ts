@@ -21,7 +21,7 @@ import {
   updatePrinter,
   type PrintDatabase,
   type PrinterRow,
-} from '../../helpers/database/database.js';
+} from '../../helpers/database/database';
 import { combineDocuments } from '../../helpers/pdf/document/document';
 import { enqueueJob } from '../../helpers/database/jobs.js';
 import { buildQrPoster } from '../../helpers/pdf/qr-poster/qr-poster';

@@ -7,7 +7,7 @@ import {
   getJobForPrinter,
   reportJob,
   type PrintDatabase,
-} from '../../helpers/database/database.js';
+} from '../../helpers/database/database';
 import type { AgentHub } from '../../../realtime/agent-hub';
 import { createAuthenticate } from '../../middleware/auth/passport/passport';
 import { principal } from '../../middleware/auth/principal';
