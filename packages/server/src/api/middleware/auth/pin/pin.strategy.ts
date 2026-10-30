@@ -1,6 +1,6 @@
 import type { Request } from 'express';
 import { Strategy } from 'passport-strategy';
-import { pinCredential } from '../credentials';
+import { pinCredential } fro../../../helpers/database/database.js
 import { pinMatches } from './pin';
 import {
   routePrinter,

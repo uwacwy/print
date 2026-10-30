@@ -12,7 +12,7 @@ import {
   createPrinter,
   openDatabase,
   type PrintDatabase,
-} from '../lib/database/database.js';
+} from '../api/helpers/database/database.js';
 import type { UploadConfig } from '../server-config';
 import { generateKeyPairSync } from 'node:crypto';
 import { SignJWT, type JWTPayload } from 'jose';

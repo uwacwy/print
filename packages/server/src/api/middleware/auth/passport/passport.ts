@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import { Passport } from 'passport';
-import type { PrintDatabase } from '../../../../lib/database/database.js';
+import type { PrintDatabase } from '../../../helpers/database/database.js';
 import type { UploadTokenKey } from '../upload-token/upload-token';
 import { AgentTokenStrategy } from '../agent-token/agent-token.strategy';
 import {

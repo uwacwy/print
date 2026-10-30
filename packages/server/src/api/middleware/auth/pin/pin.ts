@@ -1,5 +1,5 @@
 import { randomInt, timingSafeEqual } from 'node:crypto';
-import type { PrinterRow } from '../../../../lib/database/database.js';
+import type { PrinterRow } from '../../../helpers/database/database.js';
 
 export const PIN_LENGTH = 9;
 

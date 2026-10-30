@@ -16,7 +16,7 @@ import {
   resetPrintingJobs,
   type PrintDatabase,
   type PrinterRow,
-} from '../lib/database/database.js';
+} from '../api/helpers/database/database.js';
 
 export type LiveEvent = Exclude<
   SharedLiveEvent,

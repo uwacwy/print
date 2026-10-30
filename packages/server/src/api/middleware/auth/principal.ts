@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import type { PrinterRow } from '../../../lib/database/database.js';
+import type { PrinterRow } from '../../helpers/database/database.js';
 import type { UploadTokenSource } from './upload-token/upload-token';
 
 /** Who a request was authenticated as; set on `req.user` by `authenticate()`. */

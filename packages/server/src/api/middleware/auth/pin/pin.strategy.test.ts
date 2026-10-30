@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { setPrinterPin } from '../../../../lib/database/database.js';
 import { addPrinter } from '../../../../realtime/test-support';
 import { uploadForm, useApiServer } from '../../../test-support';
+import { setPrinterPin } from '../../../helpers/database/database';
 
 describe('pin strategy', () => {
   const api = useApiServer();

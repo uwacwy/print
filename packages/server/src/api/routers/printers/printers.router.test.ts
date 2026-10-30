@@ -1,8 +1,6 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { getPrinterByToken } from '../../../lib/database/database.js';
-import { enqueueJob } from '../../../lib/database/jobs.js';
 import {
   inspectUploadToken,
   verifyUploadToken,
@@ -13,6 +11,8 @@ import {
   testUploadConfig,
 } from '../../../realtime/test-support';
 import { uploadForm, useApiServer } from '../../test-support';
+import { getPrinterByToken } from '../../helpers/database/database';
+import { enqueueJob } from '../../helpers/database/jobs';
 
 describe('printers router', () => {
   const { entra, bearer } = testEntra({ adminRole: 'PrintAdmin' });

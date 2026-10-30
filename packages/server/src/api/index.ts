@@ -1,5 +1,5 @@
 import express from 'express';
-import type { PrintDatabase } from '../lib/database/database.js';
+import type { PrintDatabase } from './helpers/database/database.js';
 import type { AgentHub } from '../realtime/agent-hub';
 import type { UploadConfig } from '../server-config';
 import type { EntraUserOptions } from './middleware/auth/entra-user/entra-user.strategy';

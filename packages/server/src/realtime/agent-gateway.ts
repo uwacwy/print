@@ -2,7 +2,7 @@ import type { IncomingMessage, Server } from 'node:http';
 import type { Duplex } from 'node:stream';
 import { WebSocketServer } from 'ws';
 import { AGENT_WS_PATH } from '@uwacwy/print-shared';
-import type { PrinterRow } from '../lib/database/database.js';
+import type { PrinterRow } from '../api/helpers/database/database.js';
 import type { AgentHub } from './agent-hub';
 
 export interface AgentGatewayOptions {

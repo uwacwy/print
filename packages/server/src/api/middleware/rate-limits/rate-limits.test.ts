@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { setPrinterPin } from '../../../lib/database/database.js';
 import { addPrinter } from '../../../realtime/test-support';
 import { useApiServer } from '../../test-support';
+import { setPrinterPin } from '../../helpers/database/database';
 
 describe('rate limits', () => {
   const api = useApiServer();

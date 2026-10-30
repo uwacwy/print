@@ -7,7 +7,7 @@ import {
   openDatabase,
   purgeFinishedJobs,
   type PrintDatabase,
-} from '../lib/database/database.js';
+} from '../api/helpers/database/database.js';
 import type { ServerConfig } from '../server-config';
 import { AgentHub } from './agent-hub';
 import { attachAgentGateway } from './agent-gateway';

@@ -1,6 +1,6 @@
 import type { Request } from 'express';
 import { Strategy } from 'passport-strategy';
-import type { PrinterRow } from '../../../../lib/database/database.js';
+import type { PrinterRow } from '../../../helpers/database/database.js';
 import {
   verifyUploadToken,
   type UploadTokenKey,
