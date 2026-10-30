@@ -1,12 +1,11 @@
 import { EventEmitter } from 'node:events';
-import WebSocket from 'ws';
-import {
-  HEARTBEAT_INTERVAL_MS,
-  parseAgentMessage,
-  type JobStatus,
-  type LiveEvent as SharedLiveEvent,
-  type ServerMessage,
+import type {
+  AgentClientEvents,
+  AgentServerEvents,
+  JobStatus,
+  LiveEvent as SharedLiveEvent,
 } from '@uwacwy/print-shared';
+import type { Socket } from 'socket.io';
 import {
   countActiveJobs,
   getPrinterById,
@@ -16,74 +15,56 @@ import {
   resetPrintingJobs,
   type PrintDatabase,
   type PrinterRow,
-} from '../api/helpers/database/database.js';
+} from '../../helpers/database/database';
+import type { SocketData } from '../handshake/handshake';
 
 export type LiveEvent = Exclude<
   SharedLiveEvent,
   { type: 'snapshot' }
 >;
 
-export interface AgentHubOptions {
-  heartbeatIntervalMs?: number;
-}
+export type AgentSocket = Socket<
+  AgentClientEvents,
+  AgentServerEvents,
+  Record<string, never>,
+  SocketData
+>;
 
 /**
- * Tracks the single live WebSocket per printer agent and pushes queued jobs to it.
- * Transport-agnostic: callers hand it already-authenticated sockets.
+ * Tracks the single live socket per printer agent, pushes queued jobs to it, and publishes
+ * agent and job changes to live-event subscribers.
  */
 export class AgentHub {
   readonly #db: PrintDatabase;
-  readonly #heartbeatIntervalMs: number;
-  readonly #agents = new Map<number, WebSocket>();
+  readonly #agents = new Map<number, AgentSocket>();
   readonly #events = new EventEmitter<{
     event: [LiveEvent];
     dispose: [];
   }>();
 
-  constructor(db: PrintDatabase, options: AgentHubOptions = {}) {
+  constructor(db: PrintDatabase) {
     this.#db = db;
-    this.#heartbeatIntervalMs =
-      options.heartbeatIntervalMs ?? HEARTBEAT_INTERVAL_MS;
     this.#events.setMaxListeners(0);
   }
 
-  connect(socket: WebSocket, printer: PrinterRow): void {
+  connect(socket: AgentSocket, printer: PrinterRow): void {
     const previous = this.#agents.get(printer.id);
+    // Registered first so the replaced socket's disconnect handler sees it is stale.
+    this.#agents.set(printer.id, socket);
     if (previous && previous !== socket) {
-      previous.close(4001, 'Replaced by newer connection');
+      previous.disconnect(true);
     }
     resetPrintingJobs(this.#db, printer.id);
-    this.#agents.set(printer.id, socket);
     markPrinterSeen(this.#db, printer.id);
-    this.#send(socket, {
-      type: 'hello',
-      printer: { slug: printer.slug, name: printer.name },
-    });
+    socket.emit('hello', { slug: printer.slug, name: printer.name });
     this.#emitAgent(printer.id, true);
 
-    let alive = true;
-    socket.on('pong', () => {
-      alive = true;
-      markPrinterSeen(this.#db, printer.id);
-    });
-    const heartbeat = setInterval(() => {
-      if (!alive) {
-        return socket.terminate();
-      }
-      alive = false;
-      socket.ping();
-    }, this.#heartbeatIntervalMs);
-    heartbeat.unref();
-
-    socket.on('message', (raw) => {
-      const message = parseAgentMessage(raw.toString());
-      if (message?.type === 'sync') {
-        this.dispatch(printer.id);
-      }
-    });
-    socket.on('error', () => socket.terminate());
-    socket.on('close', () => {
-      clearInterval(heartbeat);
+    // socket.io pings every client; each answered ping proves the agent is alive.
+    const onHeartbeat = () => markPrinterSeen(this.#db, printer.id);
+    socket.conn.on('heartbeat', onHeartbeat);
+    socket.on('sync', () => this.dispatch(printer.id));
+    socket.on('disconnect', () => {
+      socket.conn.off('heartbeat', onHeartbeat);
       if (this.#agents.get(printer.id) !== socket) {
         return;
       }
@@ -97,7 +78,7 @@ export class AgentHub {
   /** Pushes every queued job for the printer to its agent, if one is connected. */
   dispatch(printerId: number): void {
     const socket = this.#agents.get(printerId);
-    if (!socket || socket.readyState !== WebSocket.OPEN) {
+    if (!socket?.connected) {
       return;
     }
     const queued = getQueuedJobs(this.#db, printerId);
@@ -108,19 +89,17 @@ export class AgentHub {
     if (!jobs.length) {
       return;
     }
-    this.#send(socket, {
-      type: 'jobs',
-      jobs: jobs.map(({ id, title }) => ({ id, title })),
-    });
+    socket.emit(
+      'jobs',
+      jobs.map(({ id, title }) => ({ id, title })),
+    );
     for (const job of jobs) {
       this.publishJob(printerId, job.id, 'printing');
     }
   }
 
   isOnline(printerId: number): boolean {
-    return (
-      this.#agents.get(printerId)?.readyState === WebSocket.OPEN
-    );
+    return this.#agents.get(printerId)?.connected === true;
   }
 
   onlinePrinterIds(): number[] {
@@ -129,8 +108,9 @@ export class AgentHub {
     );
   }
 
-  disconnect(printerId: number, reason: string): void {
-    this.#agents.get(printerId)?.close(4002, reason);
+  /** Drops the printer's agent, e.g. after its token is rotated or the printer is deleted. */
+  disconnect(printerId: number): void {
+    this.#agents.get(printerId)?.disconnect(true);
   }
 
   publishJob(
@@ -158,7 +138,7 @@ export class AgentHub {
     });
   }
 
-  /** `onDispose` fires when this hub is shut down or replaced, so streams can end and reconnect. */
+  /** `onDispose` fires when this hub is shut down or replaced, so subscribers can follow its successor. */
   subscribe(
     listener: (event: LiveEvent) => void,
     onDispose?: () => void,
@@ -175,17 +155,15 @@ export class AgentHub {
     };
   }
 
-  dispose(code = 1001, reason = 'Server shutting down'): void {
-    for (const socket of this.#agents.values()) {
-      socket.close(code, reason);
-    }
+  /** Disconnects every agent; they reconnect on their own, and in-flight jobs requeue then. */
+  dispose(): void {
+    const sockets = [...this.#agents.values()];
     this.#agents.clear();
+    for (const socket of sockets) {
+      socket.disconnect(true);
+    }
     this.#events.emit('dispose');
     this.#events.removeAllListeners();
-  }
-
-  #send(socket: WebSocket, message: ServerMessage): void {
-    socket.send(JSON.stringify(message));
   }
 
   #emitAgent(printerId: number, online: boolean): void {

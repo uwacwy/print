@@ -1,0 +1,142 @@
+import { describe, expect, it } from 'vitest';
+import {
+  insertJob,
+  type PrintDatabase,
+} from '../../helpers/database/database';
+import { addPrinter } from '../../../realtime/test-support';
+import { useApiServer } from '../../test-support';
+import type { LiveEvent } from '../agent-hub/agent-hub';
+
+function queueJob(db: PrintDatabase, printerId: number, id: string) {
+  insertJob(db, {
+    id,
+    printer_id: printerId,
+    title: `Job ${id.slice(0, 4)}`,
+    copies: 1,
+    original_name: 'doc.pdf',
+    submitted_by: null,
+    uploader_ip: '127.0.0.1',
+  });
+}
+
+const JOB_A = '11111111-1111-4111-8111-111111111111';
+const JOB_B = '22222222-2222-4222-8222-222222222222';
+
+function jobStatus(db: PrintDatabase, id: string) {
+  return (
+    db.prepare('SELECT status FROM jobs WHERE id = ?').get(id) as {
+      status: string;
+    }
+  ).status;
+}
+
+describe('agent namespace', () => {
+  const api = useApiServer();
+
+  it('rejects agents without a valid token during the handshake', async () => {
+    await api.start();
+    await expect(api.openAgent().rejected()).resolves.toEqual({
+      message: 'Unauthorized',
+      data: { code: 'agent_token_required', status: 401 },
+    });
+    await expect(api.openAgent('nope').rejected()).resolves.toEqual({
+      message: 'Unauthorized',
+      data: { code: 'agent_token_invalid', status: 401 },
+    });
+  });
+
+  it('rejects unknown namespaces', async () => {
+    await api.start();
+    const { token } = addPrinter(api.db);
+    for (const namespace of ['/', '/other']) {
+      await expect(
+        api.openAgent(token, namespace).rejected(),
+      ).resolves.toMatchObject({ message: 'Invalid namespace' });
+    }
+  });
+
+  it('greets the agent and immediately pushes queued jobs', async () => {
+    await api.start();
+    const { id, token } = addPrinter(api.db);
+    queueJob(api.db, id, JOB_A);
+    const agent = api.openAgent(token);
+
+    await expect(agent.next()).resolves.toEqual({
+      type: 'hello',
+      printer: { slug: 'front-office', name: 'Front Office' },
+    });
+    await expect(agent.next()).resolves.toEqual({
+      type: 'jobs',
+      jobs: [{ id: JOB_A, title: 'Job 1111' }],
+    });
+    expect(jobStatus(api.db, JOB_A)).toBe('printing');
+    expect(api.hub.isOnline(id)).toBe(true);
+  });
+
+  it('pushes jobs dispatched while the agent is connected', async () => {
+    await api.start();
+    const { id, token } = addPrinter(api.db);
+    const agent = await api.connectAgent(token);
+
+    queueJob(api.db, id, JOB_B);
+    api.hub.dispatch(id);
+
+    await expect(agent.next()).resolves.toMatchObject({
+      type: 'jobs',
+      jobs: [{ id: JOB_B }],
+    });
+  });
+
+  it('dispatches when the agent syncs', async () => {
+    await api.start();
+    const { id, token } = addPrinter(api.db);
+    const agent = await api.connectAgent(token);
+
+    queueJob(api.db, id, JOB_A);
+    agent.socket.emit('sync');
+
+    await expect(agent.next()).resolves.toMatchObject({
+      type: 'jobs',
+      jobs: [{ id: JOB_A }],
+    });
+  });
+
+  it('replaces an older connection and requeues in-flight jobs on disconnect', async () => {
+    await api.start();
+    const { id, token } = addPrinter(api.db);
+    const events: LiveEvent[] = [];
+    api.hub.subscribe((event) => events.push(event));
+    queueJob(api.db, id, JOB_A);
+    const first = await api.connectAgent(token);
+    await first.next();
+    const firstClosed = first.closed();
+
+    const second = await api.connectAgent(token);
+    await expect(firstClosed).resolves.toBe('io server disconnect');
+    await expect(second.next()).resolves.toMatchObject({
+      type: 'jobs',
+      jobs: [{ id: JOB_A }],
+    });
+
+    second.close();
+    await expect.poll(() => api.hub.isOnline(id)).toBe(false);
+    expect(jobStatus(api.db, JOB_A)).toBe('queued');
+    expect(
+      events
+        .filter((event) => event.type === 'agent')
+        .map((event) => event.online),
+    ).toEqual([true, true, false]);
+  });
+
+  it('drops the agent when the hub disconnects its printer', async () => {
+    await api.start();
+    const { id, token } = addPrinter(api.db);
+    const agent = await api.connectAgent(token);
+    const closed = agent.closed();
+
+    api.hub.disconnect(id);
+
+    await expect(closed).resolves.toBe('io server disconnect');
+    expect(api.hub.isOnline(id)).toBe(false);
+  });
+});

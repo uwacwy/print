@@ -3,10 +3,17 @@ import type { Server } from 'node:http';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import WebSocket from 'ws';
+import { io, type Socket } from 'socket.io-client';
 import {
-  parseServerMessage,
-  type ServerMessage,
+  AGENT_NAMESPACE,
+  LIVE_NAMESPACE,
+  SOCKET_PATH,
+  type AgentClientEvents,
+  type AgentJob,
+  type AgentServerEvents,
+  type LiveEvent,
+  type LiveServerEvents,
+  type SocketAuthError,
 } from '@uwacwy/print-shared';
 import {
   createPrinter,
@@ -83,52 +90,116 @@ export function closeServer(server: Server): Promise<void> {
   return new Promise((resolve) => server.close(() => resolve()));
 }
 
-/** A minimal agent client that queues every parsed server message for assertions. */
-export class TestAgent {
-  readonly socket: WebSocket;
-  readonly #messages: ServerMessage[] = [];
-  readonly #waiters: ((message: ServerMessage) => void)[] = [];
+/** Queues received values so tests can await them in order. */
+class Inbox<T> {
+  readonly #queued: T[] = [];
+  readonly #waiters: ((value: T) => void)[] = [];
 
-  constructor(url: string, token: string) {
-    this.socket = new WebSocket(url, {
-      headers: { authorization: `Bearer ${token}` },
-    });
-    this.socket.on('message', (raw) => {
-      const message = parseServerMessage(raw.toString());
-      if (!message) {
-        return;
-      }
-      const waiter = this.#waiters.shift();
-      if (waiter) {
-        waiter(message);
-      } else {
-        this.#messages.push(message);
-      }
-    });
+  push(value: T): void {
+    const waiter = this.#waiters.shift();
+    if (waiter) {
+      waiter(value);
+    } else {
+      this.#queued.push(value);
+    }
   }
 
-  next(timeoutMs = 2000): Promise<ServerMessage> {
-    const queued = this.#messages.shift();
-    if (queued) {
-      return Promise.resolve(queued);
+  next(timeoutMs: number): Promise<T> {
+    if (this.#queued.length) {
+      return Promise.resolve(this.#queued.shift() as T);
     }
     return new Promise((resolve, reject) => {
       const timer = setTimeout(
         () => reject(new Error('Timed out waiting for message')),
         timeoutMs,
       );
-      this.#waiters.push((message) => {
+      this.#waiters.push((value) => {
         clearTimeout(timer);
-        resolve(message);
+        resolve(value);
       });
     });
   }
+}
 
-  closed(): Promise<{ code: number; reason: string }> {
+/** A socket.io test client that never reconnects, so every outcome is observable. */
+class TestSocket<Listen extends object, Emit extends object, T> {
+  readonly socket: Socket<Listen, Emit>;
+  protected readonly inbox = new Inbox<T>();
+
+  constructor(baseUrl: string, namespace: string, token?: string) {
+    this.socket = io(new URL(namespace, baseUrl).href, {
+      path: SOCKET_PATH,
+      transports: ['websocket'],
+      auth: token === undefined ? {} : { token },
+      reconnection: false,
+      forceNew: true,
+    });
+  }
+
+  next(timeoutMs = 2000): Promise<T> {
+    return this.inbox.next(timeoutMs);
+  }
+
+  /** Resolves with the disconnect reason, e.g. `io server disconnect`. */
+  closed(): Promise<string> {
     return new Promise((resolve) =>
-      this.socket.once('close', (code, reason) =>
-        resolve({ code, reason: reason.toString() }),
+      this.socket.once('disconnect', (reason) => resolve(reason)),
+    );
+  }
+
+  /** Resolves with the handshake rejection. */
+  rejected(): Promise<{ message: string; data?: SocketAuthError }> {
+    return new Promise((resolve) =>
+      this.socket.once('connect_error', (error) =>
+        resolve({
+          message: error.message,
+          data: (error as { data?: SocketAuthError }).data,
+        }),
       ),
+    );
+  }
+
+  close(): void {
+    this.socket.close();
+  }
+}
+
+export type AgentMessage =
+  | { type: 'hello'; printer: { slug: string; name: string } }
+  | { type: 'jobs'; jobs: AgentJob[] };
+
+/** A minimal print agent that queues every server event for assertions. */
+export class TestAgent extends TestSocket<
+  AgentServerEvents,
+  AgentClientEvents,
+  AgentMessage
+> {
+  constructor(
+    baseUrl: string,
+    token?: string,
+    namespace = AGENT_NAMESPACE,
+  ) {
+    super(baseUrl, namespace, token);
+    const socket = this.socket as Socket<AgentServerEvents>;
+    socket.on('hello', (printer) =>
+      this.inbox.push({ type: 'hello', printer }),
+    );
+    socket.on('jobs', (jobs) =>
+      this.inbox.push({ type: 'jobs', jobs }),
+    );
+  }
+}
+
+/** A management UI stand-in that queues every live event. */
+export class TestLiveClient extends TestSocket<
+  LiveServerEvents,
+  Record<string, never>,
+  LiveEvent
+> {
+  constructor(baseUrl: string, token?: string) {
+    super(baseUrl, LIVE_NAMESPACE, token);
+    (this.socket as Socket<LiveServerEvents>).on('live', (event) =>
+      this.inbox.push(event),
     );
   }
 }

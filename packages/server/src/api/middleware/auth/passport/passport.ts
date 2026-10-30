@@ -8,7 +8,11 @@ import {
   type EntraUserOptions,
 } from '../entra-user/entra-user.strategy';
 import { PinStrategy } from '../pin/pin.strategy';
-import { isAuthChallenge, type AuthChallenge } from '../principal';
+import {
+  isAuthChallenge,
+  type AuthChallenge,
+  type Principal,
+} from '../principal';
 import { UploadTokenStrategy } from '../upload-token/upload-token.strategy';
 
 export type StrategyName =
@@ -37,6 +41,11 @@ export interface Authenticate {
   (...strategies: StrategyName[]): AuthMiddleware;
   /** Like `authenticate`, but continues anonymously when every strategy declines. */
   optional(...strategies: StrategyName[]): AuthMiddleware;
+  /** Checks an `Authorization` value outside HTTP routing, e.g. a socket handshake. */
+  verify(
+    authorization: string | undefined,
+    ...strategies: StrategyName[]
+  ): Promise<Principal | AuthChallenge>;
 }
 
 const UNKNOWN: AuthChallenge = {
@@ -122,7 +131,41 @@ export function createAuthenticate({
         },
       )(request, response, next);
 
+  const verify = (
+    authorization: string | undefined,
+    ...strategies: StrategyName[]
+  ) =>
+    new Promise<Principal | AuthChallenge>((resolve, reject) => {
+      // The strategies only read the Authorization header.
+      const request = {
+        headers: { authorization },
+        header: (name: string) =>
+          name.toLowerCase() === 'authorization'
+            ? authorization
+            : undefined,
+      } as unknown as Request;
+      passport.authenticate(
+        strategies,
+        { session: false },
+        (
+          error: unknown,
+          user: Express.User | false,
+          info: unknown,
+        ) =>
+          error
+            ? reject(error)
+            : resolve(
+                user
+                  ? (user as Principal)
+                  : selectChallenge(
+                      Array.isArray(info) ? info : [info],
+                    ),
+              ),
+      )(request, {} as Response, reject);
+    });
+
   return Object.assign(middleware(false), {
     optional: middleware(true),
+    verify,
   });
 }

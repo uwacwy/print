@@ -1,16 +1,19 @@
 import { createServer, type Server } from 'node:http';
 import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
+import type { Server as SocketServer } from 'socket.io';
 import {
   expireStaleJobs,
-  getPrinterByToken,
   openDatabase,
   purgeFinishedJobs,
   type PrintDatabase,
 } from '../api/helpers/database/database.js';
 import type { ServerConfig } from '../server-config';
-import { AgentHub } from './agent-hub';
-import { attachAgentGateway } from './agent-gateway';
+import { AgentHub } from '../api/sockets/agent-hub/agent-hub';
+import {
+  attachWebSockets,
+  type WebSocketOptions,
+} from '../api/sockets/sockets';
 
 /**
  * Process-wide state for the print server.
@@ -26,7 +29,12 @@ export interface PrintRuntime {
   hub: AgentHub;
   hubSource: string;
   cleanupTimer?: NodeJS.Timeout;
-  devGateway?: { server: Server; port: number; detach?: () => void };
+  devSockets?: {
+    server: Server;
+    io: SocketServer;
+    port: number;
+    options: Pick<WebSocketOptions, 'verify'>;
+  };
 }
 
 const RUNTIME_KEY = Symbol.for('uwacwy.print.runtime');
@@ -43,7 +51,7 @@ export function getPrintRuntime(
     // Only replace the hub when its implementation changed; agents reconnect within ~1s.
     const hubSource = AgentHub.toString();
     if (existing.hubSource !== hubSource) {
-      existing.hub.dispose(1012, 'Server code reloaded');
+      existing.hub.dispose();
       existing.hub = new AgentHub(existing.db);
       existing.hubSource = hubSource;
     }
@@ -63,13 +71,6 @@ export function getPrintRuntime(
   };
   store[RUNTIME_KEY] = runtime;
   return runtime;
-}
-
-export function authenticateAgent(
-  runtime: PrintRuntime,
-  token: string,
-) {
-  return getPrinterByToken(runtime.db, token);
 }
 
 /** (Re)starts the periodic job expiry/purge, replacing any timer from an earlier evaluation. */
@@ -98,52 +99,51 @@ export function startJobCleanup(
 }
 
 /**
- * Dev only: the Angular dev server owns the HTTP server and never exposes `upgrade`, so the
- * agent WebSocket listens on a side port that proxy.conf.json forwards `/agent/ws` to.
- * The listener is created once; the upgrade handler is re-attached on every evaluation so
- * gateway code edits apply without dropping already-connected agents.
+ * Dev only: the Angular dev server owns the HTTP server and never exposes `upgrade`, so
+ * socket.io listens on a side port that proxy.conf.json forwards `/socket.io` to.
+ * The listener is created once and keeps its sockets across reloads; `verify` is re-pointed
+ * on every evaluation, but edits to the namespace code itself need a dev-server restart.
  */
-export async function ensureDevAgentGateway(
+export async function ensureDevSockets(
   runtime: PrintRuntime,
   port: number,
+  options: Pick<WebSocketOptions, 'verify'>,
 ): Promise<void> {
-  if (runtime.devGateway && runtime.devGateway.port !== port) {
-    runtime.devGateway.detach?.();
-    runtime.devGateway.server.close();
-    runtime.devGateway = undefined;
+  if (runtime.devSockets && runtime.devSockets.port !== port) {
+    void runtime.devSockets.io.close();
+    runtime.devSockets = undefined;
   }
-  if (!runtime.devGateway) {
-    const server = createServer((_request, response) => {
-      response
-        .writeHead(404, { 'content-type': 'text/plain' })
-        .end('Not Found');
-    });
-    runtime.devGateway = { server, port };
-    try {
-      await new Promise<void>((resolve, reject) => {
-        server.once('error', reject);
-        server.listen(port, '127.0.0.1', () => {
-          server.off('error', reject);
-          resolve();
-        });
-      });
-    } catch (error) {
-      runtime.devGateway = undefined;
-      throw error;
-    }
-    server.unref();
-    console.log(
-      `Agent WebSocket dev gateway listening on ws://127.0.0.1:${port}`,
-    );
+  if (runtime.devSockets) {
+    runtime.devSockets.options = options;
+    return;
   }
-  runtime.devGateway.detach?.();
-  runtime.devGateway.detach = attachAgentGateway(
-    runtime.devGateway.server,
-    {
+  const server = createServer();
+  const devSockets: NonNullable<PrintRuntime['devSockets']> = {
+    server,
+    port,
+    options,
+    io: attachWebSockets(server, {
       getHub: () => runtime.hub,
-      authenticate: (token) => authenticateAgent(runtime, token),
-      rejectUnknownPaths: true,
-    },
+      verify: (...args) => devSockets.options.verify(...args),
+    }),
+  };
+  runtime.devSockets = devSockets;
+  try {
+    await new Promise<void>((resolve, reject) => {
+      server.once('error', reject);
+      server.listen(port, '127.0.0.1', () => {
+        server.off('error', reject);
+        resolve();
+      });
+    });
+  } catch (error) {
+    runtime.devSockets = undefined;
+    void devSockets.io.close();
+    throw error;
+  }
+  server.unref();
+  console.log(
+    `socket.io dev server listening on http://127.0.0.1:${port}`,
   );
 }
 
@@ -157,9 +157,8 @@ export function shutdownPrintRuntime(): void {
     clearInterval(runtime.cleanupTimer);
   }
   runtime.hub.dispose();
-  if (runtime.devGateway) {
-    runtime.devGateway.detach?.();
-    runtime.devGateway.server.close();
+  if (runtime.devSockets) {
+    void runtime.devSockets.io.close();
   }
   runtime.db.close();
 }

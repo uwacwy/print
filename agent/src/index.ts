@@ -1,14 +1,17 @@
 import { setTimeout as delay } from 'node:timers/promises';
 import {
-  AGENT_WS_PATH,
+  AGENT_NAMESPACE,
   agentJobFilePath,
   agentJobStatusPath,
-  HEARTBEAT_INTERVAL_MS,
-  parseServerMessage,
+  parseAgentJobs,
+  SOCKET_PATH,
+  SYNC_INTERVAL_MS,
+  type AgentClientEvents,
   type AgentJob,
+  type AgentServerEvents,
   type JobReport,
 } from '@uwacwy/print-shared';
-import WebSocket from 'ws';
+import { io, type Socket } from 'socket.io-client';
 import { createPrinter, type IPrinter } from './printer/printer.js';
 
 const serverUrlText = process.env.PRINT_SERVER_URL;
@@ -35,12 +38,12 @@ if (
   throw new Error('PRINT_SERVER_URL must use HTTP or HTTPS.');
 }
 const apiOrigin = serverUrl.origin;
-const wsUrl = new URL(AGENT_WS_PATH, serverUrl);
-wsUrl.protocol = serverUrl.protocol === 'https:' ? 'wss:' : 'ws:';
+type AgentSocket = Socket<AgentServerEvents, AgentClientEvents>;
 const activeJobs = new Set<string>();
 let stopping = false;
-let retryDelay = 1000;
-let currentSocket: WebSocket | undefined;
+let currentSocket: AgentSocket | undefined;
+let syncTimer: NodeJS.Timeout | undefined;
+let retryTimer: NodeJS.Timeout | undefined;
 let jobChain = Promise.resolve();
 let printer: IPrinter;
 
@@ -93,7 +96,7 @@ async function report(
 
 async function processJob(
   job: AgentJob,
-  socket: WebSocket,
+  socket: AgentSocket,
 ): Promise<void> {
   if (
     !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
@@ -151,7 +154,8 @@ async function processJob(
     log(
       `Could not process or acknowledge job ${job.id}: ${error instanceof Error ? error.message : error}`,
     );
-    socket.terminate();
+    // Reconnecting requeues the job on the server, so it is offered again.
+    socket.disconnect().connect();
   } finally {
     activeJobs.delete(job.id);
   }
@@ -160,71 +164,83 @@ async function processJob(
 async function run(): Promise<void> {
   printer = await createPrinter(printerUriText!, maximumPdfBytes);
   log(`Using ${printer.constructor.name}.`);
-  while (!stopping) {
-    const socket = new WebSocket(wsUrl, {
-      headers: { authorization: `Bearer ${token}` },
-      perMessageDeflate: false,
-    });
-    currentSocket = socket;
-    let syncTimer: NodeJS.Timeout | undefined;
-    await new Promise<void>((resolve) => {
-      socket.once('open', () => {
-        retryDelay = 1000;
-        log('Connected to print server.');
-        socket.send(JSON.stringify({ type: 'sync' }));
-        syncTimer = setInterval(() => {
-          if (socket.readyState === WebSocket.OPEN) {
-            socket.send(JSON.stringify({ type: 'sync' }));
-          }
-        }, HEARTBEAT_INTERVAL_MS);
-      });
-      socket.on('message', (raw) => {
-        const message = parseServerMessage(raw.toString());
-        if (message?.type === 'hello') {
-          log(`Registered for ${message.printer.name}.`);
-        }
-        if (message?.type === 'jobs') {
-          jobChain = jobChain.then(async () => {
-            for (const job of message.jobs) {
-              await processJob(job, socket);
-            }
-          });
-        }
-      });
-      socket.on('error', (error) =>
-        log(`Connection error: ${error.message}`),
-      );
-      socket.once('close', () => {
-        if (syncTimer) {
-          clearInterval(syncTimer);
-        }
-        if (currentSocket === socket) {
-          currentSocket = undefined;
-        }
-        log('Disconnected; reconnecting.');
-        resolve();
-      });
-    });
-    if (!stopping) {
-      const jitter = Math.floor((Math.random() * retryDelay) / 3);
-      await delay(retryDelay + jitter);
-      retryDelay = Math.min(retryDelay * 2, 60_000);
-    }
+  if (stopping) {
+    return;
   }
+  const socket: AgentSocket = io(
+    new URL(AGENT_NAMESPACE, serverUrl).href,
+    {
+      path: SOCKET_PATH,
+      transports: ['websocket'],
+      auth: { token },
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 60_000,
+    },
+  );
+  currentSocket = socket;
+
+  // socket.io retries dropped connections itself, but not rejected handshakes or
+  // server-initiated disconnects (a replaced connection, a rotated token, a server reload).
+  let retryDelay = 1000;
+  const reconnect = () => {
+    if (stopping) {
+      return;
+    }
+    clearTimeout(retryTimer);
+    const jitter = Math.floor((Math.random() * retryDelay) / 3);
+    retryTimer = setTimeout(
+      () => socket.connect(),
+      retryDelay + jitter,
+    );
+    retryDelay = Math.min(retryDelay * 2, 60_000);
+  };
+
+  socket.on('connect', () => {
+    retryDelay = 1000;
+    log('Connected to print server.');
+    socket.emit('sync');
+  });
+  socket.on('hello', (registered) =>
+    log(`Registered for ${registered.name}.`),
+  );
+  socket.on('jobs', (value) => {
+    const jobs = parseAgentJobs(value);
+    if (!jobs) {
+      return;
+    }
+    jobChain = jobChain.then(async () => {
+      for (const job of jobs) {
+        await processJob(job, socket);
+      }
+    });
+  });
+  socket.on('connect_error', (error) => {
+    log(`Connection error: ${error.message}`);
+    if (!socket.active) {
+      reconnect();
+    }
+  });
+  socket.on('disconnect', (reason) => {
+    log(`Disconnected (${reason}).`);
+    if (reason === 'io server disconnect') {
+      reconnect();
+    }
+  });
+  // Picks up jobs whose push was missed, e.g. queued while a dispatch raced a reconnect.
+  syncTimer = setInterval(() => {
+    if (socket.connected) {
+      socket.emit('sync');
+    }
+  }, SYNC_INTERVAL_MS);
 }
 
 function shutdown(): void {
   stopping = true;
-  // A stalled close handshake must not keep the agent printing after it was told to stop.
+  // In-flight work must not keep the agent printing after it was told to stop.
   setTimeout(() => process.exit(0), 5000).unref();
-  if (!currentSocket) {
-    return;
-  }
-  if (currentSocket.readyState === WebSocket.OPEN) {
-    currentSocket.close(1000, 'Agent shutting down');
-  } else {
-    currentSocket.terminate();
-  }
+  clearInterval(syncTimer);
+  clearTimeout(retryTimer);
+  currentSocket?.disconnect();
 }
 
 process.once('SIGINT', shutdown);

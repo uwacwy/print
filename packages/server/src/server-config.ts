@@ -69,8 +69,8 @@ const ServerEnvironment = z.object({
   /** Comma-separated client IDs of service apps (e.g. Windmill) allowed to submit print jobs. */
   ENTRA_AUTOMATION_CLIENT_IDS: z.string().optional(),
   ENTRA_AUTOMATION_ROLE: z.string().min(1).default('Jobs.Submit'),
-  /** `ng serve` only: side port for the agent WebSocket, reached through proxy.conf.json. 0 disables it. */
-  AGENT_DEV_GATEWAY_PORT: z.coerce
+  /** `ng serve` only: side port for socket.io, reached through proxy.conf.json. 0 disables it. */
+  SOCKET_DEV_PORT: z.coerce
     .number()
     .int()
     .min(0)
@@ -105,7 +105,7 @@ export interface ServerConfig {
   retentionMs: number;
   upload: UploadConfig;
   entra: EntraUserOptions;
-  agentDevGatewayPort: number | undefined;
+  socketDevPort: number | undefined;
 }
 
 /**
@@ -187,8 +187,8 @@ export function loadServerConfig(
       adminRole: e.ENTRA_ADMIN_ROLE,
       adminGroupIds: splitList(e.ENTRA_ADMIN_GROUP_IDS),
     },
-    agentDevGatewayPort:
-      (e.AGENT_DEV_GATEWAY_PORT ?? (devServer ? 4201 : 0)) ||
+    socketDevPort:
+      (e.SOCKET_DEV_PORT ?? (devServer ? 4201 : 0)) ||
       undefined,
   };
 }

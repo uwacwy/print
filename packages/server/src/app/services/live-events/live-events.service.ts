@@ -1,62 +1,40 @@
 import { isPlatformBrowser } from '@angular/common';
-import { inject, PLATFORM_ID, Service, signal } from '@angular/core';
+import {
+  inject,
+  InjectionToken,
+  PLATFORM_ID,
+  Service,
+  signal,
+} from '@angular/core';
 import { MsalService } from '@azure/msal-angular';
 import {
-  LIVE_EVENTS_PATH,
+  LIVE_NAMESPACE,
+  SOCKET_PATH,
   type LiveEvent,
+  type LiveServerEvents,
 } from '@uwacwy/print-shared';
 import { firstValueFrom, Observable, share } from 'rxjs';
+import { io, type Socket } from 'socket.io-client';
 import { getApiScope } from '../../auth/msal.config';
 
 export type { LiveEvent };
 
+/** The socket.io client factory; replaced in tests. */
+export const SOCKET_IO = new InjectionToken<typeof io>('SOCKET_IO', {
+  factory: () => io,
+});
+
+const MIN_RETRY_MS = 1000;
 const MAX_RETRY_MS = 30_000;
 
-/** Splits buffered SSE text into complete `data:` payloads and the unfinished remainder. */
-export function parseSseFrames(buffer: string): {
-  events: LiveEvent[];
-  rest: string;
-} {
-  const frames = buffer.replace(/\r\n/g, '\n').split('\n\n');
-  const rest = frames.pop() ?? '';
-  const events: LiveEvent[] = [];
-  for (const frame of frames) {
-    const data = frame
-      .split('\n')
-      .filter((line) => line.startsWith('data:'))
-      .map((line) => line.slice(5).trimStart())
-      .join('\n');
-    if (!data) {
-      continue;
-    }
-    try {
-      events.push(JSON.parse(data) as LiveEvent);
-    } catch {
-      // Ignore malformed frames rather than dropping the stream.
-    }
-  }
-  return { events, rest };
-}
-
-function wait(ms: number, signal: AbortSignal): Promise<void> {
-  return new Promise((resolve) => {
-    const timer = setTimeout(resolve, ms);
-    signal.addEventListener(
-      'abort',
-      () => (clearTimeout(timer), resolve()),
-      { once: true },
-    );
-  });
-}
-
 /**
- * Admin live updates over Server-Sent Events.
- * Uses fetch rather than EventSource because the stream needs the MSAL bearer token.
+ * Admin live updates over the socket.io `/live` namespace, authenticated with the MSAL token.
  * The connection is shared and only open while at least one subscriber is listening.
  */
 @Service()
 export class LiveEventsService {
   readonly #msal = inject(MsalService);
+  readonly #io = inject(SOCKET_IO);
   readonly #isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
   readonly #onlinePrinterIds = signal<ReadonlySet<number>>(
     new Set(),
@@ -71,68 +49,61 @@ export class LiveEventsService {
       if (!this.#isBrowser) {
         return;
       }
-      const controller = new AbortController();
-      void this.#run(controller.signal, (event) => {
+      const socket: Socket<LiveServerEvents> = this.#io(
+        LIVE_NAMESPACE,
+        {
+          path: SOCKET_PATH,
+          // Called on every attempt, so reconnects pick up refreshed tokens.
+          auth: (send) =>
+            this.#accessToken().then(
+              (token) => send({ token }),
+              () => send({}),
+            ),
+          reconnectionDelay: MIN_RETRY_MS,
+          reconnectionDelayMax: MAX_RETRY_MS,
+        },
+      );
+
+      // socket.io retries dropped transports itself, but not rejected handshakes or
+      // server-initiated disconnects (e.g. a server reload), so those retry here.
+      let retryMs = MIN_RETRY_MS;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const retry = () => {
+        clearTimeout(timer);
+        timer = setTimeout(
+          () => socket.connect(),
+          retryMs + Math.floor(Math.random() * (retryMs / 3)),
+        );
+        retryMs = Math.min(retryMs * 2, MAX_RETRY_MS);
+      };
+
+      socket.on('connect', () => {
+        retryMs = MIN_RETRY_MS;
+        this.#connected.set(true);
+      });
+      socket.on('disconnect', (reason) => {
+        this.#connected.set(false);
+        if (reason === 'io server disconnect') {
+          retry();
+        }
+      });
+      socket.on('connect_error', () => {
+        if (!socket.active) {
+          retry();
+        }
+      });
+      socket.on('live', (event) => {
         this.#apply(event);
         subscriber.next(event);
       });
+
       return () => {
-        controller.abort();
+        clearTimeout(timer);
+        socket.disconnect();
         this.#connected.set(false);
       };
     },
   ).pipe(share());
-
-  async #run(
-    signal: AbortSignal,
-    emit: (event: LiveEvent) => void,
-  ): Promise<void> {
-    let retryMs = 1000;
-    while (!signal.aborted) {
-      try {
-        const response = await fetch(LIVE_EVENTS_PATH, {
-          headers: {
-            accept: 'text/event-stream',
-            authorization: `Bearer ${await this.#accessToken()}`,
-          },
-          cache: 'no-store',
-          signal,
-        });
-        if (!response.ok || !response.body) {
-          throw new Error(
-            `Event stream failed (${response.status})`,
-          );
-        }
-        this.#connected.set(true);
-        retryMs = 1000;
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done) {
-            break;
-          }
-          const parsed = parseSseFrames(
-            buffer + decoder.decode(value, { stream: true }),
-          );
-          buffer = parsed.rest;
-          parsed.events.forEach(emit);
-        }
-      } catch {
-        // Network errors and aborts both fall through to the reconnect delay below.
-      }
-      this.#connected.set(false);
-      if (signal.aborted) {
-        return;
-      }
-      await wait(
-        retryMs + Math.floor(Math.random() * (retryMs / 3)),
-        signal,
-      );
-      retryMs = Math.min(retryMs * 2, MAX_RETRY_MS);
-    }
-  }
 
   async #accessToken(): Promise<string> {
     const scope = getApiScope();

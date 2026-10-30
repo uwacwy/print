@@ -36,7 +36,7 @@ import {
   formatPin,
   generatePin,
 } from '../../middleware/auth/pin/pin';
-import type { AgentHub } from '../../../realtime/agent-hub';
+import type { AgentHub } from '../../sockets/agent-hub/agent-hub';
 import type { UploadConfig } from '../../../server-config';
 import { UploadError } from '../../helpers/errors';
 import { copiesValid, jobTitle } from '../../helpers/jobs';
@@ -403,7 +403,7 @@ export default function printersRouter({
       .delete('/:slug', admin, async (_request, response) => {
         const { id } = printerOf(response);
         const jobIds = deletePrinter(db, id) ?? [];
-        getHub().disconnect(id, 'Printer deleted');
+        getHub().disconnect(id);
         await Promise.all(
           jobIds.map((jobId) =>
             rm(join(jobsDir, `${jobId}.pdf`), { force: true }),
@@ -525,7 +525,7 @@ export default function printersRouter({
       .post('/:slug/agent-token', admin, (_request, response) => {
         const printer = printerOf(response);
         const agentToken = rotatePrinterToken(db, printer.id)!;
-        getHub().disconnect(printer.id, 'Token rotated');
+        getHub().disconnect(printer.id);
         response.json({ printer: summary(printer), agentToken });
       })
   );

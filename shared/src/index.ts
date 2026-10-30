@@ -7,15 +7,20 @@ export const JOB_STATUSES = [
 ] as const;
 export type JobStatus = (typeof JOB_STATUSES)[number];
 
-export const AGENT_WS_PATH = '/agent/ws';
+/** socket.io endpoint shared by every namespace; the dev proxy forwards it to the socket server. */
+export const SOCKET_PATH = '/socket.io';
+/** Print agents, authenticated with their printer's agent token. */
+export const AGENT_NAMESPACE = '/agent';
+/** Management UI live updates, authenticated with an Entra access token. */
+export const LIVE_NAMESPACE = '/live';
+
 export const agentJobFilePath = (jobId: string): string =>
   `/agent/jobs/${encodeURIComponent(jobId)}/file`;
 export const agentJobStatusPath = (jobId: string): string =>
   `/agent/jobs/${encodeURIComponent(jobId)}/status`;
 
-export const HEARTBEAT_INTERVAL_MS = 25_000;
-// Agents treat the server as gone after missing roughly two pings.
-export const HEARTBEAT_TIMEOUT_MS = 60_000;
+/** How often agents ask for queued jobs, in case a push was missed. */
+export const SYNC_INTERVAL_MS = 25_000;
 export const MAX_ERROR_LENGTH = 500;
 
 export const PRINTER_SLUG_PATTERN =
@@ -26,14 +31,27 @@ export interface AgentJob {
   title: string;
 }
 
-export type ServerMessage =
-  | { type: 'hello'; printer: { slug: string; name: string } }
-  | { type: 'jobs'; jobs: AgentJob[] };
+/** Events the server emits to an agent on the agent namespace. */
+export interface AgentServerEvents {
+  hello: (printer: { slug: string; name: string }) => void;
+  jobs: (jobs: AgentJob[]) => void;
+}
 
-export type AgentMessage = { type: 'sync' };
+/** Events an agent emits to the server. */
+export interface AgentClientEvents {
+  sync: () => void;
+}
 
-/** Server-Sent Events stream for the management UI of agent connectivity and job progress. */
-export const LIVE_EVENTS_PATH = '/api/events';
+/** Events the server emits to management clients on the live namespace. */
+export interface LiveServerEvents {
+  live: (event: LiveEvent) => void;
+}
+
+/** Sent as `connect_error` data when a namespace rejects the handshake. */
+export interface SocketAuthError {
+  code: string;
+  status: number;
+}
 
 export type LiveEvent =
   | { type: 'snapshot'; onlinePrinterIds: number[] }
@@ -73,43 +91,10 @@ const isAgentJob = (value: unknown): value is AgentJob =>
   typeof value.id === 'string' &&
   typeof value.title === 'string';
 
-export function parseServerMessage(
-  raw: string,
-): ServerMessage | undefined {
-  let value: unknown;
-  try {
-    value = JSON.parse(raw);
-  } catch {
-    return undefined;
-  }
-  if (!isRecord(value)) {
-    return undefined;
-  }
-  if (value.type === 'hello' && isRecord(value.printer)) {
-    const { slug, name } = value.printer;
-    if (typeof slug === 'string' && typeof name === 'string') {
-      return { type: 'hello', printer: { slug, name } };
-    }
-  }
-  if (
-    value.type === 'jobs' &&
-    Array.isArray(value.jobs) &&
-    value.jobs.every(isAgentJob)
-  ) {
-    return { type: 'jobs', jobs: value.jobs };
-  }
-  return undefined;
-}
-
-export function parseAgentMessage(
-  raw: string,
-): AgentMessage | undefined {
-  try {
-    const value: unknown = JSON.parse(raw);
-    return isRecord(value) && value.type === 'sync'
-      ? { type: 'sync' }
-      : undefined;
-  } catch {
-    return undefined;
-  }
-}
+/** Validates a pushed job list before the agent acts on it. */
+export const parseAgentJobs = (
+  value: unknown,
+): AgentJob[] | undefined =>
+  Array.isArray(value) && value.every(isAgentJob)
+    ? value
+    : undefined;

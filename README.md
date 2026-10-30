@@ -15,21 +15,27 @@ Once the server is running, open your browser and navigate to `http://localhost:
 ### Print agents in development
 
 Point a print agent at `PRINT_SERVER_URL=http://localhost:4200`. The Angular dev server cannot hand
-WebSocket upgrades to `server.ts`, so under `ng serve` the server opens a loopback-only agent gateway on
-port 4201 (`AGENT_DEV_GATEWAY_PORT`), and `proxy.conf.json` forwards `/agent/ws` to it. The server
+WebSocket upgrades to `server.ts`, so under `ng serve` the server runs socket.io on a loopback-only
+side port 4201 (`SOCKET_DEV_PORT`), and `proxy.conf.json` forwards `/socket.io` to it. The server
 loads `server/.env` itself, so `ng serve` and `npm start` behave the same.
-Agent state is kept on `globalThis`, so connected agents survive rebuilds. The only exception is an
-edit to `realtime/agent-hub.ts`, which closes agents with code 1012 so they reconnect to the new code.
+Agent state is kept on `globalThis`, so connected agents survive rebuilds. An edit to
+`api/sockets/agent-hub/agent-hub.ts` disconnects agents and live clients so they reconnect to the new
+code; edits to the namespaces in `api/sockets/` need a dev-server restart.
 
 In production (`npm run build`, then `node dist/print-server/server/server.mjs`), one process on
-`PORT` serves pages, the REST API, admin live updates (SSE), and `/agent/ws`.
+`PORT` serves pages, the REST API, and socket.io (`/socket.io`) for agents and admin live updates.
 
 ### Server code layout
 
 Everything the Angular server runs lives in `packages/server/src`:
 
-- `api/`: the REST API, uploads, and SSE
-  - `routers/`: one router per path segment (`printers`, `events`, `session`, `agent`)
+- `api/`: the REST API, uploads, and realtime sockets
+  - `routers/`: one router per path segment (`printers`, `session`, `agent`)
+  - `sockets/`: socket.io namespaces bound to the HTTP server by `attachWebSockets()`
+    - `agent/`: `/agent`, where print agents (`agentToken`) receive `hello` and `jobs` and send `sync`
+    - `live/`: `/live`, where managers (`entraUser`) receive `live` agent and job events
+    - `agent-hub/`: tracks each printer's agent socket, dispatches queued jobs, and publishes live events
+    - `handshake/`: authenticates `auth.token` with the same Passport strategies as the REST API
   - `middleware/auth/`: Passport strategies and `authenticate(...)`, plus the upload token and PIN code they verify
   - `middleware/`: rate limits and the same-origin upload guard
   - `helpers/`: pure helpers grouped by topic
@@ -38,7 +44,7 @@ Everything the Angular server runs lives in `packages/server/src`:
 
   Each router and middleware lives in its own directory beside its tests, for example
   `middleware/auth/pin/pin.strategy.ts` and `pin.strategy.test.ts`.
-- `realtime/`: the agent WebSocket hub and gateway
+- `realtime/`: process-wide runtime state (database, hub, cleanup timer, dev socket server)
 - `lib/database/`: the SQLite database and job file storage, shared by `api/` and `realtime/`
 
 The legacy Fastify server in `server/src` (`npm run dev:server`, `npm run admin`) is being replaced by
@@ -62,7 +68,6 @@ succeeds wins; when none succeed, the response explains the most relevant failur
 | --------------------------------------------------------- | ------------------------------------------------ |
 | `GET /api/healthz`                                        | anyone                                           |
 | `GET /api/session`                                        | `entraUser`                                      |
-| `GET /api/events` (SSE)                                   | `entraUser`                                      |
 | `GET, POST /api/printers`                                 | `entraUser`                                      |
 | `GET /api/printers/:slug`                                 | anyone (`entraUser` also gets management fields) |
 | `PATCH, DELETE /api/printers/:slug`                       | `entraUser`                                      |
@@ -74,6 +79,8 @@ succeeds wins; when none succeed, the response explains the most relevant failur
 | `POST, DELETE /api/printers/:slug/pin`                    | `entraUser`                                      |
 | `POST /api/printers/:slug/agent-token`                    | `entraUser` (rotates the agent token)            |
 | `GET /agent/jobs/:id/file`, `POST /agent/jobs/:id/status` | `agentToken`                                     |
+| socket.io namespace `/agent` (`auth: { token }`)          | `agentToken`                                     |
+| socket.io namespace `/live` (`auth: { token }`)           | `entraUser`                                      |
 
 Browser uploads and PIN exchanges must also send `x-print-upload: 1` from the same origin. In the
 SPA, MSAL adds the Entra token only for signed-in users, and only to requests that don't already

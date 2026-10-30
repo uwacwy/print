@@ -8,7 +8,7 @@ import {
   reportJob,
   type PrintDatabase,
 } from '../../helpers/database/database';
-import type { AgentHub } from '../../../realtime/agent-hub';
+import type { AgentHub } from '../../sockets/agent-hub/agent-hub';
 import { createAuthenticate } from '../../middleware/auth/passport/passport';
 import { principal } from '../../middleware/auth/principal';
 

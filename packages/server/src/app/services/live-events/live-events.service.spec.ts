@@ -2,29 +2,38 @@ import { PLATFORM_ID } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MsalService } from '@azure/msal-angular';
 import { of } from 'rxjs';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   LiveEventsService,
-  parseSseFrames,
+  SOCKET_IO,
   type LiveEvent,
 } from './live-events.service';
 
-describe('parseSseFrames', () => {
-  it('returns complete frames and keeps the partial remainder', () => {
-    const { events, rest } = parseSseFrames(
-      'retry: 3000\n\nevent: snapshot\ndata: {"type":"snapshot","onlinePrinterIds":[1]}\n\n: ping\n\ndata: {"type":"ag',
-    );
-    expect(events).toEqual([
-      { type: 'snapshot', onlinePrinterIds: [1] },
-    ]);
-    expect(rest).toBe('data: {"type":"ag');
+/** Just enough of a socket.io client socket to drive the service. */
+class FakeSocket {
+  active = true;
+  readonly handlers = new Map<string, (...args: never[]) => void>();
+  readonly connect = vi.fn();
+  readonly disconnect = vi.fn(() => {
+    this.active = false;
   });
-});
+
+  on(event: string, handler: (...args: never[]) => void) {
+    this.handlers.set(event, handler);
+    return this;
+  }
+
+  fire(event: string, ...args: unknown[]) {
+    (this.handlers.get(event) as (...args: unknown[]) => void)(
+      ...args,
+    );
+  }
+}
 
 describe('LiveEventsService', () => {
-  afterEach(() => vi.unstubAllGlobals());
-
   function setup(platform = 'browser') {
+    const socket = new FakeSocket();
+    const io = vi.fn(() => socket);
     const msal = {
       instance: {
         getActiveAccount: () => ({ homeAccountId: 'a' }),
@@ -38,61 +47,82 @@ describe('LiveEventsService', () => {
       providers: [
         { provide: MsalService, useValue: msal },
         { provide: PLATFORM_ID, useValue: platform },
+        { provide: SOCKET_IO, useValue: io },
       ],
     });
-    return { service: TestBed.inject(LiveEventsService), msal };
+    return {
+      service: TestBed.inject(LiveEventsService),
+      io,
+      socket,
+    };
   }
 
-  it('streams events with the bearer token and tracks online printers', async () => {
-    const encoder = new TextEncoder();
-    const body = new ReadableStream<Uint8Array>({
-      start(controller) {
-        controller.enqueue(
-          encoder.encode(
-            'data: {"type":"snapshot","onlinePrinterIds":[1,2]}\n\n',
-          ),
-        );
-        controller.enqueue(
-          encoder.encode(
-            'data: {"type":"agent","printerId":2,"online":false,',
-          ),
-        );
-        controller.enqueue(encoder.encode('"lastSeenAt":null}\n\n'));
-      },
-    });
-    const fetchMock = vi.fn(
-      async () => new Response(body, { status: 200 }),
-    );
-    vi.stubGlobal('fetch', fetchMock);
-    const { service } = setup();
-
+  it('connects to /live with the MSAL token and tracks online printers', async () => {
+    const { service, io, socket } = setup();
     const received: LiveEvent[] = [];
     const subscription = service.events.subscribe((event) =>
       received.push(event),
     );
-    await vi.waitFor(() => expect(received).toHaveLength(2));
 
-    const [url, init] = fetchMock.mock.calls[0] as unknown as [
+    const [namespace, options] = io.mock.calls[0] as unknown as [
       string,
-      RequestInit,
+      {
+        path: string;
+        auth: (send: (data: object) => void) => Promise<void>;
+      },
     ];
-    expect(url).toBe('/api/events');
-    expect(
-      (init.headers as Record<string, string>)['authorization'],
-    ).toBe('Bearer token-123');
-    expect([...service.onlinePrinterIds()]).toEqual([1]);
+    expect(namespace).toBe('/live');
+    expect(options.path).toBe('/socket.io');
+    const auth = vi.fn();
+    await options.auth(auth);
+    expect(auth).toHaveBeenCalledWith({ token: 'token-123' });
+
+    socket.fire('connect');
     expect(service.connected()).toBe(true);
+    socket.fire('live', {
+      type: 'snapshot',
+      onlinePrinterIds: [1, 2],
+    });
+    socket.fire('live', {
+      type: 'agent',
+      printerId: 2,
+      online: false,
+      lastSeenAt: null,
+    });
+    expect(received).toHaveLength(2);
+    expect([...service.onlinePrinterIds()]).toEqual([1]);
 
     subscription.unsubscribe();
+    expect(socket.disconnect).toHaveBeenCalled();
     expect(service.connected()).toBe(false);
-    expect((init.signal as AbortSignal).aborted).toBe(true);
+  });
+
+  it('reconnects after the server drops the socket or rejects the handshake', () => {
+    vi.useFakeTimers();
+    try {
+      const { service, socket } = setup();
+      const subscription = service.events.subscribe();
+
+      socket.fire('connect');
+      socket.fire('disconnect', 'io server disconnect');
+      expect(service.connected()).toBe(false);
+      vi.advanceTimersByTime(2000);
+      expect(socket.connect).toHaveBeenCalledTimes(1);
+
+      socket.active = false;
+      socket.fire('connect_error', new Error('Unauthorized'));
+      vi.advanceTimersByTime(3000);
+      expect(socket.connect).toHaveBeenCalledTimes(2);
+
+      subscription.unsubscribe();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('does not connect during server rendering', () => {
-    const fetchMock = vi.fn();
-    vi.stubGlobal('fetch', fetchMock);
-    const { service } = setup('server');
+    const { service, io } = setup('server');
     service.events.subscribe().unsubscribe();
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(io).not.toHaveBeenCalled();
   });
 });

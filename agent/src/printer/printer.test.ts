@@ -2,7 +2,7 @@ import { EventEmitter } from 'node:events';
 import { readFileSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { parseServerMessage } from '@uwacwy/print-shared';
+import { parseAgentJobs } from '@uwacwy/print-shared';
 import {
   chooseDocumentFormat,
   convertPdfToPclm,
@@ -28,17 +28,9 @@ beforeEach(() => vi.clearAllMocks());
 
 describe('printer drivers', () => {
   it('accepts assembled jobs without a printer-level copy count', () => {
-    expect(
-      parseServerMessage(
-        JSON.stringify({
-          type: 'jobs',
-          jobs: [{ id: 'job-1', title: 'W-2' }],
-        }),
-      ),
-    ).toEqual({
-      type: 'jobs',
-      jobs: [{ id: 'job-1', title: 'W-2' }],
-    });
+    expect(parseAgentJobs([{ id: 'job-1', title: 'W-2' }])).toEqual([
+      { id: 'job-1', title: 'W-2' },
+    ]);
   });
 
   it('routes cups:// to CUPS without querying IPP and preserves the queue name', async () => {

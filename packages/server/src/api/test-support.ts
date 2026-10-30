@@ -2,20 +2,21 @@ import { createServer, type Server } from 'node:http';
 import express from 'express';
 import { PDFDocument } from 'pdf-lib';
 import { afterEach, beforeEach, expect } from 'vitest';
-import { AGENT_WS_PATH } from '@uwacwy/print-shared';
+import type { Server as SocketServer } from 'socket.io';
 import {
   getPrinterBySlug,
-  getPrinterByToken,
   type PrintDatabase,
 } from './helpers/database/database';
 import { signUploadToken } from './middleware/auth/upload-token/upload-token';
-import { attachAgentGateway } from '../realtime/agent-gateway';
-import { AgentHub } from '../realtime/agent-hub';
+import { createAuthenticate } from './middleware/auth/passport/passport';
+import { AgentHub } from './sockets/agent-hub/agent-hub';
+import { attachWebSockets } from './sockets/sockets';
 import {
   closeServer,
   listen,
   tempDatabase,
   TestAgent,
+  TestLiveClient,
   testEntra,
   testUploadConfig,
 } from '../realtime/test-support';
@@ -49,7 +50,7 @@ export interface StartOptions {
 }
 
 /**
- * Serves `/api`, `/agent`, and the agent WebSocket gateway over a fresh database for each
+ * Serves `/api`, `/agent`, and socket.io over a fresh database for each
  * test, trusting a stand-in Entra tenant unless one is given. Call `start()` in a test or
  * `beforeEach`; calling it again restarts the server.
  */
@@ -60,34 +61,40 @@ export function useApiServer(defaults: StartOptions = {}) {
   let cleanup: () => Promise<void>;
   let hub: AgentHub;
   let server: Server | undefined;
+  let io: SocketServer | undefined;
   let host: string;
   let upload: UploadConfig;
-  const agents: TestAgent[] = [];
+  const clients: { close(): void }[] = [];
 
   beforeEach(async () => {
     ({ db, jobsDir, cleanup } = await tempDatabase());
-    hub = new AgentHub(db, { heartbeatIntervalMs: 60_000 });
+    hub = new AgentHub(db);
   });
 
   afterEach(async () => {
-    for (const agent of agents.splice(0)) {
-      agent.socket.terminate();
+    for (const client of clients.splice(0)) {
+      client.close();
     }
     hub.dispose();
+    await stop();
+    await cleanup();
+  });
+
+  const stop = async () => {
+    // Disconnects every socket; closeServer then drops the remaining HTTP connections.
+    void io?.close();
+    io = undefined;
     if (server) {
       await closeServer(server);
       server = undefined;
     }
-    await cleanup();
-  });
+  };
 
   const start = async ({
     upload: uploadConfig = defaults.upload ?? testUploadConfig,
     entra = defaultEntra,
   }: StartOptions = {}) => {
-    if (server) {
-      await closeServer(server);
-    }
+    await stop();
     upload = uploadConfig;
     const app = express();
     app.use(express.json());
@@ -100,24 +107,33 @@ export function useApiServer(defaults: StartOptions = {}) {
       apiRoot({ db, jobsDir, getHub: () => hub, upload, entra }),
     );
     server = createServer(app);
-    attachAgentGateway(server, {
+    io = attachWebSockets(server, {
       getHub: () => hub,
-      authenticate: (token) => getPrinterByToken(db, token),
-      rejectUnknownPaths: true,
+      verify: createAuthenticate({ db, entra }).verify,
     });
     host = await listen(server);
   };
 
+  /** Opens an agent socket without waiting for its handshake. */
+  const openAgent = (token?: string, namespace?: string) => {
+    const agent = new TestAgent(`http://${host}`, token, namespace);
+    clients.push(agent);
+    return agent;
+  };
+
+  /** Connects an agent and consumes its `hello`. */
   const connectAgent = async (token: string) => {
-    const agent = new TestAgent(
-      `ws://${host}${AGENT_WS_PATH}`,
-      token,
-    );
-    agents.push(agent);
+    const agent = openAgent(token);
     await expect(agent.next()).resolves.toMatchObject({
       type: 'hello',
     });
     return agent;
+  };
+
+  const openLive = (token?: string) => {
+    const client = new TestLiveClient(`http://${host}`, token);
+    clients.push(client);
+    return client;
   };
 
   /** A QR upload token valid from `window.from` to `window.to` hours from now. */
@@ -189,7 +205,9 @@ export function useApiServer(defaults: StartOptions = {}) {
       return upload;
     },
     start,
+    openAgent,
     connectAgent,
+    openLive,
     uploadToken,
     postUpload,
     exchangePin,

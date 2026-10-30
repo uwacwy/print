@@ -1,10 +1,9 @@
 import express from 'express';
 import type { PrintDatabase } from './helpers/database/database';
-import type { AgentHub } from '../realtime/agent-hub';
+import type { AgentHub } from './sockets/agent-hub/agent-hub';
 import type { UploadConfig } from '../server-config';
 import type { EntraUserOptions } from './middleware/auth/entra-user/entra-user.strategy';
 import { createAuthenticate } from './middleware/auth/passport/passport';
-import eventsRouter from './routers/events/events.router';
 import printersRouter from './routers/printers/printers.router';
 import sessionRouter from './routers/session/session.router';
 
@@ -30,9 +29,5 @@ export default (options: ApiRootOptions) => {
       response.status(200).json({ status: 'ok' }),
     )
     .use('/session', sessionRouter({ authenticate }))
-    .use(
-      '/events',
-      eventsRouter({ getHub: options.getHub, authenticate }),
-    )
     .use('/printers', printersRouter({ ...options, authenticate }));
 };

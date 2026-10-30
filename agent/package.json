@@ -10,11 +10,10 @@
   "dependencies": {
     "@uwacwy/print-shared": "1.0.0",
     "ipp": "^1.1.0",
-    "ws": "^8.18.3"
+    "socket.io-client": "^4.8.4"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
-    "@types/ws": "^8.18.1",
     "esbuild": "^0.25.0",
     "typescript": "~5.9.3"
   }
