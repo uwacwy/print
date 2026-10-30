@@ -13,19 +13,22 @@ services:
     environment:
       HOST: 0.0.0.0
       PORT: 8080
+      AGENT_DEV_GATEWAY_PORT: 4201
       DATA_DIR: /data
       NODE_ENV: development
-      PUBLIC_URL: http://localhost:8080
+      PUBLIC_URL: http://localhost:${DEV_HTTP_PORT:-4200}
       TRUST_PROXY: "false"
     ports:
-      - "127.0.0.1:${DEV_HTTP_PORT:-8080}:8080"
+      - "127.0.0.1:${DEV_HTTP_PORT:-4200}:4200"
     volumes:
       - ./package.json:/app/package.json:ro
       - ./package-lock.json:/app/package-lock.json:ro
       - ./server/package.json:/app/server/package.json:ro
       - ./shared/package.json:/app/shared/package.json:ro
       - ./agent/package.json:/app/agent/package.json:ro
-      - ./server/src:/app/server/src:ro
+      - ./angular.json:/app/angular.json:ro
+      - ./proxy.conf.json:/app/proxy.conf.json:ro
+      - ./packages:/app/packages:ro
       - ./shared/src:/app/shared/src:ro
       - print_dev_data:/data
     healthcheck:
@@ -34,7 +37,7 @@ services:
           CMD,
           node,
           -e,
-          "fetch('http://127.0.0.1:8080/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+          "fetch('http://127.0.0.1:4200/api/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
         ]
       interval: 10s
       timeout: 3s

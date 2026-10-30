@@ -31,6 +31,31 @@ export type ServerMessage =
 
 export type AgentMessage = { type: "sync" };
 
+/** Admin Server-Sent Events stream of agent connectivity and job progress. */
+export const ADMIN_EVENTS_PATH = "/api/admin/events";
+
+export type LiveEvent =
+  | { type: "snapshot"; onlinePrinterIds: number[] }
+  | {
+      type: "agent";
+      printerId: number;
+      online: boolean;
+      lastSeenAt: string | null;
+    }
+  | {
+      type: "job";
+      printerId: number;
+      jobId: string;
+      status: JobStatus;
+      activeJobs: number;
+    }
+  | {
+      type: "jobs-deleted";
+      printerId: number;
+      count: number;
+      activeJobs: number;
+    };
+
 export type JobReport =
   | { status: "printed" }
   | { status: "failed"; error: string };

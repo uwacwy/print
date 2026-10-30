@@ -1,8 +1,8 @@
 {
   "extends": "../tsconfig.test.json",
   "compilerOptions": {
-    "rootDir": "src"
+    "rootDir": ".."
   },
-  "include": ["src/**/*.test.ts", "src/**/*.d.ts"],
+  "include": ["src/**/*.test.ts", "src/**/*.d.ts", "../packages/server/src/lib/**/*.test.ts"],
   "references": [{ "path": "../shared" }]
 }

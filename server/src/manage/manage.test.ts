@@ -23,7 +23,7 @@ import {
   openDatabase,
   validatePrinterFields,
   type PrintDatabase,
-} from "../database/database.js";
+} from "../../../packages/server/src/lib/database/database.js";
 import { registerManageRoutes } from "../manage/manage.js";
 import { SessionCookies } from "../session.js";
 import type { EntraConfig } from "../config/config.js";

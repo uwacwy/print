@@ -1,5 +1,8 @@
 import { readFileSync } from "node:fs";
 import { z } from "zod";
+import type { PasscodeConfig } from "../../../packages/server/src/lib/passcode.js";
+
+export type { PasscodeConfig };
 
 const SECRET_FILE_KEYS = ["AUTH_DB_PASSWORD", "ENTRA_CLIENT_SECRET", "SESSION_SECRET"] as const;
 
@@ -111,15 +114,6 @@ const schema = z
 function isLoopbackUrl(value: string): boolean {
   const url = new URL(value);
   return url.protocol === "http:" && ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
-}
-
-export interface PasscodeConfig {
-  query: string;
-  host: string;
-  port: number;
-  user: string;
-  password: string | undefined;
-  database: string;
 }
 
 export interface EntraConfig {

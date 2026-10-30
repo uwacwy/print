@@ -37,7 +37,7 @@ import {
   type JobReport,
 } from "@uwacwy/print-shared";
 import { loadConfig } from "./config/config.js";
-import { addCoverPage } from "./cover-page/cover-page.js";
+import { addCoverPage } from "../../packages/server/src/lib/cover-page/cover-page.js";
 import {
   expireStaleJobs,
   getJobForPrinter,
@@ -52,15 +52,15 @@ import {
   reportJob,
   resetPrintingJobs,
   type PrinterRow,
-} from "./database/database.js";
-import { combineDocuments } from "./document/document.js";
+} from "../../packages/server/src/lib/database/database.js";
+import { combineDocuments } from "../../packages/server/src/lib/document/document.js";
 import { EntraAuth } from "./entra.js";
-import { enqueueJob } from "./jobs.js";
+import { enqueueJob } from "../../packages/server/src/lib/jobs.js";
 import { registerManageRoutes } from "./manage/manage.js";
 
 import { SessionCookies } from "./session.js";
 import { alert, csrfField, issueCsrf, layout, validCsrf } from "./web.js";
-import { isValidPasscode } from "./passcode.js";
+import { isValidPasscode } from "../../packages/server/src/lib/passcode.js";
 
 const config = loadConfig();
 const { db, jobsDir } = openDatabase(config.dataDir);

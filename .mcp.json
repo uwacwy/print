@@ -1,0 +1,27 @@
+{
+	"mcpServers": {
+		"angular-cli": {
+			"type": "stdio",
+			"command": "npx",
+			"args": [
+				"-y",
+				"@angular/cli",
+				"mcp"
+			],
+			"tools": [
+				"*"
+			]
+		},
+		"mcp-refactor-typescript": {
+			"type": "stdio",
+			"command": "npx",
+			"args": [
+				"-y",
+				"mcp-refactor-typescript"
+			],
+			"tools": [
+				"*"
+			]
+		}
+	}
+}

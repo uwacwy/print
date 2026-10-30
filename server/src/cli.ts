@@ -7,7 +7,7 @@ import {
   openDatabase,
   rotatePrinterToken,
   validatePrinterFields,
-} from "./database/database.js";
+} from "../../packages/server/src/lib/database/database.js";
 
 const [command, ...args] = process.argv.slice(2);
 

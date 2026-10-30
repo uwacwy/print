@@ -1,0 +1,8 @@
+{
+  "/agent/ws": {
+    "target": "http://127.0.0.1:4201",
+    "ws": true,
+    "changeOrigin": false,
+    "logLevel": "warn"
+  }
+}

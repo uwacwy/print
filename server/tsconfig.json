@@ -2,10 +2,10 @@
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
     "composite": true,
-    "rootDir": "src",
+    "rootDir": "..",
     "outDir": "dist"
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["src/**/*.test.ts"],
+  "include": ["src/**/*.ts", "../packages/server/src/lib/**/*.ts"],
+  "exclude": ["src/**/*.test.ts", "../packages/server/src/lib/**/*.test.ts"],
   "references": [{ "path": "../shared" }]
 }
