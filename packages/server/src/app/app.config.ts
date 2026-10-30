@@ -10,7 +10,6 @@ import { isPlatformBrowser } from '@angular/common';
 import {
   HTTP_INTERCEPTORS,
   provideHttpClient,
-  type HttpInterceptor,
   withInterceptorsFromDi,
 } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
@@ -32,6 +31,7 @@ import {
   getMsalGuardConfiguration,
   getMsalInterceptorConfiguration,
 } from './auth/msal.config';
+import { SignedInMsalInterceptor } from './auth/signed-in-msal.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -41,16 +41,30 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(withInterceptorsFromDi()),
     {
       provide: MSAL_INSTANCE,
-      useFactory: () => new PublicClientApplication(getMsalConfiguration()),
+      useFactory: () =>
+        new PublicClientApplication(getMsalConfiguration()),
     },
-    { provide: MSAL_GUARD_CONFIG, useValue: getMsalGuardConfiguration() },
-    { provide: MSAL_INTERCEPTOR_CONFIG, useValue: getMsalInterceptorConfiguration() },
+    {
+      provide: MSAL_GUARD_CONFIG,
+      useValue: getMsalGuardConfiguration(),
+    },
+    {
+      provide: MSAL_INTERCEPTOR_CONFIG,
+      useValue: getMsalInterceptorConfiguration(),
+    },
     MsalService,
     MsalGuard,
     MsalBroadcastService,
-    { provide: HTTP_INTERCEPTORS, useClass: MsalInterceptor, multi: true },
+    MsalInterceptor,
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: SignedInMsalInterceptor,
+      multi: true,
+    },
     provideAppInitializer(() => {
-      if (!isPlatformBrowser(inject(PLATFORM_ID))) return;
+      if (!isPlatformBrowser(inject(PLATFORM_ID))) {
+        return;
+      }
       const msal = inject(MsalService);
       return firstValueFrom(
         msal.initialize().pipe(
@@ -60,7 +74,9 @@ export const appConfig: ApplicationConfig = {
               result?.account ??
               msal.instance.getActiveAccount() ??
               msal.instance.getAllAccounts()[0];
-            if (account) msal.instance.setActiveAccount(account);
+            if (account) {
+              msal.instance.setActiveAccount(account);
+            }
           }),
         ),
       );

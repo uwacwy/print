@@ -18,7 +18,11 @@ export interface PrinterSummary extends PrinterInput {
   qrEpoch: number;
 }
 
-export type UploadTokenStatus = 'valid' | 'invalid' | 'expired' | 'not-yet-valid';
+export type UploadTokenStatus =
+  | 'valid'
+  | 'invalid'
+  | 'expired'
+  | 'not-yet-valid';
 
 export interface UploadAccess {
   pinEnabled: boolean;
@@ -87,7 +91,7 @@ export class PrinterService {
   readonly #http = inject(HttpClient);
 
   getPrinter(slug: string, token?: string | null) {
-    return this.#http.get<PublicPrinter>(`/api/printers/${encodeURIComponent(slug)}`, {
+    return this.#http.get<PublicPrinter>(printerUrl(slug), {
       headers: token ? bearer(token) : undefined,
     });
   }
@@ -95,72 +99,109 @@ export class PrinterService {
   /** Trades the printer PIN for a short-lived upload token. */
   exchangePin(slug: string, pin: string) {
     return this.#http.post<IssuedUploadToken>(
-      `/api/printers/${encodeURIComponent(slug)}/token`,
-      { pin },
-      { headers: new HttpHeaders({ 'x-print-upload': '1' }) },
+      `${printerUrl(slug)}/token`,
+      null,
+      {
+        headers: new HttpHeaders({
+          authorization: `Pin ${pin}`,
+          'x-print-upload': '1',
+        }),
+      },
     );
   }
 
-  /** Multipart upload; the header proves same-origin intent (see upload.router.ts). */
+  /** Multipart upload; the header proves same-origin intent (see api/middleware/same-origin.ts). */
   submitJob(slug: string, form: FormData, token: string) {
-    return this.#http.post<SubmittedJob>(`/api/printers/${encodeURIComponent(slug)}/jobs`, form, {
-      headers: bearer(token).set('x-print-upload', '1'),
-    });
+    return this.#http.post<SubmittedJob>(
+      `${printerUrl(slug)}/jobs`,
+      form,
+      {
+        headers: bearer(token).set('x-print-upload', '1'),
+      },
+    );
   }
 
   listAdminPrinters() {
-    return this.#http.get<PrinterSummary[]>('/api/admin/printers');
+    return this.#http.get<PrinterSummary[]>('/api/printers');
   }
 
-  getAdminPrinter(id: number) {
-    return this.#http.get<PrinterSummary>(`/api/admin/printers/${id}`);
+  getAdminPrinter(slug: string) {
+    return this.#http.get<PrinterSummary>(`${printerUrl(slug)}`);
   }
 
   createAdminPrinter(input: PrinterInput) {
-    return this.#http.post<CreatedPrinter>('/api/admin/printers', input);
+    return this.#http.post<CreatedPrinter>('/api/printers', input);
   }
 
-  updateAdminPrinter(id: number, input: PrinterInput) {
-    return this.#http.patch<PrinterSummary>(`/api/admin/printers/${id}`, input);
+  updateAdminPrinter(slug: string, input: PrinterInput) {
+    return this.#http.patch<PrinterSummary>(
+      `${printerUrl(slug)}`,
+      input,
+    );
   }
 
-  deleteAdminPrinter(id: number) {
-    return this.#http.delete<void>(`/api/admin/printers/${id}`);
+  deleteAdminPrinter(slug: string) {
+    return this.#http.delete<void>(`${printerUrl(slug)}`);
   }
 
-  /** Fetched as a blob because admin routes need the MSAL bearer token, which a plain link cannot send. */
-  getQrPoster(id: number, request: QrPosterRequest = {}) {
-    return this.#http.post(`/api/admin/printers/${id}/qr.pdf`, request, { responseType: 'blob' });
+  /** Fetched as a blob because management routes need the MSAL bearer token, which a plain link cannot send. */
+  getQrPoster(slug: string, request: QrPosterRequest = {}) {
+    return this.#http.post(`${printerUrl(slug)}/qr.pdf`, request, {
+      responseType: 'blob',
+    });
   }
 
-  printQrPoster(id: number, request: QrPosterRequest = {}) {
-    return this.#http.post<QueuedQrSheet>(`/api/admin/printers/${id}/qr-print`, request);
+  printQrPoster(slug: string, request: QrPosterRequest = {}) {
+    return this.#http.post<QueuedQrSheet>(
+      `${printerUrl(slug)}/qr-print`,
+      request,
+    );
   }
 
-  issueQrToken(id: number, window: UploadTokenWindow = {}) {
-    return this.#http.post<IssuedQrToken>(`/api/admin/printers/${id}/qr-token`, window);
+  issueQrToken(slug: string, window: UploadTokenWindow = {}) {
+    return this.#http.post<IssuedQrToken>(
+      `${printerUrl(slug)}/qr-token`,
+      window,
+    );
   }
 
   /** Invalidates every QR (and PIN) upload token issued so far for this printer. */
-  revokeQrCodes(id: number) {
-    return this.#http.post<PrinterSummary>(`/api/admin/printers/${id}/qr-epoch`, {});
+  revokeQrCodes(slug: string) {
+    return this.#http.post<PrinterSummary>(
+      `${printerUrl(slug)}/qr-epoch`,
+      {},
+    );
   }
 
-  refreshPin(id: number) {
-    return this.#http.post<PrinterSummary>(`/api/admin/printers/${id}/pin`, {});
+  refreshPin(slug: string) {
+    return this.#http.post<PrinterSummary>(
+      `${printerUrl(slug)}/pin`,
+      {},
+    );
   }
 
-  disablePin(id: number) {
-    return this.#http.delete<PrinterSummary>(`/api/admin/printers/${id}/pin`);
+  disablePin(slug: string) {
+    return this.#http.delete<PrinterSummary>(
+      `${printerUrl(slug)}/pin`,
+    );
   }
 
-  rotateAgentToken(id: number) {
-    return this.#http.post<CreatedPrinter>(`/api/admin/printers/${id}/token`, {});
+  rotateAgentToken(slug: string) {
+    return this.#http.post<CreatedPrinter>(
+      `${printerUrl(slug)}/agent-token`,
+      {},
+    );
   }
 
-  deleteAllJobs(id: number) {
-    return this.#http.delete<DeletedJobs>(`/api/admin/printers/${id}/jobs`);
+  deleteAllJobs(slug: string) {
+    return this.#http.delete<DeletedJobs>(
+      `${printerUrl(slug)}/jobs`,
+    );
   }
 }
 
-const bearer = (token: string) => new HttpHeaders({ authorization: `Bearer ${token}` });
+const printerUrl = (slug: string) =>
+  `/api/printers/${encodeURIComponent(slug)}`;
+
+const bearer = (token: string) =>
+  new HttpHeaders({ authorization: `Bearer ${token}` });

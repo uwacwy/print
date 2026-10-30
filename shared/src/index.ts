@@ -1,13 +1,13 @@
 export const JOB_STATUSES = [
-  "queued",
-  "printing",
-  "printed",
-  "failed",
-  "expired",
+  'queued',
+  'printing',
+  'printed',
+  'failed',
+  'expired',
 ] as const;
 export type JobStatus = (typeof JOB_STATUSES)[number];
 
-export const AGENT_WS_PATH = "/agent/ws";
+export const AGENT_WS_PATH = '/agent/ws';
 export const agentJobFilePath = (jobId: string): string =>
   `/agent/jobs/${encodeURIComponent(jobId)}/file`;
 export const agentJobStatusPath = (jobId: string): string =>
@@ -18,7 +18,8 @@ export const HEARTBEAT_INTERVAL_MS = 25_000;
 export const HEARTBEAT_TIMEOUT_MS = 60_000;
 export const MAX_ERROR_LENGTH = 500;
 
-export const PRINTER_SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+export const PRINTER_SLUG_PATTERN =
+  /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 
 export interface AgentJob {
   id: string;
@@ -26,76 +27,87 @@ export interface AgentJob {
 }
 
 export type ServerMessage =
-  | { type: "hello"; printer: { slug: string; name: string } }
-  | { type: "jobs"; jobs: AgentJob[] };
+  | { type: 'hello'; printer: { slug: string; name: string } }
+  | { type: 'jobs'; jobs: AgentJob[] };
 
-export type AgentMessage = { type: "sync" };
+export type AgentMessage = { type: 'sync' };
 
-/** Admin Server-Sent Events stream of agent connectivity and job progress. */
-export const ADMIN_EVENTS_PATH = "/api/admin/events";
+/** Server-Sent Events stream for the management UI of agent connectivity and job progress. */
+export const LIVE_EVENTS_PATH = '/api/events';
 
 export type LiveEvent =
-  | { type: "snapshot"; onlinePrinterIds: number[] }
+  | { type: 'snapshot'; onlinePrinterIds: number[] }
   | {
-      type: "agent";
+      type: 'agent';
       printerId: number;
       online: boolean;
       lastSeenAt: string | null;
     }
   | {
-      type: "job";
+      type: 'job';
       printerId: number;
       jobId: string;
       status: JobStatus;
       activeJobs: number;
     }
   | {
-      type: "jobs-deleted";
+      type: 'jobs-deleted';
       printerId: number;
       count: number;
       activeJobs: number;
     };
 
 export type JobReport =
-  | { status: "printed" }
-  | { status: "failed"; error: string };
+  | { status: 'printed' }
+  | { status: 'failed'; error: string };
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
+const isRecord = (
+  value: unknown,
+): value is Record<string, unknown> =>
+  typeof value === 'object' &&
+  value !== null &&
+  !Array.isArray(value);
 
 const isAgentJob = (value: unknown): value is AgentJob =>
   isRecord(value) &&
-  typeof value.id === "string" &&
-  typeof value.title === "string";
+  typeof value.id === 'string' &&
+  typeof value.title === 'string';
 
-export function parseServerMessage(raw: string): ServerMessage | undefined {
+export function parseServerMessage(
+  raw: string,
+): ServerMessage | undefined {
   let value: unknown;
   try {
     value = JSON.parse(raw);
   } catch {
     return undefined;
   }
-  if (!isRecord(value)) return undefined;
-  if (value.type === "hello" && isRecord(value.printer)) {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+  if (value.type === 'hello' && isRecord(value.printer)) {
     const { slug, name } = value.printer;
-    if (typeof slug === "string" && typeof name === "string")
-      return { type: "hello", printer: { slug, name } };
+    if (typeof slug === 'string' && typeof name === 'string') {
+      return { type: 'hello', printer: { slug, name } };
+    }
   }
   if (
-    value.type === "jobs" &&
+    value.type === 'jobs' &&
     Array.isArray(value.jobs) &&
     value.jobs.every(isAgentJob)
   ) {
-    return { type: "jobs", jobs: value.jobs };
+    return { type: 'jobs', jobs: value.jobs };
   }
   return undefined;
 }
 
-export function parseAgentMessage(raw: string): AgentMessage | undefined {
+export function parseAgentMessage(
+  raw: string,
+): AgentMessage | undefined {
   try {
     const value: unknown = JSON.parse(raw);
-    return isRecord(value) && value.type === "sync"
-      ? { type: "sync" }
+    return isRecord(value) && value.type === 'sync'
+      ? { type: 'sync' }
       : undefined;
   } catch {
     return undefined;

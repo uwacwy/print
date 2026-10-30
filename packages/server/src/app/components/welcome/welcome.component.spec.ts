@@ -11,6 +11,8 @@ describe('WelcomeComponent', () => {
     const fixture = TestBed.createComponent(WelcomeComponent);
     await fixture.whenStable();
 
-    expect(fixture.nativeElement.querySelector('h1')?.textContent).toContain('Welcome');
+    expect(
+      fixture.nativeElement.querySelector('h1')?.textContent,
+    ).toContain('Welcome');
   });
 });

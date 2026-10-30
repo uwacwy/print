@@ -3,6 +3,10 @@
   "compilerOptions": {
     "rootDir": ".."
   },
-  "include": ["src/**/*.test.ts", "src/**/*.d.ts", "../packages/server/src/lib/**/*.test.ts"],
+  "include": [
+    "src/**/*.test.ts",
+    "src/**/*.d.ts",
+    "../packages/server/src/lib/**/*.test.ts"
+  ],
   "references": [{ "path": "../shared" }]
 }

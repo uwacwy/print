@@ -9,7 +9,13 @@ import {
 } from '../lib/database/database.js';
 import { attachAgentGateway } from './agent-gateway';
 import { AgentHub, type LiveEvent } from './agent-hub';
-import { addPrinter, closeServer, listen, tempDatabase, TestAgent } from './test-support';
+import {
+  addPrinter,
+  closeServer,
+  listen,
+  tempDatabase,
+  TestAgent,
+} from './test-support';
 
 function queueJob(db: PrintDatabase, printerId: number, id: string) {
   insertJob(db, {
@@ -27,7 +33,11 @@ const JOB_A = '11111111-1111-4111-8111-111111111111';
 const JOB_B = '22222222-2222-4222-8222-222222222222';
 
 function jobStatus(db: PrintDatabase, id: string) {
-  return (db.prepare('SELECT status FROM jobs WHERE id = ?').get(id) as { status: string }).status;
+  return (
+    db.prepare('SELECT status FROM jobs WHERE id = ?').get(id) as {
+      status: string;
+    }
+  ).status;
 }
 
 describe('agent WebSocket gateway', () => {
@@ -58,27 +68,38 @@ describe('agent WebSocket gateway', () => {
   });
 
   afterEach(async () => {
-    for (const agent of agents) agent.socket.terminate();
+    for (const agent of agents) {
+      agent.socket.terminate();
+    }
     hub.dispose();
     await closeServer(server);
     await cleanup();
   });
 
   it('rejects unauthenticated agents before the handshake', async () => {
-    const socket = new WebSocket(url, { headers: { authorization: 'Bearer nope' } });
+    const socket = new WebSocket(url, {
+      headers: { authorization: 'Bearer nope' },
+    });
     const status = await new Promise<number | undefined>((resolve) =>
-      socket.once('unexpected-response', (_request, response) => resolve(response.statusCode)),
+      socket.once('unexpected-response', (_request, response) =>
+        resolve(response.statusCode),
+      ),
     );
     expect(status).toBe(401);
   });
 
   it('rejects upgrades on other paths', async () => {
     const { token } = addPrinter(db);
-    const socket = new WebSocket(url.replace(AGENT_WS_PATH, '/other'), {
-      headers: { authorization: `Bearer ${token}` },
-    });
+    const socket = new WebSocket(
+      url.replace(AGENT_WS_PATH, '/other'),
+      {
+        headers: { authorization: `Bearer ${token}` },
+      },
+    );
     const status = await new Promise<number | undefined>((resolve) =>
-      socket.once('unexpected-response', (_request, response) => resolve(response.statusCode)),
+      socket.once('unexpected-response', (_request, response) =>
+        resolve(response.statusCode),
+      ),
     );
     expect(status).toBe(404);
   });
@@ -108,7 +129,10 @@ describe('agent WebSocket gateway', () => {
     queueJob(db, id, JOB_B);
     hub.dispatch(id);
 
-    await expect(agent.next()).resolves.toMatchObject({ type: 'jobs', jobs: [{ id: JOB_B }] });
+    await expect(agent.next()).resolves.toMatchObject({
+      type: 'jobs',
+      jobs: [{ id: JOB_B }],
+    });
   });
 
   it('dispatches on agent sync messages', async () => {
@@ -119,7 +143,10 @@ describe('agent WebSocket gateway', () => {
     queueJob(db, id, JOB_A);
     agent.socket.send(JSON.stringify({ type: 'sync' }));
 
-    await expect(agent.next()).resolves.toMatchObject({ type: 'jobs', jobs: [{ id: JOB_A }] });
+    await expect(agent.next()).resolves.toMatchObject({
+      type: 'jobs',
+      jobs: [{ id: JOB_A }],
+    });
   });
 
   it('replaces an older connection and requeues in-flight jobs on disconnect', async () => {
@@ -135,16 +162,21 @@ describe('agent WebSocket gateway', () => {
     const second = connect(token);
     await expect(firstClosed).resolves.toMatchObject({ code: 4001 });
     await second.next();
-    await expect(second.next()).resolves.toMatchObject({ type: 'jobs', jobs: [{ id: JOB_A }] });
+    await expect(second.next()).resolves.toMatchObject({
+      type: 'jobs',
+      jobs: [{ id: JOB_A }],
+    });
 
     const secondClosed = second.closed();
     second.socket.close();
     await secondClosed;
     await expect.poll(() => hub.isOnline(id)).toBe(false);
     expect(jobStatus(db, JOB_A)).toBe('queued');
-    expect(events.filter((event) => event.type === 'agent').map((event) => event.online)).toEqual(
-      [true, true, false],
-    );
+    expect(
+      events
+        .filter((event) => event.type === 'agent')
+        .map((event) => event.online),
+    ).toEqual([true, true, false]);
   });
 
   it('ends live-event subscriptions when the hub is disposed', () => {

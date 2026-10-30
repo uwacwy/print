@@ -1,5 +1,5 @@
-import { randomBytes, timingSafeEqual } from "node:crypto";
-import type { FastifyReply, FastifyRequest } from "fastify";
+import { randomBytes, timingSafeEqual } from 'node:crypto';
+import type { FastifyReply, FastifyRequest } from 'fastify';
 import {
   Body,
   Div,
@@ -13,14 +13,14 @@ import {
   Tag,
   Title,
   render,
-} from "fluent-html";
+} from 'fluent-html';
 
-const CSRF_COOKIE = "print_csrf";
+const CSRF_COOKIE = 'print_csrf';
 
 export function layout(
   title: string,
   children: Tag[],
-  width = "60rem",
+  width = '60rem',
   head: Tag[] = [],
 ): string {
   return (
@@ -28,39 +28,42 @@ export function layout(
     render(
       HTML(
         Head(
-          Meta().addAttribute("charset", "utf-8"),
+          Meta().addAttribute('charset', 'utf-8'),
           Meta()
-            .setName("viewport")
-            .setContent("width=device-width,initial-scale=1"),
+            .setName('viewport')
+            .setContent('width=device-width,initial-scale=1'),
           Title(title),
           Link()
-            .setRel("stylesheet")
+            .setRel('stylesheet')
             .setHref(
-              "https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css",
+              'https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css',
             ),
           Link()
-            .setRel("stylesheet")
+            .setRel('stylesheet')
             .setHref(
-              "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.2/font/bootstrap-icons.min.css",
+              'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.2/font/bootstrap-icons.min.css',
             ),
-          Style("body{padding:3rem 1rem}"),
+          Style('body{padding:3rem 1rem}'),
           ...head,
         ),
         Body(
-          Main(...children).setStyles({ maxWidth: width, margin: "0 auto" }),
+          Main(...children).setStyles({
+            maxWidth: width,
+            margin: '0 auto',
+          }),
         ),
-      ).addAttribute("lang", "en"),
+      ).addAttribute('lang', 'en'),
     )
   );
 }
 
 export function alert(
-  kind: "success" | "danger" | "warning" | "info",
+  kind: 'success' | 'danger' | 'warning' | 'info',
   message: string,
 ): Tag {
   return Div(message)
-    .setClasses(["alert", `alert-${kind}`])
-    .addAttribute("role", "alert");
+    .setClasses(['alert', `alert-${kind}`])
+    .addAttribute('role', 'alert');
 }
 
 export function issueCsrf(
@@ -72,13 +75,13 @@ export function issueCsrf(
   const value =
     current && /^[a-f0-9]{64}$/.test(current)
       ? current
-      : randomBytes(32).toString("hex");
+      : randomBytes(32).toString('hex');
   if (value !== current) {
     reply.setCookie(CSRF_COOKIE, value, {
-      path: "/",
+      path: '/',
       httpOnly: true,
       secure,
-      sameSite: "strict",
+      sameSite: 'strict',
       maxAge: 3600,
     });
   }
@@ -86,7 +89,7 @@ export function issueCsrf(
 }
 
 export function csrfField(token: string): Tag {
-  return Input().setType("hidden").setName("csrf").setValue(token);
+  return Input().setType('hidden').setName('csrf').setValue(token);
 }
 
 export function validCsrf(
@@ -96,9 +99,13 @@ export function validCsrf(
   const cookieValue = request.cookies[CSRF_COOKIE];
   if (
     !cookieValue ||
-    typeof submitted !== "string" ||
+    typeof submitted !== 'string' ||
     cookieValue.length !== submitted.length
-  )
+  ) {
     return false;
-  return timingSafeEqual(Buffer.from(cookieValue), Buffer.from(submitted));
+  }
+  return timingSafeEqual(
+    Buffer.from(cookieValue),
+    Buffer.from(submitted),
+  );
 }

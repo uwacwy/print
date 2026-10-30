@@ -13,7 +13,7 @@ export const routes: Routes = [
   { path: 'auth/callback', pathMatch: 'full', redirectTo: '' },
   { path: '', component: WelcomeComponent },
   {
-    path: 'print/:printer_id',
+    path: 'print/:slug',
     component: PrintComponent,
     data: {
       width: 6,
@@ -25,9 +25,13 @@ export const routes: Routes = [
     canActivateChild: [MsalGuard],
     component: AuthenticatedComponent,
     children: [
-      { path: '', pathMatch: 'full', component: ManagePrintersComponent },
-      { path: ':printer_id/qr', component: PrinterQrComponent },
-      { path: ':printer_id', component: ManagePrinterComponent },
+      {
+        path: '',
+        pathMatch: 'full',
+        component: ManagePrintersComponent,
+      },
+      { path: ':slug/qr', component: PrinterQrComponent },
+      { path: ':slug', component: ManagePrinterComponent },
     ],
   },
   { path: '**', component: NotFound },

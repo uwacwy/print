@@ -20,7 +20,12 @@ describe('document normalization', () => {
 
   it('converts JPEG uploads to a letter-sized PDF', async () => {
     const image = await sharp({
-      create: { width: 320, height: 200, channels: 3, background: '#28a745' },
+      create: {
+        width: 320,
+        height: 200,
+        channels: 3,
+        background: '#28a745',
+      },
     })
       .jpeg()
       .toBuffer();
@@ -28,14 +33,22 @@ describe('document normalization', () => {
     const document = await PDFDocument.load(result.pdf);
     expect(result.mime).toBe('image/jpeg');
     expect(document.getPageCount()).toBe(1);
-    expect(document.getPage(0).getSize()).toEqual({ width: 612, height: 792 });
+    expect(document.getPage(0).getSize()).toEqual({
+      width: 612,
+      height: 792,
+    });
   });
 
   it('combines documents in upload order and adds one cover page for the job', async () => {
     const first = await PDFDocument.create();
     first.addPage([300, 400]);
     const jpeg = await sharp({
-      create: { width: 320, height: 200, channels: 3, background: '#28a745' },
+      create: {
+        width: 320,
+        height: 200,
+        channels: 3,
+        background: '#28a745',
+      },
     })
       .jpeg()
       .toBuffer();
@@ -93,7 +106,9 @@ describe('document normalization', () => {
   it('allows 100 document pages plus one cover page', async () => {
     const makePdf = async (count: number) => {
       const document = await PDFDocument.create();
-      for (let index = 0; index < count; index++) document.addPage([300, 400]);
+      for (let index = 0; index < count; index++) {
+        document.addPage([300, 400]);
+      }
       return Buffer.from(await document.save());
     };
     const oversized = await combineDocuments([
@@ -110,7 +125,9 @@ describe('document normalization', () => {
       title: 'A hundred pages',
       submittedAt: new Date(),
     });
-    expect((await PDFDocument.load(covered)).getPageCount()).toBe(101);
+    expect((await PDFDocument.load(covered)).getPageCount()).toBe(
+      101,
+    );
   });
 
   it('converts HEIC uploads through JPEG before creating a letter-sized PDF', async () => {
@@ -121,7 +138,12 @@ describe('document normalization', () => {
     heic.write('mif1', 16, 'ascii');
     heic.write('heic', 20, 'ascii');
     const jpeg = await sharp({
-      create: { width: 320, height: 200, channels: 3, background: '#28a745' },
+      create: {
+        width: 320,
+        height: 200,
+        channels: 3,
+        background: '#28a745',
+      },
     })
       .jpeg()
       .toBuffer();
@@ -137,12 +159,15 @@ describe('document normalization', () => {
       quality: 1,
     });
     expect(document.getPageCount()).toBe(1);
-    expect(document.getPage(0).getSize()).toEqual({ width: 612, height: 792 });
+    expect(document.getPage(0).getSize()).toEqual({
+      width: 612,
+      height: 792,
+    });
   });
 
   it('rejects unknown file types and encrypted or empty PDFs', async () => {
-    await expect(normalizeDocument(Buffer.from('not a document'))).rejects.toThrow(
-      /PDF, JPEG, PNG, or HEIC/,
-    );
+    await expect(
+      normalizeDocument(Buffer.from('not a document')),
+    ).rejects.toThrow(/PDF, JPEG, PNG, or HEIC/);
   });
 });

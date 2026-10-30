@@ -7,7 +7,7 @@ import {
 import express from 'express';
 import { join } from 'node:path';
 import apiRoot from './api';
-import agentRouter from './api/agent.router';
+import agentRouter from './api/routers/agent.router';
 import { attachAgentGateway } from './realtime/agent-gateway';
 import {
   authenticateAgent,
@@ -63,7 +63,7 @@ app.use(
     getHub,
     upload: config.upload,
     publicUrl: config.publicUrl,
-    adminAuth: config.adminAuth,
+    entra: config.entra,
   }),
 );
 

@@ -1,4 +1,7 @@
-import type { MsalGuardConfiguration, MsalInterceptorConfiguration } from '@azure/msal-angular';
+import type {
+  MsalGuardConfiguration,
+  MsalInterceptorConfiguration,
+} from '@azure/msal-angular';
 import { InteractionType } from '@azure/msal-browser';
 import type { Configuration } from '@azure/msal-browser';
 import { environment } from '../../environments/environment';
@@ -11,7 +14,8 @@ export function getMsalConfiguration(
     auth: {
       clientId: clientEnvironment.msal.clientId,
       authority:
-        clientEnvironment.msal.authority ?? 'https://login.microsoftonline.com/organizations',
+        clientEnvironment.msal.authority ??
+        'https://login.microsoftonline.com/organizations',
       redirectUri: clientEnvironment.msal.redirectUri,
       postLogoutRedirectUri: clientEnvironment.msal.redirectUri,
     },
@@ -47,7 +51,7 @@ export function getMsalInterceptorConfiguration(
   const redirectUri = clientEnvironment.msal.redirectUri;
   if (scope && URL.canParse(redirectUri)) {
     const apiOrigin = new URL(redirectUri).origin;
-    protectedResourceMap.set(`${apiOrigin}/api/admin/*`, [scope]);
+    protectedResourceMap.set(`${apiOrigin}/api/*`, [scope]);
   }
   return {
     interactionType: InteractionType.Redirect,
@@ -55,4 +59,3 @@ export function getMsalInterceptorConfiguration(
     strictMatching: false,
   };
 }
-

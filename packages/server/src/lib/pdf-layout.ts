@@ -10,7 +10,10 @@ export const GRAY = rgb(0.35, 0.35, 0.35);
 
 /** Characters WinAnsi places in 0x80-0x9F, beyond ASCII and Latin-1 (dashes, curly quotes, etc.). */
 const WIN_ANSI_EXTRAS = '€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ';
-const UNSUPPORTED = new RegExp(`[^\\x20-\\x7E\\u00A0-\\u00FF${WIN_ANSI_EXTRAS}]`, 'gu');
+const UNSUPPORTED = new RegExp(
+  `[^\\x20-\\x7E\\u00A0-\\u00FF${WIN_ANSI_EXTRAS}]`,
+  'gu',
+);
 
 /**
  * Standard PDF fonts only cover WinAnsi; replace anything else so drawing never throws.
@@ -34,7 +37,12 @@ export function drawCentered(
 ): number {
   const safe = winAnsi(text);
   let size = maxSize;
-  while (size > 8 && font.widthOfTextAtSize(safe, size) > CONTENT_WIDTH) size -= 1;
+  while (
+    size > 8 &&
+    font.widthOfTextAtSize(safe, size) > CONTENT_WIDTH
+  ) {
+    size -= 1;
+  }
   page.drawText(safe, {
     x: (PAGE_WIDTH - font.widthOfTextAtSize(safe, size)) / 2,
     y,
@@ -83,19 +91,37 @@ export function drawTwoColumnTable(
   rows.forEach(([label, value], index) => {
     const y = options.firstRowY - index * options.rowHeight;
     const rightText = winAnsi(value);
-    const rightWidth = fonts.regular.widthOfTextAtSize(rightText, fontSize);
+    const rightWidth = fonts.regular.widthOfTextAtSize(
+      rightText,
+      fontSize,
+    );
     const availableWidth = options.width - rightWidth - 18;
     let leftText = winAnsi(label);
-    if (fonts.regular.widthOfTextAtSize(leftText, fontSize) > availableWidth) {
+    if (
+      fonts.regular.widthOfTextAtSize(leftText, fontSize) >
+      availableWidth
+    ) {
       while (
         leftText.length &&
-        fonts.regular.widthOfTextAtSize(`${leftText}...`, fontSize) > availableWidth
-      )
+        fonts.regular.widthOfTextAtSize(`${leftText}...`, fontSize) >
+          availableWidth
+      ) {
         leftText = leftText.slice(0, -1);
+      }
       leftText += '...';
     }
-    page.drawText(leftText, { x: left, y, size: fontSize, font: fonts.regular });
-    page.drawText(rightText, { x: right - rightWidth, y, size: fontSize, font: fonts.regular });
+    page.drawText(leftText, {
+      x: left,
+      y,
+      size: fontSize,
+      font: fonts.regular,
+    });
+    page.drawText(rightText, {
+      x: right - rightWidth,
+      y,
+      size: fontSize,
+      font: fonts.regular,
+    });
   });
   return options.firstRowY - rows.length * options.rowHeight;
 }

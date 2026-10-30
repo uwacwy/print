@@ -1,4 +1,9 @@
-import { createHash, randomBytes, randomInt, timingSafeEqual } from 'node:crypto';
+import {
+  createHash,
+  randomBytes,
+  randomInt,
+  timingSafeEqual,
+} from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { PRINTER_SLUG_PATTERN } from '@uwacwy/print-shared';
@@ -75,16 +80,27 @@ export function openDatabase(dataDir: string): {
 		CREATE INDEX IF NOT EXISTS jobs_created ON jobs(created_at);
 	`);
   // Databases created before cover pages existed lack this column.
-  const printerColumns = db.prepare('PRAGMA table_info(printers)').all() as {
+  const printerColumns = db
+    .prepare('PRAGMA table_info(printers)')
+    .all() as {
     name: string;
   }[];
   const migrations: [column: string, ddl: string][] = [
-    ['cover_page', 'ALTER TABLE printers ADD COLUMN cover_page INTEGER NOT NULL DEFAULT 0'],
+    [
+      'cover_page',
+      'ALTER TABLE printers ADD COLUMN cover_page INTEGER NOT NULL DEFAULT 0',
+    ],
     ['pin', 'ALTER TABLE printers ADD COLUMN pin TEXT'],
-    ['qr_epoch', 'ALTER TABLE printers ADD COLUMN qr_epoch INTEGER NOT NULL DEFAULT 0'],
+    [
+      'qr_epoch',
+      'ALTER TABLE printers ADD COLUMN qr_epoch INTEGER NOT NULL DEFAULT 0',
+    ],
   ];
-  for (const [column, ddl] of migrations)
-    if (!printerColumns.some(({ name }) => name === column)) db.exec(ddl);
+  for (const [column, ddl] of migrations) {
+    if (!printerColumns.some(({ name }) => name === column)) {
+      db.exec(ddl);
+    }
+  }
   return { db, jobsDir };
 }
 
@@ -92,24 +108,43 @@ export function tokenHash(token: string): string {
   return createHash('sha256').update(token).digest('hex');
 }
 
-export function getPrinterBySlug(db: PrintDatabase, slug: string): PrinterRow | undefined {
-  return db.prepare('SELECT * FROM printers WHERE slug = ?').get(slug) as PrinterRow | undefined;
+export function getPrinterBySlug(
+  db: PrintDatabase,
+  slug: string,
+): PrinterRow | undefined {
+  return db
+    .prepare('SELECT * FROM printers WHERE slug = ?')
+    .get(slug) as PrinterRow | undefined;
 }
 
-export function getPrinterByToken(db: PrintDatabase, token: string): PrinterRow | undefined {
-  return db.prepare('SELECT * FROM printers WHERE token_hash = ?').get(tokenHash(token)) as
-    PrinterRow | undefined;
+export function getPrinterByToken(
+  db: PrintDatabase,
+  token: string,
+): PrinterRow | undefined {
+  return db
+    .prepare('SELECT * FROM printers WHERE token_hash = ?')
+    .get(tokenHash(token)) as PrinterRow | undefined;
 }
 
 export function listPrinters(db: PrintDatabase): PrinterRow[] {
-  return db.prepare('SELECT * FROM printers ORDER BY slug').all() as PrinterRow[];
+  return db
+    .prepare('SELECT * FROM printers ORDER BY slug')
+    .all() as PrinterRow[];
 }
 
-export function getPrinterById(db: PrintDatabase, id: number): PrinterRow | undefined {
-  return db.prepare('SELECT * FROM printers WHERE id = ?').get(id) as PrinterRow | undefined;
+export function getPrinterById(
+  db: PrintDatabase,
+  id: number,
+): PrinterRow | undefined {
+  return db
+    .prepare('SELECT * FROM printers WHERE id = ?')
+    .get(id) as PrinterRow | undefined;
 }
 
-export type PrinterFields = Pick<PrinterRow, 'slug' | 'name' | 'queue'> & {
+export type PrinterFields = Pick<
+  PrinterRow,
+  'slug' | 'name' | 'queue'
+> & {
   cover_page: boolean;
 };
 
@@ -122,10 +157,15 @@ export function validatePrinterFields(
   const name = String(input.name ?? '').trim();
   const queue = String(input.queue ?? '').trim();
   // HTML checkboxes submit "on" when ticked and nothing otherwise.
-  const cover_page = ['on', 'true', '1'].includes(String(input.cover_page ?? ''));
-  if (!PRINTER_SLUG_PATTERN.test(slug))
+  const cover_page = ['on', 'true', '1'].includes(
+    String(input.cover_page ?? ''),
+  );
+  if (!PRINTER_SLUG_PATTERN.test(slug)) {
     return 'Slug must be lowercase letters, numbers, and hyphens (max 63).';
-  if (!name || name.length > 100) return 'Name is required (max 100 characters).';
+  }
+  if (!name || name.length > 100) {
+    return 'Name is required (max 100 characters).';
+  }
   let printerUri: URL;
   try {
     printerUri = new URL(queue);
@@ -141,19 +181,23 @@ export function validatePrinterFields(
       printerUri.hash ||
       printerUri.username ||
       printerUri.password
-    )
+    ) {
       return 'CUPS destination must be cups://<queue_name>.';
+    }
     return { slug, name, queue, cover_page };
   }
   if (
-    !['ipp:', 'ipps:', 'http:', 'https:'].includes(printerUri.protocol) ||
+    !['ipp:', 'ipps:', 'http:', 'https:'].includes(
+      printerUri.protocol,
+    ) ||
     !printerUri.hostname ||
     printerUri.username ||
     printerUri.password ||
     !printerUri.pathname ||
     printerUri.pathname === '/'
-  )
+  ) {
     return 'Printer URI must use ipp://, ipps://, http://, or https:// and include a printer endpoint.';
+  }
   return { slug, name, queue, cover_page };
 }
 
@@ -171,7 +215,11 @@ function newToken(): string {
 }
 
 function isSlugConflict(error: unknown): boolean {
-  return error instanceof Error && 'code' in error && error.code === 'SQLITE_CONSTRAINT_UNIQUE';
+  return (
+    error instanceof Error &&
+    'code' in error &&
+    error.code === 'SQLITE_CONSTRAINT_UNIQUE'
+  );
 }
 
 /** Returns the agent token, which is only stored hashed; or an error message for a duplicate slug. */
@@ -185,10 +233,18 @@ export function createPrinter(
       .prepare(
         'INSERT INTO printers (slug, name, queue, cover_page, token_hash) VALUES (?, ?, ?, ?, ?)',
       )
-      .run(fields.slug, fields.name, fields.queue, fields.cover_page ? 1 : 0, tokenHash(token));
+      .run(
+        fields.slug,
+        fields.name,
+        fields.queue,
+        fields.cover_page ? 1 : 0,
+        tokenHash(token),
+      );
     return { token, id: Number(result.lastInsertRowid) };
   } catch (error) {
-    if (isSlugConflict(error)) return `A printer with slug "${fields.slug}" already exists.`;
+    if (isSlugConflict(error)) {
+      return `A printer with slug "${fields.slug}" already exists.`;
+    }
     throw error;
   }
 }
@@ -201,16 +257,29 @@ export function updatePrinter(
   try {
     return (
       db
-        .prepare('UPDATE printers SET slug = ?, name = ?, queue = ?, cover_page = ? WHERE id = ?')
-        .run(fields.slug, fields.name, fields.queue, fields.cover_page ? 1 : 0, id).changes === 1
+        .prepare(
+          'UPDATE printers SET slug = ?, name = ?, queue = ?, cover_page = ? WHERE id = ?',
+        )
+        .run(
+          fields.slug,
+          fields.name,
+          fields.queue,
+          fields.cover_page ? 1 : 0,
+          id,
+        ).changes === 1
     );
   } catch (error) {
-    if (isSlugConflict(error)) return `A printer with slug "${fields.slug}" already exists.`;
+    if (isSlugConflict(error)) {
+      return `A printer with slug "${fields.slug}" already exists.`;
+    }
     throw error;
   }
 }
 
-export function rotatePrinterToken(db: PrintDatabase, id: number): string | undefined {
+export function rotatePrinterToken(
+  db: PrintDatabase,
+  id: number,
+): string | undefined {
   const token = newToken();
   const result = db
     .prepare(
@@ -223,7 +292,10 @@ export function rotatePrinterToken(db: PrintDatabase, id: number): string | unde
 export const PIN_LENGTH = 9;
 
 export function generatePin(): string {
-  return String(randomInt(0, 10 ** PIN_LENGTH)).padStart(PIN_LENGTH, '0');
+  return String(randomInt(0, 10 ** PIN_LENGTH)).padStart(
+    PIN_LENGTH,
+    '0',
+  );
 }
 
 /** Formats a PIN as three hyphenated groups (111-222-333) for display. */
@@ -232,54 +304,95 @@ export function formatPin(pin: string): string {
 }
 
 /** Accepts the PIN with or without separators; compares in constant time. */
-export function pinMatches(printer: Pick<PrinterRow, 'pin'>, entered: unknown): boolean {
-  if (!printer.pin || typeof entered !== 'string') return false;
+export function pinMatches(
+  printer: Pick<PrinterRow, 'pin'>,
+  entered: unknown,
+): boolean {
+  if (!printer.pin || typeof entered !== 'string') {
+    return false;
+  }
   const digits = entered.replace(/[\s-]/g, '');
-  if (!/^\d+$/.test(digits) || digits.length !== printer.pin.length) return false;
-  return timingSafeEqual(Buffer.from(digits), Buffer.from(printer.pin));
+  if (
+    !/^\d+$/.test(digits) ||
+    digits.length !== printer.pin.length
+  ) {
+    return false;
+  }
+  return timingSafeEqual(
+    Buffer.from(digits),
+    Buffer.from(printer.pin),
+  );
 }
 
 /** Sets (or with null, clears) the upload PIN; returns false for an unknown printer. */
-export function setPrinterPin(db: PrintDatabase, id: number, pin: string | null): boolean {
-  return db.prepare('UPDATE printers SET pin = ? WHERE id = ?').run(pin, id).changes === 1;
+export function setPrinterPin(
+  db: PrintDatabase,
+  id: number,
+  pin: string | null,
+): boolean {
+  return (
+    db
+      .prepare('UPDATE printers SET pin = ? WHERE id = ?')
+      .run(pin, id).changes === 1
+  );
 }
 
 /** Revokes every outstanding upload token for the printer; returns the new epoch. */
-export function bumpQrEpoch(db: PrintDatabase, id: number): number | undefined {
+export function bumpQrEpoch(
+  db: PrintDatabase,
+  id: number,
+): number | undefined {
   const row = db
-    .prepare('UPDATE printers SET qr_epoch = qr_epoch + 1 WHERE id = ? RETURNING qr_epoch')
+    .prepare(
+      'UPDATE printers SET qr_epoch = qr_epoch + 1 WHERE id = ? RETURNING qr_epoch',
+    )
     .get(id) as { qr_epoch: number } | undefined;
   return row?.qr_epoch;
 }
 
 /** Deletes the printer and its jobs; returns job ids so their files can be removed. */
-export function deletePrinter(db: PrintDatabase, id: number): string[] | undefined {
+export function deletePrinter(
+  db: PrintDatabase,
+  id: number,
+): string[] | undefined {
   return db.transaction(() => {
     const jobIds = (
-      db.prepare('SELECT id FROM jobs WHERE printer_id = ?').all(id) as {
+      db
+        .prepare('SELECT id FROM jobs WHERE printer_id = ?')
+        .all(id) as {
         id: string;
       }[]
     ).map((row) => row.id);
-    return db.prepare('DELETE FROM printers WHERE id = ?').run(id).changes === 1
+    return db.prepare('DELETE FROM printers WHERE id = ?').run(id)
+      .changes === 1
       ? jobIds
       : undefined;
   })();
 }
 
 /** Removes every job for a printer (any status) and returns their ids so PDFs can be deleted. */
-export function deletePrinterJobs(db: PrintDatabase, printerId: number): string[] {
+export function deletePrinterJobs(
+  db: PrintDatabase,
+  printerId: number,
+): string[] {
   return db.transaction(() => {
     const jobIds = (
-      db.prepare('SELECT id FROM jobs WHERE printer_id = ?').all(printerId) as {
+      db
+        .prepare('SELECT id FROM jobs WHERE printer_id = ?')
+        .all(printerId) as {
         id: string;
       }[]
     ).map((row) => row.id);
-    db.prepare('DELETE FROM jobs WHERE printer_id = ?').run(printerId);
+    db.prepare('DELETE FROM jobs WHERE printer_id = ?').run(
+      printerId,
+    );
     return jobIds;
   })();
 }
 
-export function countActiveJobs(db: PrintDatabase): Map<number, number> {
+export function countActiveJobs(
+  db: PrintDatabase,
+): Map<number, number> {
   const rows = db
     .prepare(
       "SELECT printer_id, COUNT(*) AS count FROM jobs WHERE status IN ('queued','printing') GROUP BY printer_id",
@@ -292,7 +405,13 @@ export function insertJob(
   db: PrintDatabase,
   job: Pick<
     JobRow,
-    'id' | 'printer_id' | 'title' | 'copies' | 'original_name' | 'submitted_by' | 'uploader_ip'
+    | 'id'
+    | 'printer_id'
+    | 'title'
+    | 'copies'
+    | 'original_name'
+    | 'submitted_by'
+    | 'uploader_ip'
   >,
 ): void {
   db.prepare(
@@ -303,7 +422,10 @@ export function insertJob(
   ).run(job);
 }
 
-export function getQueuedJobs(db: PrintDatabase, printerId: number): JobRow[] {
+export function getQueuedJobs(
+  db: PrintDatabase,
+  printerId: number,
+): JobRow[] {
   return db
     .prepare(
       "SELECT * FROM jobs WHERE printer_id = ? AND status = 'queued' ORDER BY created_at, id",
@@ -311,14 +433,23 @@ export function getQueuedJobs(db: PrintDatabase, printerId: number): JobRow[] {
     .all(printerId) as JobRow[];
 }
 
-export function markJobsPrinting(db: PrintDatabase, printerId: number, jobs: JobRow[]): JobRow[] {
+export function markJobsPrinting(
+  db: PrintDatabase,
+  printerId: number,
+  jobs: JobRow[],
+): JobRow[] {
   const mark = db.prepare(
     "UPDATE jobs SET status = 'printing', sent_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ? AND printer_id = ? AND status = 'queued'",
   );
-  return db.transaction(() => jobs.filter((job) => mark.run(job.id, printerId).changes === 1))();
+  return db.transaction(() =>
+    jobs.filter((job) => mark.run(job.id, printerId).changes === 1),
+  )();
 }
 
-export function resetPrintingJobs(db: PrintDatabase, printerId: number): void {
+export function resetPrintingJobs(
+  db: PrintDatabase,
+  printerId: number,
+): void {
   db.prepare(
     "UPDATE jobs SET status = 'queued', sent_at = NULL WHERE printer_id = ? AND status = 'printing'",
   ).run(printerId);
@@ -347,17 +478,24 @@ export function getJobForPrinter(
   printerId: number,
   jobId: string,
 ): JobRow | undefined {
-  return db.prepare('SELECT * FROM jobs WHERE id = ? AND printer_id = ?').get(jobId, printerId) as
-    JobRow | undefined;
+  return db
+    .prepare('SELECT * FROM jobs WHERE id = ? AND printer_id = ?')
+    .get(jobId, printerId) as JobRow | undefined;
 }
 
-export function markPrinterSeen(db: PrintDatabase, printerId: number): void {
+export function markPrinterSeen(
+  db: PrintDatabase,
+  printerId: number,
+): void {
   db.prepare(
     "UPDATE printers SET last_seen_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?",
   ).run(printerId);
 }
 
-export function purgeFinishedJobs(db: PrintDatabase, cutoff: string): string[] {
+export function purgeFinishedJobs(
+  db: PrintDatabase,
+  cutoff: string,
+): string[] {
   const rows = db
     .prepare(
       "SELECT id FROM jobs WHERE status IN ('printed','failed','expired') AND finished_at < ?",
@@ -369,13 +507,21 @@ export function purgeFinishedJobs(db: PrintDatabase, cutoff: string): string[] {
   return rows.map(({ id }) => id);
 }
 
-export function removeOrphanedJobFiles(db: PrintDatabase, jobIds: string[]): void {
-  if (!jobIds.length) return;
+export function removeOrphanedJobFiles(
+  db: PrintDatabase,
+  jobIds: string[],
+): void {
+  if (!jobIds.length) {
+    return;
+  }
   const remove = db.prepare('DELETE FROM jobs WHERE id = ?');
   db.transaction(() => jobIds.forEach((id) => remove.run(id)))();
 }
 
-export function expireStaleJobs(db: PrintDatabase, cutoff: string): string[] {
+export function expireStaleJobs(
+  db: PrintDatabase,
+  cutoff: string,
+): string[] {
   const rows = db
     .prepare(
       "SELECT id FROM jobs WHERE status IN ('queued','printing','expired') AND created_at < ?",

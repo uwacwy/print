@@ -3,8 +3,14 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import type { Observable } from 'rxjs';
-import { LiveEventsService, type LiveEvent } from '../../services/live-events/live-events.service';
-import { PrinterService, type PrinterSummary } from '../../services/printer/printer.service';
+import {
+  LiveEventsService,
+  type LiveEvent,
+} from '../../services/live-events/live-events.service';
+import {
+  PrinterService,
+  type PrinterSummary,
+} from '../../services/printer/printer.service';
 
 @Component({
   selector: 'app-manage-printers',
@@ -27,18 +33,26 @@ import { PrinterService, type PrinterSummary } from '../../services/printer/prin
   `,
   template: `
     <main class="">
-      <header class="d-flex align-items-center justify-content-between gap-3 mb-4">
+      <header
+        class="d-flex align-items-center justify-content-between gap-3 mb-4"
+      >
         <div>
-          <p class="text-uppercase text-muted small mb-1">Administration</p>
+          <p class="text-uppercase text-muted small mb-1">
+            Administration
+          </p>
           <h1 class="h2 mb-0">Printers</h1>
         </div>
         <a class="btn btn-primary" routerLink="new">
-          <i class="bi bi-plus-lg" aria-hidden="true"></i> Add printer
+          <i class="bi bi-plus-lg" aria-hidden="true"></i> Add
+          printer
         </a>
       </header>
 
       @if (error()) {
-        <div class="alert alert-danger d-flex justify-content-between gap-2" role="alert">
+        <div
+          class="alert alert-danger d-flex justify-content-between gap-2"
+          role="alert"
+        >
           <span>{{ error() }}</span>
           <button
             type="button"
@@ -50,7 +64,9 @@ import { PrinterService, type PrinterSummary } from '../../services/printer/prin
       }
       <div role="status" aria-live="polite" aria-atomic="true">
         @if (notice()) {
-          <div class="alert alert-success d-flex justify-content-between gap-2">
+          <div
+            class="alert alert-success d-flex justify-content-between gap-2"
+          >
             <span>{{ notice() }}</span>
             <button
               type="button"
@@ -61,7 +77,13 @@ import { PrinterService, type PrinterSummary } from '../../services/printer/prin
           </div>
         }
       </div>
-      <p class="visually-hidden" aria-live="polite" aria-atomic="true">{{ announcement() }}</p>
+      <p
+        class="visually-hidden"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {{ announcement() }}
+      </p>
 
       @if (loading()) {
         <p role="status">Loading printers...</p>
@@ -78,14 +100,19 @@ import { PrinterService, type PrinterSummary } from '../../services/printer/prin
             >
               <details class="printer-details">
                 <summary class="printer-summary">
-                  <span class="fw-semibold me-1">{{ printer.name }}</span>
+                  <span class="fw-semibold me-1">{{
+                    printer.name
+                  }}</span>
                   @if (printer.online) {
                     <span class="badge text-bg-success">Online</span>
                   } @else {
-                    <span class="badge text-bg-secondary">Offline</span>
+                    <span class="badge text-bg-secondary"
+                      >Offline</span
+                    >
                   }
                   <span class="text-muted small ms-1">
-                    {{ printer.activeJobs }} active {{ printer.activeJobs === 1 ? 'job' : 'jobs' }}
+                    {{ printer.activeJobs }} active
+                    {{ printer.activeJobs === 1 ? 'job' : 'jobs' }}
                   </span>
                 </summary>
 
@@ -93,16 +120,27 @@ import { PrinterService, type PrinterSummary } from '../../services/printer/prin
                   <dl class="row small mb-3">
                     <dt class="col-sm-3">Upload page</dt>
                     <dd class="col-sm-9">
-                      <a [routerLink]="['/print', printer.slug]" target="_blank" rel="noopener">
+                      <a
+                        [routerLink]="['/print', printer.slug]"
+                        target="_blank"
+                        rel="noopener"
+                      >
                         /print/{{ printer.slug }}&nbsp;
-                        <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
-                        <span class="visually-hidden">(opens in new tab)</span>
+                        <i
+                          class="bi bi-box-arrow-up-right"
+                          aria-hidden="true"
+                        ></i>
+                        <span class="visually-hidden"
+                          >(opens in new tab)</span
+                        >
                       </a>
                     </dd>
                     <dt class="col-sm-3">Upload PIN</dt>
                     <dd class="col-sm-9">
                       @if (printer.pin) {
-                        <span class="font-monospace">{{ printer.pin }}</span>
+                        <span class="font-monospace">{{
+                          printer.pin
+                        }}</span>
                       } @else {
                         Off (QR code only)
                       }
@@ -112,7 +150,9 @@ import { PrinterService, type PrinterSummary } from '../../services/printer/prin
                       <code>{{ printer.queue }}</code>
                     </dd>
                     <dt class="col-sm-3">Cover page</dt>
-                    <dd class="col-sm-9">{{ printer.coverPage ? 'On' : 'Off' }}</dd>
+                    <dd class="col-sm-9">
+                      {{ printer.coverPage ? 'On' : 'Off' }}
+                    </dd>
                     <dt class="col-sm-3">Agent last seen</dt>
                     <dd class="col-sm-9 mb-0">
                       {{
@@ -126,22 +166,35 @@ import { PrinterService, type PrinterSummary } from '../../services/printer/prin
                   @if (token) {
                     <section
                       class="alert alert-warning"
-                      [attr.aria-labelledby]="'token-heading-' + printer.id"
+                      [attr.aria-labelledby]="
+                        'token-heading-' + printer.id
+                      "
                     >
-                      <h2 class="h6" [id]="'token-heading-' + printer.id">
+                      <h2
+                        class="h6"
+                        [id]="'token-heading-' + printer.id"
+                      >
                         New agent token (shown once)
                       </h2>
                       <p class="small mb-2">
-                        The previous token no longer works. Reconfigure the agent with server URL
+                        The previous token no longer works.
+                        Reconfigure the agent with server URL
                         <code>{{ serverUrl }}</code> and this token:
                       </p>
-                      <code class="d-block text-break user-select-all mb-2">{{ token }}</code>
+                      <code
+                        class="d-block text-break user-select-all mb-2"
+                        >{{ token }}</code
+                      >
                       <button
                         type="button"
                         class="btn btn-sm btn-outline-dark me-2"
                         (click)="copyToken(token)"
                       >
-                        <i class="bi bi-clipboard" aria-hidden="true"></i> Copy token
+                        <i
+                          class="bi bi-clipboard"
+                          aria-hidden="true"
+                        ></i>
+                        Copy token
                       </button>
                       <button
                         type="button"
@@ -154,11 +207,22 @@ import { PrinterService, type PrinterSummary } from '../../services/printer/prin
                   }
 
                   <div class="d-flex flex-wrap gap-2">
-                    <a class="btn btn-sm btn-outline-primary" [routerLink]="[printer.id]">
-                      <i class="bi bi-gear" aria-hidden="true"></i> Configure
+                    <a
+                      class="btn btn-sm btn-outline-primary"
+                      [routerLink]="[printer.slug]"
+                    >
+                      <i class="bi bi-gear" aria-hidden="true"></i>
+                      Configure
                     </a>
-                    <a class="btn btn-sm btn-outline-primary" [routerLink]="[printer.id, 'qr']">
-                      <i class="bi bi-qr-code" aria-hidden="true"></i> QR code &amp; PIN
+                    <a
+                      class="btn btn-sm btn-outline-primary"
+                      [routerLink]="[printer.slug, 'qr']"
+                    >
+                      <i
+                        class="bi bi-qr-code"
+                        aria-hidden="true"
+                      ></i>
+                      QR code &amp; PIN
                     </a>
                     <button
                       type="button"
@@ -166,7 +230,8 @@ import { PrinterService, type PrinterSummary } from '../../services/printer/prin
                       [disabled]="busy"
                       (click)="rotateToken(printer)"
                     >
-                      <i class="bi bi-key" aria-hidden="true"></i> Rotate token
+                      <i class="bi bi-key" aria-hidden="true"></i>
+                      Rotate token
                     </button>
                     <button
                       type="button"
@@ -174,7 +239,8 @@ import { PrinterService, type PrinterSummary } from '../../services/printer/prin
                       [disabled]="busy"
                       (click)="deleteAllJobs(printer)"
                     >
-                      <i class="bi bi-trash3" aria-hidden="true"></i> Delete all jobs
+                      <i class="bi bi-trash3" aria-hidden="true"></i>
+                      Delete all jobs
                     </button>
                     <button
                       type="button"
@@ -182,7 +248,11 @@ import { PrinterService, type PrinterSummary } from '../../services/printer/prin
                       [disabled]="busy"
                       (click)="removePrinter(printer)"
                     >
-                      <i class="bi bi-x-octagon" aria-hidden="true"></i> Remove printer
+                      <i
+                        class="bi bi-x-octagon"
+                        aria-hidden="true"
+                      ></i>
+                      Remove printer
                     </button>
                   </div>
                 </div>
@@ -191,7 +261,9 @@ import { PrinterService, type PrinterSummary } from '../../services/printer/prin
               <div
                 class="printer-actions btn-group btn-group-sm"
                 role="group"
-                [attr.aria-label]="'Quick actions for ' + printer.name"
+                [attr.aria-label]="
+                  'Quick actions for ' + printer.name
+                "
               >
                 <a
                   class="btn btn-outline-secondary"
@@ -200,9 +272,13 @@ import { PrinterService, type PrinterSummary } from '../../services/printer/prin
                   rel="noopener"
                   title="Open upload page"
                 >
-                  <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
+                  <i
+                    class="bi bi-box-arrow-up-right"
+                    aria-hidden="true"
+                  ></i>
                   <span class="visually-hidden"
-                    >Open upload page for {{ printer.name }} (opens in new tab)</span
+                    >Open upload page for {{ printer.name }} (opens
+                    in new tab)</span
                   >
                 </a>
                 <button
@@ -213,15 +289,19 @@ import { PrinterService, type PrinterSummary } from '../../services/printer/prin
                   (click)="printQr(printer)"
                 >
                   <i class="bi bi-printer" aria-hidden="true"></i>
-                  <span class="visually-hidden">Print QR sheet on {{ printer.name }}</span>
+                  <span class="visually-hidden"
+                    >Print QR sheet on {{ printer.name }}</span
+                  >
                 </button>
                 <a
                   class="btn btn-outline-secondary"
                   title="Show QR code"
-                  [routerLink]="[printer.id, 'qr']"
+                  [routerLink]="[printer.slug, 'qr']"
                 >
                   <i class="bi bi-qr-code" aria-hidden="true"></i>
-                  <span class="visually-hidden">Show QR code for {{ printer.name }}</span>
+                  <span class="visually-hidden"
+                    >Show QR code for {{ printer.name }}</span
+                  >
                 </a>
               </div>
             </li>
@@ -267,12 +347,15 @@ export class ManagePrintersComponent implements OnInit {
   }
 
   printQr(printer: PrinterSummary): void {
-    this.#run(printer.id, this.#printersApi.printQrPoster(printer.id), ({ agentOnline }) =>
-      this.notice.set(
-        agentOnline
-          ? `QR sheet sent to ${printer.name}.`
-          : `QR sheet queued. It prints when the ${printer.name} agent is online.`,
-      ),
+    this.#run(
+      printer.id,
+      this.#printersApi.printQrPoster(printer.slug),
+      ({ agentOnline }) =>
+        this.notice.set(
+          agentOnline
+            ? `QR sheet sent to ${printer.name}.`
+            : `QR sheet queued. It prints when the ${printer.name} agent is online.`,
+        ),
     );
   }
 
@@ -281,12 +364,22 @@ export class ManagePrintersComponent implements OnInit {
       !this.#confirm(
         `Rotate the agent token for ${printer.name}? Its agent disconnects until it is reconfigured with the new token.`,
       )
-    )
+    ) {
       return;
-    this.#run(printer.id, this.#printersApi.rotateAgentToken(printer.id), ({ agentToken }) => {
-      this.tokens.update((tokens) => ({ ...tokens, [printer.id]: agentToken }));
-      this.notice.set(`Agent token rotated for ${printer.name}. Copy the new token below.`);
-    });
+    }
+    this.#run(
+      printer.id,
+      this.#printersApi.rotateAgentToken(printer.slug),
+      ({ agentToken }) => {
+        this.tokens.update((tokens) => ({
+          ...tokens,
+          [printer.id]: agentToken,
+        }));
+        this.notice.set(
+          `Agent token rotated for ${printer.name}. Copy the new token below.`,
+        );
+      },
+    );
   }
 
   deleteAllJobs(printer: PrinterSummary): void {
@@ -294,22 +387,40 @@ export class ManagePrintersComponent implements OnInit {
       !this.#confirm(
         `Delete all jobs for ${printer.name}? Queued and in-progress documents will not print, and job history is removed.`,
       )
-    )
+    ) {
       return;
-    this.#run(printer.id, this.#printersApi.deleteAllJobs(printer.id), ({ deleted }) => {
-      this.#patch(printer.id, { activeJobs: 0 });
-      this.notice.set(`Deleted ${deleted} ${deleted === 1 ? 'job' : 'jobs'} for ${printer.name}.`);
-    });
+    }
+    this.#run(
+      printer.id,
+      this.#printersApi.deleteAllJobs(printer.slug),
+      ({ deleted }) => {
+        this.#patch(printer.id, { activeJobs: 0 });
+        this.notice.set(
+          `Deleted ${deleted} ${deleted === 1 ? 'job' : 'jobs'} for ${printer.name}.`,
+        );
+      },
+    );
   }
 
   removePrinter(printer: PrinterSummary): void {
-    if (!this.#confirm(`Remove ${printer.name} and all of its jobs? This cannot be undone.`))
+    if (
+      !this.#confirm(
+        `Remove ${printer.name} and all of its jobs? This cannot be undone.`,
+      )
+    ) {
       return;
-    this.#run(printer.id, this.#printersApi.deleteAdminPrinter(printer.id), () => {
-      this.printers.update((printers) => printers.filter(({ id }) => id !== printer.id));
-      this.dismissToken(printer.id);
-      this.notice.set(`${printer.name} removed.`);
-    });
+    }
+    this.#run(
+      printer.id,
+      this.#printersApi.deleteAdminPrinter(printer.slug),
+      () => {
+        this.printers.update((printers) =>
+          printers.filter(({ id }) => id !== printer.id),
+        );
+        this.dismissToken(printer.id);
+        this.notice.set(`${printer.name} removed.`);
+      },
+    );
   }
 
   dismissToken(id: number): void {
@@ -317,11 +428,17 @@ export class ManagePrintersComponent implements OnInit {
   }
 
   async copyToken(token: string): Promise<void> {
-    await this.#document.defaultView?.navigator.clipboard.writeText(token);
+    await this.#document.defaultView?.navigator.clipboard.writeText(
+      token,
+    );
     this.announcement.set('Token copied to clipboard.');
   }
 
-  #run<T>(id: number, request: Observable<T>, next: (value: T) => void): void {
+  #run<T>(
+    id: number,
+    request: Observable<T>,
+    next: (value: T) => void,
+  ): void {
     this.error.set('');
     this.notice.set('');
     this.#busy.update((busy) => new Set(busy).add(id));
@@ -338,7 +455,9 @@ export class ManagePrintersComponent implements OnInit {
       },
       error: (error: unknown) => {
         done();
-        this.error.set(this.#message(error, 'Request failed. Please try again.'));
+        this.error.set(
+          this.#message(error, 'Request failed. Please try again.'),
+        );
       },
     });
   }
@@ -363,12 +482,19 @@ export class ManagePrintersComponent implements OnInit {
     if (event.type === 'snapshot') {
       const online = new Set(event.onlinePrinterIds);
       this.printers.update((printers) =>
-        printers.map((printer) => ({ ...printer, online: online.has(printer.id) })),
+        printers.map((printer) => ({
+          ...printer,
+          online: online.has(printer.id),
+        })),
       );
       return;
     }
-    const printer = this.printers().find(({ id }) => id === event.printerId);
-    if (!printer) return;
+    const printer = this.printers().find(
+      ({ id }) => id === event.printerId,
+    );
+    if (!printer) {
+      return;
+    }
     if (event.type === 'agent') {
       this.#patch(event.printerId, {
         online: event.online,
@@ -380,17 +506,26 @@ export class ManagePrintersComponent implements OnInit {
       return;
     }
     this.#patch(event.printerId, { activeJobs: event.activeJobs });
-    if (event.type === 'job' && (event.status === 'printed' || event.status === 'failed'))
-      this.announcement.set(`A job ${event.status} on ${printer.name}.`);
-    if (event.type === 'jobs-deleted')
+    if (
+      event.type === 'job' &&
+      (event.status === 'printed' || event.status === 'failed')
+    ) {
+      this.announcement.set(
+        `A job ${event.status} on ${printer.name}.`,
+      );
+    }
+    if (event.type === 'jobs-deleted') {
       this.announcement.set(
         `${event.count} ${event.count === 1 ? 'job' : 'jobs'} deleted on ${printer.name}.`,
       );
+    }
   }
 
   #patch(id: number, changes: Partial<PrinterSummary>): void {
     this.printers.update((printers) =>
-      printers.map((printer) => (printer.id === id ? { ...printer, ...changes } : printer)),
+      printers.map((printer) =>
+        printer.id === id ? { ...printer, ...changes } : printer,
+      ),
     );
   }
 }

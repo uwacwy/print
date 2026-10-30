@@ -1,4 +1,9 @@
-import { PDFDocument, PDFString, StandardFonts, type PDFPage } from 'pdf-lib';
+import {
+  PDFDocument,
+  PDFString,
+  StandardFonts,
+  type PDFPage,
+} from 'pdf-lib';
 import QRCode from 'qrcode';
 import {
   BLACK,
@@ -44,7 +49,9 @@ function addLink(
   page.node.addAnnot(annotation);
 }
 
-export async function buildQrPoster(options: QrPosterOptions): Promise<Uint8Array> {
+export async function buildQrPoster(
+  options: QrPosterOptions,
+): Promise<Uint8Array> {
   const pdf = await PDFDocument.create();
   pdf.setTitle(winAnsi(`${options.printerName} - print QR code`));
   const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
@@ -56,11 +63,33 @@ export async function buildQrPoster(options: QrPosterOptions): Promise<Uint8Arra
     dateStyle: 'full',
     timeZone: options.timeZone,
   }).format(options.date);
-  drawCentered(page, options.siteTitle, regular, 18, PAGE_HEIGHT - MARGIN - 18, GRAY);
-  drawCentered(page, options.printerName, bold, 40, PAGE_HEIGHT - MARGIN - 70);
-  drawCentered(page, dateText, regular, 16, PAGE_HEIGHT - MARGIN - 100, GRAY);
+  drawCentered(
+    page,
+    options.siteTitle,
+    regular,
+    18,
+    PAGE_HEIGHT - MARGIN - 18,
+    GRAY,
+  );
+  drawCentered(
+    page,
+    options.printerName,
+    bold,
+    40,
+    PAGE_HEIGHT - MARGIN - 70,
+  );
+  drawCentered(
+    page,
+    dateText,
+    regular,
+    16,
+    PAGE_HEIGHT - MARGIN - 100,
+    GRAY,
+  );
 
-  const { modules } = QRCode.create(options.url, { errorCorrectionLevel: 'M' });
+  const { modules } = QRCode.create(options.url, {
+    errorCorrectionLevel: 'M',
+  });
   const quietZone = 4;
   const qrSize = 360;
   const cell = qrSize / (modules.size + quietZone * 2);
@@ -68,7 +97,9 @@ export async function buildQrPoster(options: QrPosterOptions): Promise<Uint8Arra
   const qrTop = PAGE_HEIGHT - MARGIN - 140;
   for (let row = 0; row < modules.size; row++) {
     for (let col = 0; col < modules.size; col++) {
-      if (!modules.get(row, col)) continue;
+      if (!modules.get(row, col)) {
+        continue;
+      }
       page.drawRectangle({
         x: qrLeft + (col + quietZone) * cell,
         y: qrTop - (row + quietZone + 1) * cell,
@@ -79,13 +110,35 @@ export async function buildQrPoster(options: QrPosterOptions): Promise<Uint8Arra
     }
   }
 
-  addLink(pdf, page, options.url, [qrLeft, qrTop - qrSize, qrSize, qrSize]);
+  addLink(pdf, page, options.url, [
+    qrLeft,
+    qrTop - qrSize,
+    qrSize,
+    qrSize,
+  ]);
 
   const textTop = qrTop - qrSize - 36;
-  drawCentered(page, 'Scan with your phone camera to print a document', bold, 18, textTop);
+  drawCentered(
+    page,
+    'Scan with your phone camera to print a document',
+    bold,
+    18,
+    textTop,
+  );
   drawCentered(page, 'or visit', regular, 14, textTop - 30, GRAY);
-  const displaySize = drawCentered(page, options.displayUrl ?? options.url, regular, 18, textTop - 56);
-  addLink(pdf, page, options.url, [MARGIN, textTop - 60, PAGE_WIDTH - MARGIN * 2, displaySize + 8]);
+  const displaySize = drawCentered(
+    page,
+    options.displayUrl ?? options.url,
+    regular,
+    18,
+    textTop - 56,
+  );
+  addLink(pdf, page, options.url, [
+    MARGIN,
+    textTop - 60,
+    PAGE_WIDTH - MARGIN * 2,
+    displaySize + 8,
+  ]);
 
   let nextLine = textTop - 86;
   if (options.pin) {

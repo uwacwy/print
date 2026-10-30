@@ -1,6 +1,12 @@
 {
   "name": "@uwacwy/print",
   "version": "0.0.0",
+  "private": true,
+  "workspaces": [
+    "shared",
+    "server",
+    "agent"
+  ],
   "type": "module",
   "scripts": {
     "ng": "ng",
@@ -22,13 +28,6 @@
     "fmt:check": "oxfmt --check",
     "serve:ssr:print-server": "node dist/print-server/server/server.mjs"
   },
-  "private": true,
-  "workspaces": [
-    "shared",
-    "server",
-    "agent"
-  ],
-  "packageManager": "npm@11.12.1",
   "dependencies": {
     "@angular/common": "^22.1.0",
     "@angular/compiler": "^22.1.0",
@@ -50,7 +49,11 @@
     "file-type": "^21.0.0",
     "heic-convert": "^2.1.0",
     "jose": "^6.2.13",
+    "jwks-rsa": "^4.1.0",
     "mysql2": "^3.15.0",
+    "passport": "^0.7.0",
+    "passport-jwt": "^4.0.1",
+    "passport-strategy": "^1.0.0",
     "pdf-lib": "^1.17.1",
     "qrcode": "^1.5.4",
     "rxjs": "~7.8.0",
@@ -68,6 +71,9 @@
     "@types/express": "^5.0.1",
     "@types/heic-convert": "^2.1.1",
     "@types/node": "^24.0.0",
+    "@types/passport": "^1.0.17",
+    "@types/passport-jwt": "^4.0.1",
+    "@types/passport-strategy": "^0.2.38",
     "@types/qrcode": "^1.5.6",
     "@types/ws": "^8.18.2",
     "concurrently": "^10.0.6",
@@ -82,5 +88,6 @@
   },
   "engines": {
     "node": ">=24"
-  }
+  },
+  "packageManager": "npm@11.12.1"
 }

@@ -1,4 +1,4 @@
-import ipp, { type GetPrinterAttributesResponse } from "ipp";
+import ipp, { type GetPrinterAttributesResponse } from 'ipp';
 
 const parser = ipp.parse as typeof ipp.parse & {
   handleUnknownTag: (
@@ -22,40 +22,48 @@ export async function getPrinterInfo(address: string): Promise<{
     url = new URL(address);
   } catch {
     throw new Error(
-      "Provide a printer address such as ipp://printer.local or ipps://printer.local/ipp/print.",
+      'Provide a printer address such as ipp://printer.local or ipps://printer.local/ipp/print.',
     );
   }
   if (
-    !["ipp:", "ipps:", "http:", "https:"].includes(url.protocol) ||
+    !['ipp:', 'ipps:', 'http:', 'https:'].includes(url.protocol) ||
     !url.hostname ||
     url.username ||
     url.password ||
     url.search ||
     url.hash
-  )
+  ) {
     throw new Error(
-      "Printer address must use ipp://, ipps://, http://, or https:// without credentials or query parameters.",
+      'Printer address must use ipp://, ipps://, http://, or https:// without credentials or query parameters.',
     );
+  }
 
   const paths =
-    !url.pathname || url.pathname === "/"
-      ? ["/ipp/print", "/ipp/printer"]
+    !url.pathname || url.pathname === '/'
+      ? ['/ipp/print', '/ipp/printer']
       : [url.pathname];
   const errors: string[] = [];
   for (const path of paths) {
     const endpoint = new URL(url);
     endpoint.pathname = path;
     const transport = new URL(endpoint);
-    if (transport.protocol === "ipp:") transport.protocol = "http:";
-    if (transport.protocol === "ipps:")
-      transport.protocol = "https:";
-    if (endpoint.protocol === "http:") endpoint.protocol = "ipp:";
-    if (endpoint.protocol === "https:") endpoint.protocol = "ipps:";
+    if (transport.protocol === 'ipp:') {
+      transport.protocol = 'http:';
+    }
+    if (transport.protocol === 'ipps:') {
+      transport.protocol = 'https:';
+    }
+    if (endpoint.protocol === 'http:') {
+      endpoint.protocol = 'ipp:';
+    }
+    if (endpoint.protocol === 'https:') {
+      endpoint.protocol = 'ipps:';
+    }
 
     try {
       const printer = new ipp.Printer(transport.toString(), {
         uri: endpoint.toString(),
-        version: "2.0",
+        version: '2.0',
       });
       (
         printer as ipp.Printer & { url: { signal?: AbortSignal } }
@@ -64,11 +72,11 @@ export async function getPrinterInfo(address: string): Promise<{
         await new Promise<GetPrinterAttributesResponse>(
           (resolve, reject) => {
             printer.execute(
-              "Get-Printer-Attributes",
+              'Get-Printer-Attributes',
               {
-                "operation-attributes-tag": {
-                  "requesting-user-name": "omega-print-admin",
-                  "requested-attributes": ["all"],
+                'operation-attributes-tag': {
+                  'requesting-user-name': 'omega-print-admin',
+                  'requested-attributes': ['all'],
                 },
               },
               (error, result) =>
@@ -76,14 +84,15 @@ export async function getPrinterInfo(address: string): Promise<{
             );
           },
         );
-      if (!response.statusCode?.startsWith("successful-"))
+      if (!response.statusCode?.startsWith('successful-')) {
         throw new Error(
-          `IPP status: ${response.statusCode ?? "no status"}`,
+          `IPP status: ${response.statusCode ?? 'no status'}`,
         );
+      }
       return {
         uri: endpoint.toString(),
         statusCode: response.statusCode,
-        capabilities: response["printer-attributes-tag"] ?? {},
+        capabilities: response['printer-attributes-tag'] ?? {},
       };
     } catch (error) {
       errors.push(
@@ -92,6 +101,6 @@ export async function getPrinterInfo(address: string): Promise<{
     }
   }
   throw new Error(
-    `Unable to query printer capabilities:\n${errors.join("\n")}`,
+    `Unable to query printer capabilities:\n${errors.join('\n')}`,
   );
 }

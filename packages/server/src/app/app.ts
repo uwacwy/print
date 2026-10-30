@@ -1,6 +1,16 @@
-import { Component, computed, inject, Service, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  inject,
+  Service,
+  signal,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
+import {
+  NavigationEnd,
+  Router,
+  RouterOutlet,
+} from '@angular/router';
 import { filter, map } from 'rxjs';
 
 @Service()
@@ -10,7 +20,9 @@ export class LayoutWidthService {
 
   readonly width = this.#width.asReadonly();
 
-  readonly class = computed(() => (this.#width() ? `col-${this.#width()}` : 'col'));
+  readonly class = computed(() =>
+    this.#width() ? `col-${this.#width()}` : 'col',
+  );
 
   // A root service's injected ActivatedRoute is the root route (data is always {}),
   // so read the deepest activated route's data after each navigation instead.
@@ -19,7 +31,9 @@ export class LayoutWidthService {
       filter((e) => e instanceof NavigationEnd),
       map(() => {
         let route = this.#router.routerState.snapshot.root;
-        while (route.firstChild) route = route.firstChild;
+        while (route.firstChild) {
+          route = route.firstChild;
+        }
         return route.data;
       }),
       takeUntilDestroyed(),
@@ -44,9 +58,9 @@ export class LayoutWidthService {
   template: `
     <main class="container my-4">
       <div class="row">
-        <div class="{{class()}} mx-auto">
+        <div class="{{ class() }} mx-auto">
           <div class="row">
-            <div >
+            <div>
               <h1>United Way Quick Print</h1>
             </div>
           </div>

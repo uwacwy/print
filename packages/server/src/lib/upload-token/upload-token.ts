@@ -66,7 +66,12 @@ export interface SignUploadTokenOptions {
 }
 
 export type UploadTokenVerification =
-  | { status: 'valid'; source: UploadTokenSource; notBefore: Date; expiresAt: Date }
+  | {
+      status: 'valid';
+      source: UploadTokenSource;
+      notBefore: Date;
+      expiresAt: Date;
+    }
   | { status: 'invalid' | 'expired' | 'not-yet-valid' };
 
 export class UploadTokenWindowError extends Error {}
@@ -76,7 +81,13 @@ const macKey = (key: UploadTokenKey) => {
   let derived = macKeys.get(key);
   if (!derived) {
     derived = Buffer.from(
-      hkdfSync('sha256', key.tokenSecret, key.tokenIssuer, 'uwacwy-print upload-token v1', 32),
+      hkdfSync(
+        'sha256',
+        key.tokenSecret,
+        key.tokenIssuer,
+        'uwacwy-print upload-token v1',
+        32,
+      ),
     );
     macKeys.set(key, derived);
   }
@@ -84,32 +95,77 @@ const macKey = (key: UploadTokenKey) => {
 };
 
 const tag = (key: UploadTokenKey, body: Buffer) =>
-  createHmac('sha256', macKey(key)).update(body).digest().subarray(0, TAG_LENGTH);
+  createHmac('sha256', macKey(key))
+    .update(body)
+    .digest()
+    .subarray(0, TAG_LENGTH);
 
 export async function signUploadToken(
   key: UploadTokenKey,
   printer: UploadTokenPrinter,
-  { source, notBefore, expiresAt, maxLifetimeMs, now = new Date() }: SignUploadTokenOptions,
+  {
+    source,
+    notBefore,
+    expiresAt,
+    maxLifetimeMs,
+    now = new Date(),
+  }: SignUploadTokenOptions,
 ): Promise<UploadToken> {
-  if (Number.isNaN(notBefore.getTime()) || Number.isNaN(expiresAt.getTime()))
-    throw new UploadTokenWindowError('Choose a valid start and end time.');
-  if (expiresAt <= notBefore)
-    throw new UploadTokenWindowError('The end time must be after the start time.');
-  if (expiresAt <= now) throw new UploadTokenWindowError('The end time must be in the future.');
+  if (
+    Number.isNaN(notBefore.getTime()) ||
+    Number.isNaN(expiresAt.getTime())
+  ) {
+    throw new UploadTokenWindowError(
+      'Choose a valid start and end time.',
+    );
+  }
+  if (expiresAt <= notBefore) {
+    throw new UploadTokenWindowError(
+      'The end time must be after the start time.',
+    );
+  }
+  if (expiresAt <= now) {
+    throw new UploadTokenWindowError(
+      'The end time must be in the future.',
+    );
+  }
   const start = Math.max(now.getTime(), notBefore.getTime());
-  if (expiresAt.getTime() - start > maxLifetimeMs)
+  if (expiresAt.getTime() - start > maxLifetimeMs) {
     throw new UploadTokenWindowError(
       `A code can be valid for at most ${Math.max(1, Math.floor(maxLifetimeMs / 86_400_000))} days.`,
     );
+  }
 
   const startMinute = Math.floor(notBefore.getTime() / MINUTE_MS);
-  const lifetime = Math.ceil(expiresAt.getTime() / MINUTE_MS) - startMinute;
-  if (startMinute < 0 || startMinute > MAX_UINT32 || lifetime > MAX_UINT24)
-    throw new UploadTokenWindowError('Choose a valid start and end time.');
-  if (!Number.isInteger(printer.id) || printer.id < 0 || printer.id > MAX_UINT32)
-    throw new RangeError(`Printer id ${printer.id} does not fit in an upload token.`);
-  if (!Number.isInteger(printer.qr_epoch) || printer.qr_epoch < 0 || printer.qr_epoch > MAX_UINT16)
-    throw new RangeError(`QR epoch ${printer.qr_epoch} does not fit in an upload token.`);
+  const lifetime =
+    Math.ceil(expiresAt.getTime() / MINUTE_MS) - startMinute;
+  if (
+    startMinute < 0 ||
+    startMinute > MAX_UINT32 ||
+    lifetime > MAX_UINT24
+  ) {
+    throw new UploadTokenWindowError(
+      'Choose a valid start and end time.',
+    );
+  }
+  if (
+    !Number.isInteger(printer.id) ||
+    printer.id < 0 ||
+    printer.id > MAX_UINT32
+  ) {
+    throw new RangeError(
+      `Printer id ${printer.id} does not fit in an upload token.`,
+    );
+  }
+  if (
+    !Number.isInteger(printer.qr_epoch) ||
+    printer.qr_epoch < 0 ||
+    printer.qr_epoch > MAX_UINT16
+  ) {
+    throw new RangeError(
+      `QR epoch ${printer.qr_epoch} does not fit in an upload token.`,
+    );
+  }
 
   const body = Buffer.alloc(BODY_LENGTH);
   body.writeUInt8((VERSION << 4) | KEY_ID, 0);
@@ -119,7 +175,9 @@ export async function signUploadToken(
   body.writeUInt32BE(startMinute, 8);
   body.writeUIntBE(lifetime, 12, 3);
   return {
-    token: Buffer.concat([body, tag(key, body)]).toString('base64url'),
+    token: Buffer.concat([body, tag(key, body)]).toString(
+      'base64url',
+    ),
     source,
     notBefore: new Date(startMinute * MINUTE_MS),
     expiresAt: new Date((startMinute + lifetime) * MINUTE_MS),
@@ -129,22 +187,41 @@ export async function signUploadToken(
 const TOKEN_PATTERN = /^[A-Za-z0-9_-]{42}$/;
 
 /** Checks the format and MAC only; returns undefined for anything not issued by this server. */
-export function inspectUploadToken(key: UploadTokenKey, token: string): UploadTokenClaims | undefined {
-  if (!TOKEN_PATTERN.test(token)) return undefined;
+export function inspectUploadToken(
+  key: UploadTokenKey,
+  token: string,
+): UploadTokenClaims | undefined {
+  if (!TOKEN_PATTERN.test(token)) {
+    return undefined;
+  }
   const bytes = Buffer.from(token, 'base64url');
-  if (bytes.length !== TOKEN_LENGTH) return undefined;
+  if (bytes.length !== TOKEN_LENGTH) {
+    return undefined;
+  }
   const body = bytes.subarray(0, BODY_LENGTH);
-  if (!timingSafeEqual(bytes.subarray(BODY_LENGTH), tag(key, body))) return undefined;
+  if (
+    !timingSafeEqual(bytes.subarray(BODY_LENGTH), tag(key, body))
+  ) {
+    return undefined;
+  }
   const header = body.readUInt8(0);
   const flags = body.readUInt8(1);
-  if (header >> 4 !== VERSION || (header & 0x0f) !== KEY_ID || flags > 1) return undefined;
+  if (
+    header >> 4 !== VERSION ||
+    (header & 0x0f) !== KEY_ID ||
+    flags > 1
+  ) {
+    return undefined;
+  }
   const startMinute = body.readUInt32BE(8);
   return {
     source: flags === 1 ? 'pin' : 'qr',
     printerId: body.readUInt32BE(2),
     epoch: body.readUInt16BE(6),
     notBefore: new Date(startMinute * MINUTE_MS),
-    expiresAt: new Date((startMinute + body.readUIntBE(12, 3)) * MINUTE_MS),
+    expiresAt: new Date(
+      (startMinute + body.readUIntBE(12, 3)) * MINUTE_MS,
+    ),
   };
 }
 
@@ -156,11 +233,25 @@ export async function verifyUploadToken(
   now = new Date(),
 ): Promise<UploadTokenVerification> {
   const claims = inspectUploadToken(key, token);
-  if (!claims || claims.printerId !== printer.id || claims.epoch !== printer.qr_epoch)
+  if (
+    !claims ||
+    claims.printerId !== printer.id ||
+    claims.epoch !== printer.qr_epoch
+  ) {
     return { status: 'invalid' };
-  if (now.getTime() + CLOCK_TOLERANCE_MS < claims.notBefore.getTime())
+  }
+  if (
+    now.getTime() + CLOCK_TOLERANCE_MS <
+    claims.notBefore.getTime()
+  ) {
     return { status: 'not-yet-valid' };
-  if (now.getTime() - CLOCK_TOLERANCE_MS >= claims.expiresAt.getTime()) return { status: 'expired' };
+  }
+  if (
+    now.getTime() - CLOCK_TOLERANCE_MS >=
+    claims.expiresAt.getTime()
+  ) {
+    return { status: 'expired' };
+  }
   return {
     status: 'valid',
     source: claims.source,

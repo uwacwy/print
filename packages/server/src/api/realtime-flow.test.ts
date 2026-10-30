@@ -4,7 +4,11 @@ import { join } from 'node:path';
 import express from 'express';
 import { PDFDocument } from 'pdf-lib';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { AGENT_WS_PATH, agentJobFilePath, agentJobStatusPath } from '@uwacwy/print-shared';
+import {
+  AGENT_WS_PATH,
+  agentJobFilePath,
+  agentJobStatusPath,
+} from '@uwacwy/print-shared';
 import {
   getPrinterBySlug,
   getPrinterByToken,
@@ -19,34 +23,45 @@ import {
   closeServer,
   listen,
   tempDatabase,
+  testEntra,
   testUploadConfig,
   TestAgent,
 } from '../realtime/test-support';
 import type { UploadConfig } from '../server-config';
-import agentRouter from './agent.router';
+import agentRouter from './routers/agent.router';
 import apiRoot from './index';
 
 async function samplePdf(): Promise<Blob> {
   const pdf = await PDFDocument.create();
   pdf.addPage([612, 792]);
-  return new Blob([new Uint8Array(await pdf.save())], { type: 'application/pdf' });
+  return new Blob([new Uint8Array(await pdf.save())], {
+    type: 'application/pdf',
+  });
 }
 
-async function uploadForm(fields: Record<string, string> = {}): Promise<FormData> {
+async function uploadForm(
+  fields: Record<string, string> = {},
+): Promise<FormData> {
   const form = new FormData();
   form.set('document__file_0', await samplePdf(), 'intake.pdf');
   form.set('document__copies_0', '1');
-  for (const [name, value] of Object.entries(fields)) form.set(name, value);
+  for (const [name, value] of Object.entries(fields)) {
+    form.set(name, value);
+  }
   return form;
 }
 
 /** Reads SSE frames from a fetch response body. */
 async function* sseEvents(response: Response) {
-  const reader = response.body!.pipeThrough(new TextDecoderStream()).getReader();
+  const reader = response
+    .body!.pipeThrough(new TextDecoderStream())
+    .getReader();
   let buffer = '';
   while (true) {
     const { value, done } = await reader.read();
-    if (done) return;
+    if (done) {
+      return;
+    }
     buffer += value;
     let boundary: number;
     while ((boundary = buffer.indexOf('\n\n')) >= 0) {
@@ -57,7 +72,12 @@ async function* sseEvents(response: Response) {
         .filter((line) => line.startsWith('data: '))
         .map((line) => line.slice(6))
         .join('\n');
-      if (data) yield JSON.parse(data) as { type: string; [key: string]: unknown };
+      if (data) {
+        yield JSON.parse(data) as {
+          type: string;
+          [key: string]: unknown;
+        };
+      }
     }
   }
 }
@@ -71,12 +91,20 @@ describe('realtime print flow over HTTP and WebSocket', () => {
   let host: string;
   let agents: TestAgent[];
   let upload: UploadConfig;
+  const { entra, bearer } = testEntra();
+  const adminBearer = () =>
+    bearer({ sub: 'admin', scp: 'Printers.Manage' });
 
-  const start = async (uploadConfig: UploadConfig = testUploadConfig) => {
+  const start = async (
+    uploadConfig: UploadConfig = testUploadConfig,
+  ) => {
     upload = uploadConfig;
     const app = express();
     app.use(express.json());
-    app.use('/agent', agentRouter({ db, jobsDir, getHub: () => hub }));
+    app.use(
+      '/agent',
+      agentRouter({ db, jobsDir, getHub: () => hub }),
+    );
     app.use(
       '/api',
       apiRoot({
@@ -84,8 +112,7 @@ describe('realtime print flow over HTTP and WebSocket', () => {
         jobsDir,
         getHub: () => hub,
         upload,
-        adminAuth: { tenantId: 'tenant', audience: 'api://print', adminGroupIds: [] },
-        verifyAccessToken: async () => ({ sub: 'admin', scp: 'Printers.Manage' }),
+        entra,
       }),
     );
     server = createServer(app);
@@ -98,13 +125,21 @@ describe('realtime print flow over HTTP and WebSocket', () => {
   };
 
   const connectAgent = async (token: string) => {
-    const agent = new TestAgent(`ws://${host}${AGENT_WS_PATH}`, token);
+    const agent = new TestAgent(
+      `ws://${host}${AGENT_WS_PATH}`,
+      token,
+    );
     agents.push(agent);
-    await expect(agent.next()).resolves.toMatchObject({ type: 'hello' });
+    await expect(agent.next()).resolves.toMatchObject({
+      type: 'hello',
+    });
     return agent;
   };
 
-  const uploadToken = async (slug = 'front-office', window = { from: -1, to: 1 }) => {
+  const uploadToken = async (
+    slug = 'front-office',
+    window = { from: -1, to: 1 },
+  ) => {
     const printer = getPrinterBySlug(db, slug)!;
     const hour = 3_600_000;
     const { token } = await signUploadToken(upload.access, printer, {
@@ -122,19 +157,28 @@ describe('realtime print flow over HTTP and WebSocket', () => {
     headers: Record<string, string> = { 'x-print-upload': '1' },
     token?: string | null,
   ) => {
-    const authorization = token === undefined ? `Bearer ${await uploadToken()}` : token;
+    const authorization =
+      token === undefined ? `Bearer ${await uploadToken()}` : token;
     return fetch(`http://${host}/api/printers/front-office/jobs`, {
       method: 'POST',
       body: form,
-      headers: authorization ? { ...headers, authorization } : headers,
+      headers: authorization
+        ? { ...headers, authorization }
+        : headers,
     });
   };
 
-  const exchangePin = (pin: unknown, headers: Record<string, string> = {}) =>
+  const exchangePin = (
+    pin: string,
+    headers: Record<string, string> = {},
+  ) =>
     fetch(`http://${host}/api/printers/front-office/token`, {
       method: 'POST',
-      headers: { 'x-print-upload': '1', 'content-type': 'application/json', ...headers },
-      body: JSON.stringify({ pin }),
+      headers: {
+        'x-print-upload': '1',
+        authorization: `Pin ${pin}`,
+        ...headers,
+      },
     });
 
   beforeEach(async () => {
@@ -144,7 +188,9 @@ describe('realtime print flow over HTTP and WebSocket', () => {
   });
 
   afterEach(async () => {
-    for (const agent of agents) agent.socket.terminate();
+    for (const agent of agents) {
+      agent.socket.terminate();
+    }
     hub.dispose();
     await closeServer(server);
     await cleanup();
@@ -155,9 +201,14 @@ describe('realtime print flow over HTTP and WebSocket', () => {
     const { id, token } = addPrinter(db);
     const agent = await connectAgent(token);
 
-    const response = await postUpload(await uploadForm({ job__title: 'Intake packet' }));
+    const response = await postUpload(
+      await uploadForm({ job__title: 'Intake packet' }),
+    );
     expect(response.status).toBe(201);
-    const body = (await response.json()) as { jobId: string; agentOnline: boolean };
+    const body = (await response.json()) as {
+      jobId: string;
+      agentOnline: boolean;
+    };
     expect(body.agentOnline).toBe(true);
 
     await expect(agent.next()).resolves.toEqual({
@@ -165,29 +216,52 @@ describe('realtime print flow over HTTP and WebSocket', () => {
       jobs: [{ id: body.jobId, title: 'Intake packet' }],
     });
 
-    const unauthorized = await fetch(`http://${host}${agentJobFilePath(body.jobId)}`);
+    const unauthorized = await fetch(
+      `http://${host}${agentJobFilePath(body.jobId)}`,
+    );
     expect(unauthorized.status).toBe(401);
 
-    const file = await fetch(`http://${host}${agentJobFilePath(body.jobId)}`, {
-      headers: { authorization: `Bearer ${token}` },
-    });
+    const file = await fetch(
+      `http://${host}${agentJobFilePath(body.jobId)}`,
+      {
+        headers: { authorization: `Bearer ${token}` },
+      },
+    );
     expect(file.status).toBe(200);
     expect(file.headers.get('content-type')).toBe('application/pdf');
-    expect(Buffer.from(await file.arrayBuffer()).subarray(0, 5).toString()).toBe('%PDF-');
+    expect(
+      Buffer.from(await file.arrayBuffer())
+        .subarray(0, 5)
+        .toString(),
+    ).toBe('%PDF-');
 
-    const report = await fetch(`http://${host}${agentJobStatusPath(body.jobId)}`, {
-      method: 'POST',
-      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-      body: JSON.stringify({ status: 'printed' }),
-    });
+    const report = await fetch(
+      `http://${host}${agentJobStatusPath(body.jobId)}`,
+      {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${token}`,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ status: 'printed' }),
+      },
+    );
     expect(report.status).toBe(200);
-    expect(existsSync(join(jobsDir, `${body.jobId}.pdf`))).toBe(false);
+    expect(existsSync(join(jobsDir, `${body.jobId}.pdf`))).toBe(
+      false,
+    );
 
-    const again = await fetch(`http://${host}${agentJobStatusPath(body.jobId)}`, {
-      method: 'POST',
-      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-      body: JSON.stringify({ status: 'printed' }),
-    });
+    const again = await fetch(
+      `http://${host}${agentJobStatusPath(body.jobId)}`,
+      {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${token}`,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ status: 'printed' }),
+      },
+    );
     expect(again.status).toBe(404);
     expect(hub.isOnline(id)).toBe(true);
   });
@@ -198,17 +272,25 @@ describe('realtime print flow over HTTP and WebSocket', () => {
 
     const response = await postUpload(await uploadForm());
     expect(response.status).toBe(201);
-    const { jobId, agentOnline } = (await response.json()) as { jobId: string; agentOnline: boolean };
+    const { jobId, agentOnline } = (await response.json()) as {
+      jobId: string;
+      agentOnline: boolean;
+    };
     expect(agentOnline).toBe(false);
 
     const agent = await connectAgent(token);
-    await expect(agent.next()).resolves.toEqual({ type: 'jobs', jobs: [{ id: jobId, title: 'intake' }] });
+    await expect(agent.next()).resolves.toEqual({
+      type: 'jobs',
+      jobs: [{ id: jobId, title: 'intake' }],
+    });
   });
 
   it('rejects cross-site uploads that lack the upload header', async () => {
     await start();
     addPrinter(db);
-    expect((await postUpload(await uploadForm(), {})).status).toBe(403);
+    expect((await postUpload(await uploadForm(), {})).status).toBe(
+      403,
+    );
     expect(
       (
         await postUpload(await uploadForm(), {
@@ -224,12 +306,24 @@ describe('realtime print flow over HTTP and WebSocket', () => {
     addPrinter(db);
     addPrinter(db, 'back-office');
 
-    const missing = await postUpload(await uploadForm(), undefined, null);
+    const missing = await postUpload(
+      await uploadForm(),
+      undefined,
+      null,
+    );
     expect(missing.status).toBe(401);
-    expect(await missing.json()).toMatchObject({ code: 'token_required' });
+    expect(await missing.json()).toMatchObject({
+      code: 'token_required',
+    });
 
-    const other = await postUpload(await uploadForm(), undefined, `Bearer ${await uploadToken('back-office')}`);
-    expect(await other.json()).toMatchObject({ code: 'token_invalid' });
+    const other = await postUpload(
+      await uploadForm(),
+      undefined,
+      `Bearer ${await uploadToken('back-office')}`,
+    );
+    expect(await other.json()).toMatchObject({
+      code: 'token_invalid',
+    });
 
     const expired = await postUpload(
       await uploadForm(),
@@ -237,22 +331,30 @@ describe('realtime print flow over HTTP and WebSocket', () => {
       `Bearer ${await uploadToken('front-office', { from: -3, to: -2 })}`,
     );
     expect(expired.status).toBe(401);
-    expect(await expired.json()).toMatchObject({ code: 'token_expired' });
+    expect(await expired.json()).toMatchObject({
+      code: 'token_expired',
+    });
 
     const early = await postUpload(
       await uploadForm(),
       undefined,
       `Bearer ${await uploadToken('front-office', { from: 2, to: 3 })}`,
     );
-    expect(await early.json()).toMatchObject({ code: 'token_not_yet_valid' });
+    expect(await early.json()).toMatchObject({
+      code: 'token_not_yet_valid',
+    });
 
     const job = await postUpload(await uploadForm());
     expect(job.status).toBe(201);
     const { jobId } = (await job.json()) as { jobId: string };
-    const row = db.prepare('SELECT submitted_by FROM jobs WHERE id = ?').get(jobId) as {
+    const row = db
+      .prepare('SELECT submitted_by FROM jobs WHERE id = ?')
+      .get(jobId) as {
       submitted_by: string;
     };
-    expect(row.submitted_by).toMatch(/^qr:\d{4}-[\d-]+T[\d:.]+Z\/\d{4}-[\d-]+T[\d:.]+Z$/);
+    expect(row.submitted_by).toMatch(
+      /^qr:\d{4}-[\d-]+T[\d:.]+Z\/\d{4}-[\d-]+T[\d:.]+Z$/,
+    );
   });
 
   it('reports PIN and token status on the public printer endpoint', async () => {
@@ -264,12 +366,22 @@ describe('realtime print flow over HTTP and WebSocket', () => {
       access: { pinEnabled: false, token: null },
     });
     setPrinterPin(db, id, '123456789');
-    const withToken = await fetch(url, { headers: { authorization: `Bearer ${await uploadToken()}` } });
-    expect(await withToken.json()).toMatchObject({
-      access: { pinEnabled: true, token: 'valid', tokenExpiresAt: expect.any(String) },
+    const withToken = await fetch(url, {
+      headers: { authorization: `Bearer ${await uploadToken()}` },
     });
-    const bad = await fetch(url, { headers: { authorization: 'Bearer nope' } });
-    expect(await bad.json()).toMatchObject({ access: { token: 'invalid', tokenExpiresAt: null } });
+    expect(await withToken.json()).toMatchObject({
+      access: {
+        pinEnabled: true,
+        token: 'valid',
+        tokenExpiresAt: expect.any(String),
+      },
+    });
+    const bad = await fetch(url, {
+      headers: { authorization: 'Bearer nope' },
+    });
+    expect(await bad.json()).toMatchObject({
+      access: { token: 'invalid', tokenExpiresAt: null },
+    });
   });
 
   it('exchanges the printer PIN for a short-lived token, once per interval', async () => {
@@ -278,27 +390,46 @@ describe('realtime print flow over HTTP and WebSocket', () => {
 
     const disabled = await exchangePin('123-456-789');
     expect(disabled.status).toBe(403);
-    expect(await disabled.json()).toMatchObject({ code: 'pin_disabled' });
+    expect(await disabled.json()).toMatchObject({
+      code: 'pin_disabled',
+    });
 
     setPrinterPin(db, id, '123456789');
-    expect((await exchangePin('123-456-789', { 'sec-fetch-site': 'cross-site' })).status).toBe(403);
+    expect(
+      (
+        await exchangePin('123-456-789', {
+          'sec-fetch-site': 'cross-site',
+        })
+      ).status,
+    ).toBe(403);
     const wrong = await exchangePin('999-999-999');
     expect(wrong.status).toBe(401);
-    expect(await wrong.json()).toMatchObject({ code: 'pin_incorrect' });
+    expect(await wrong.json()).toMatchObject({
+      code: 'pin_incorrect',
+    });
 
     const issued = await exchangePin('123 456 789');
     expect(issued.status).toBe(201);
-    const { token, expiresAt } = (await issued.json()) as { token: string; expiresAt: string };
-    expect(new Date(expiresAt).getTime() - Date.now()).toBeLessThanOrEqual(
-      upload.access.pinTokenTtlMs + 60_000,
-    );
+    const { token, expiresAt } = (await issued.json()) as {
+      token: string;
+      expiresAt: string;
+    };
+    expect(
+      new Date(expiresAt).getTime() - Date.now(),
+    ).toBeLessThanOrEqual(upload.access.pinTokenTtlMs + 60_000);
 
-    const job = await postUpload(await uploadForm(), undefined, `Bearer ${token}`);
+    const job = await postUpload(
+      await uploadForm(),
+      undefined,
+      `Bearer ${token}`,
+    );
     expect(job.status).toBe(201);
 
     const again = await exchangePin('123-456-789');
     expect(again.status).toBe(429);
-    expect(await again.json()).toMatchObject({ code: 'pin_rate_limited' });
+    expect(await again.json()).toMatchObject({
+      code: 'pin_rate_limited',
+    });
   });
 
   it('locks out a client after repeated wrong PINs', async () => {
@@ -306,11 +437,84 @@ describe('realtime print flow over HTTP and WebSocket', () => {
     const { id } = addPrinter(db);
     setPrinterPin(db, id, '123456789');
 
-    for (let attempt = 0; attempt < upload.access.pinMaxFailures; attempt++)
+    for (
+      let attempt = 0;
+      attempt < upload.access.pinMaxFailures;
+      attempt++
+    ) {
       expect((await exchangePin('000000000')).status).toBe(401);
+    }
     const locked = await exchangePin('123456789');
     expect(locked.status).toBe(429);
-    expect(await locked.json()).toMatchObject({ code: 'pin_locked' });
+    expect(await locked.json()).toMatchObject({
+      code: 'pin_locked',
+    });
+  });
+
+  it('accepts a PIN directly on the upload and shares the wrong-PIN lockout', async () => {
+    await start();
+    const { id } = addPrinter(db);
+    setPrinterPin(db, id, '123456789');
+
+    const direct = await postUpload(
+      await uploadForm(),
+      undefined,
+      'Pin 123-456-789',
+    );
+    expect(direct.status).toBe(201);
+    const { jobId } = (await direct.json()) as { jobId: string };
+    expect(
+      db
+        .prepare('SELECT submitted_by FROM jobs WHERE id = ?')
+        .get(jobId),
+    ).toEqual({
+      submitted_by: 'pin',
+    });
+
+    for (
+      let attempt = 0;
+      attempt < upload.access.pinMaxFailures;
+      attempt++
+    ) {
+      const wrong = await postUpload(
+        await uploadForm(),
+        undefined,
+        'Pin 000-000-000',
+      );
+      expect(wrong.status).toBe(401);
+      expect(await wrong.json()).toMatchObject({
+        code: 'pin_incorrect',
+      });
+    }
+    expect(
+      (
+        await postUpload(
+          await uploadForm(),
+          undefined,
+          'Pin 123-456-789',
+        )
+      ).status,
+    ).toBe(429);
+    expect((await exchangePin('123-456-789')).status).toBe(429);
+  });
+
+  it('lets a signed-in manager upload without a token or PIN', async () => {
+    await start();
+    addPrinter(db);
+    const response = await postUpload(
+      await uploadForm(),
+      undefined,
+      await adminBearer(),
+    );
+    expect(response.status).toBe(201);
+    const { jobId } = (await response.json()) as { jobId: string };
+    expect(
+      db
+        .prepare('SELECT submitted_by FROM jobs WHERE id = ?')
+        .get(jobId),
+    ).toEqual({
+      submitted_by: 'entra:admin',
+    });
   });
 
   it('rejects oversized files and invalid copy counts', async () => {
@@ -321,7 +525,9 @@ describe('realtime print flow over HTTP and WebSocket', () => {
 
     await closeServer(server);
     await start();
-    const badCopies = await postUpload(await uploadForm({ document__copies_0: '9' }));
+    const badCopies = await postUpload(
+      await uploadForm({ document__copies_0: '9' }),
+    );
     expect(badCopies.status).toBe(400);
   });
 
@@ -329,12 +535,14 @@ describe('realtime print flow over HTTP and WebSocket', () => {
     await start();
     const { id, token } = addPrinter(db);
     const controller = new AbortController();
-    const stream = await fetch(`http://${host}/api/admin/events`, {
-      headers: { authorization: 'Bearer admin' },
+    const stream = await fetch(`http://${host}/api/events`, {
+      headers: { authorization: await adminBearer() },
       signal: controller.signal,
     });
     expect(stream.status).toBe(200);
-    expect(stream.headers.get('content-type')).toContain('text/event-stream');
+    expect(stream.headers.get('content-type')).toContain(
+      'text/event-stream',
+    );
     const events = sseEvents(stream);
 
     await expect(events.next()).resolves.toMatchObject({
@@ -348,16 +556,28 @@ describe('realtime print flow over HTTP and WebSocket', () => {
 
     await postUpload(await uploadForm());
     await expect(events.next()).resolves.toMatchObject({
-      value: { type: 'job', printerId: id, status: 'queued', activeJobs: 1 },
+      value: {
+        type: 'job',
+        printerId: id,
+        status: 'queued',
+        activeJobs: 1,
+      },
     });
     await expect(events.next()).resolves.toMatchObject({
-      value: { type: 'job', printerId: id, status: 'printing', activeJobs: 1 },
+      value: {
+        type: 'job',
+        printerId: id,
+        status: 'printing',
+        activeJobs: 1,
+      },
     });
     controller.abort();
   });
 
   it('requires admin auth for the event stream', async () => {
     await start();
-    expect((await fetch(`http://${host}/api/admin/events`)).status).toBe(401);
+    expect((await fetch(`http://${host}/api/events`)).status).toBe(
+      401,
+    );
   });
 });

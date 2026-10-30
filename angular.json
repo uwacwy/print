@@ -49,10 +49,7 @@
               "utf-8-validate"
             ],
             "security": {
-              "allowedHosts": [
-                "localhost",
-                "127.0.0.1"
-              ]
+              "allowedHosts": ["localhost", "127.0.0.1"]
             },
             "ssr": {
               "entry": "packages/server/src/server.ts"
@@ -116,9 +113,7 @@
         "test": {
           "builder": "@angular/build:unit-test",
           "options": {
-            "include": [
-              "**/*.spec.ts"
-            ]
+            "include": ["**/*.spec.ts"]
           }
         }
       }

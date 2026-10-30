@@ -6,6 +6,9 @@
     "outDir": "dist"
   },
   "include": ["src/**/*.ts", "../packages/server/src/lib/**/*.ts"],
-  "exclude": ["src/**/*.test.ts", "../packages/server/src/lib/**/*.test.ts"],
+  "exclude": [
+    "src/**/*.test.ts",
+    "../packages/server/src/lib/**/*.test.ts"
+  ],
   "references": [{ "path": "../shared" }]
 }

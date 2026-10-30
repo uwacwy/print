@@ -30,8 +30,15 @@ beforeEach(() => {
   directory = mkdtempSync(join(tmpdir(), 'omega-print-test-'));
   db = openDatabase(directory).db;
   const inserted = db
-    .prepare('INSERT INTO printers (slug, name, queue, token_hash) VALUES (?, ?, ?, ?)')
-    .run('event-one', 'Event One', 'Office', tokenHash('agent-token'));
+    .prepare(
+      'INSERT INTO printers (slug, name, queue, token_hash) VALUES (?, ?, ?, ?)',
+    )
+    .run(
+      'event-one',
+      'Event One',
+      'Office',
+      tokenHash('agent-token'),
+    );
   printerId = Number(inserted.lastInsertRowid);
 });
 
@@ -54,11 +61,16 @@ function addJob(id: string, owner = printerId): void {
 
 describe('upload PINs and token epochs', () => {
   it('starts without a PIN at epoch zero', () => {
-    expect(getPrinterById(db, printerId)).toMatchObject({ pin: null, qr_epoch: 0 });
+    expect(getPrinterById(db, printerId)).toMatchObject({
+      pin: null,
+      qr_epoch: 0,
+    });
   });
 
   it('generates nine-digit PINs and formats them in groups of three', () => {
-    for (let i = 0; i < 50; i++) expect(generatePin()).toMatch(/^\d{9}$/);
+    for (let i = 0; i < 50; i++) {
+      expect(generatePin()).toMatch(/^\d{9}$/);
+    }
     expect(formatPin('012345678')).toBe('012-345-678');
   });
 
@@ -71,7 +83,9 @@ describe('upload PINs and token epochs', () => {
     expect(pinMatches(printer, '12345678')).toBe(false);
     expect(pinMatches(printer, 12345678)).toBe(false);
     expect(setPrinterPin(db, printerId, null)).toBe(true);
-    expect(pinMatches(getPrinterById(db, printerId)!, '012345678')).toBe(false);
+    expect(
+      pinMatches(getPrinterById(db, printerId)!, '012345678'),
+    ).toBe(false);
     expect(setPrinterPin(db, 9999, '000000000')).toBe(false);
   });
 
@@ -86,7 +100,11 @@ describe('print queue persistence', () => {
   it('stores only a token hash and retrieves the matching printer', () => {
     expect(getPrinterByToken(db, 'agent-token')?.id).toBe(printerId);
     expect(getPrinterByToken(db, 'wrong-token')).toBeUndefined();
-    expect(db.prepare('SELECT token_hash FROM printers WHERE id = ?').get(printerId)).toEqual({
+    expect(
+      db
+        .prepare('SELECT token_hash FROM printers WHERE id = ?')
+        .get(printerId),
+    ).toEqual({
       token_hash: tokenHash('agent-token'),
     });
   });
@@ -96,9 +114,15 @@ describe('print queue persistence', () => {
     const queued = getQueuedJobs(db, printerId);
     const printing = markJobsPrinting(db, printerId, queued);
     expect(printing.map((job) => job.id)).toEqual(['job-owned']);
-    expect(getJobForPrinter(db, printerId + 1, 'job-owned')).toBeUndefined();
-    expect(reportJob(db, printerId + 1, 'job-owned', 'printed')).toBe(false);
-    expect(reportJob(db, printerId, 'job-owned', 'printed')).toBe(true);
+    expect(
+      getJobForPrinter(db, printerId + 1, 'job-owned'),
+    ).toBeUndefined();
+    expect(
+      reportJob(db, printerId + 1, 'job-owned', 'printed'),
+    ).toBe(false);
+    expect(reportJob(db, printerId, 'job-owned', 'printed')).toBe(
+      true,
+    );
   });
 
   it('expires stale jobs once and removes finished metadata after retention', () => {
@@ -106,21 +130,37 @@ describe('print queue persistence', () => {
     db.prepare(
       "UPDATE jobs SET created_at = '2000-01-01T00:00:00.000Z' WHERE id = 'job-stale'",
     ).run();
-    expect(expireStaleJobs(db, '2020-01-01T00:00:00.000Z')).toEqual(['job-stale']);
+    expect(expireStaleJobs(db, '2020-01-01T00:00:00.000Z')).toEqual([
+      'job-stale',
+    ]);
     const finishedAt = (
-      db.prepare("SELECT finished_at FROM jobs WHERE id = 'job-stale'").get() as {
+      db
+        .prepare(
+          "SELECT finished_at FROM jobs WHERE id = 'job-stale'",
+        )
+        .get() as {
         finished_at: string;
       }
     ).finished_at;
-    expect(expireStaleJobs(db, '2020-01-01T00:00:00.000Z')).toEqual(['job-stale']);
+    expect(expireStaleJobs(db, '2020-01-01T00:00:00.000Z')).toEqual([
+      'job-stale',
+    ]);
     expect(
       (
-        db.prepare("SELECT finished_at FROM jobs WHERE id = 'job-stale'").get() as {
+        db
+          .prepare(
+            "SELECT finished_at FROM jobs WHERE id = 'job-stale'",
+          )
+          .get() as {
           finished_at: string;
         }
       ).finished_at,
     ).toBe(finishedAt);
-    expect(purgeFinishedJobs(db, '2100-01-01T00:00:00.000Z')).toEqual(['job-stale']);
-    expect(getJobForPrinter(db, printerId, 'job-stale')).toBeUndefined();
+    expect(
+      purgeFinishedJobs(db, '2100-01-01T00:00:00.000Z'),
+    ).toEqual(['job-stale']);
+    expect(
+      getJobForPrinter(db, printerId, 'job-stale'),
+    ).toBeUndefined();
   });
 });

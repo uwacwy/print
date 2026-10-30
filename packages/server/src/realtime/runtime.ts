@@ -30,10 +30,14 @@ export interface PrintRuntime {
 }
 
 const RUNTIME_KEY = Symbol.for('uwacwy.print.runtime');
-type RuntimeGlobal = typeof globalThis & { [RUNTIME_KEY]?: PrintRuntime };
+type RuntimeGlobal = typeof globalThis & {
+  [RUNTIME_KEY]?: PrintRuntime;
+};
 const store = globalThis as RuntimeGlobal;
 
-export function getPrintRuntime(config: Pick<ServerConfig, 'dataDir'>): PrintRuntime {
+export function getPrintRuntime(
+  config: Pick<ServerConfig, 'dataDir'>,
+): PrintRuntime {
   const existing = store[RUNTIME_KEY];
   if (existing && existing.dataDir === config.dataDir) {
     // Only replace the hub when its implementation changed; agents reconnect within ~1s.
@@ -45,7 +49,9 @@ export function getPrintRuntime(config: Pick<ServerConfig, 'dataDir'>): PrintRun
     }
     return existing;
   }
-  if (existing) shutdownPrintRuntime();
+  if (existing) {
+    shutdownPrintRuntime();
+  }
 
   const { db, jobsDir } = openDatabase(config.dataDir);
   const runtime: PrintRuntime = {
@@ -59,7 +65,10 @@ export function getPrintRuntime(config: Pick<ServerConfig, 'dataDir'>): PrintRun
   return runtime;
 }
 
-export function authenticateAgent(runtime: PrintRuntime, token: string) {
+export function authenticateAgent(
+  runtime: PrintRuntime,
+  token: string,
+) {
   return getPrinterByToken(runtime.db, token);
 }
 
@@ -68,13 +77,22 @@ export function startJobCleanup(
   runtime: PrintRuntime,
   config: Pick<ServerConfig, 'jobTtlMs' | 'retentionMs'>,
 ): void {
-  if (runtime.cleanupTimer) clearInterval(runtime.cleanupTimer);
+  if (runtime.cleanupTimer) {
+    clearInterval(runtime.cleanupTimer);
+  }
   runtime.cleanupTimer = setInterval(async () => {
     const now = Date.now();
-    const expired = expireStaleJobs(runtime.db, new Date(now - config.jobTtlMs).toISOString());
-    const removed = purgeFinishedJobs(runtime.db, new Date(now - config.retentionMs).toISOString());
-    for (const id of [...expired, ...removed])
+    const expired = expireStaleJobs(
+      runtime.db,
+      new Date(now - config.jobTtlMs).toISOString(),
+    );
+    const removed = purgeFinishedJobs(
+      runtime.db,
+      new Date(now - config.retentionMs).toISOString(),
+    );
+    for (const id of [...expired, ...removed]) {
       await rm(join(runtime.jobsDir, `${id}.pdf`), { force: true });
+    }
   }, 10 * 60_000);
   runtime.cleanupTimer.unref();
 }
@@ -85,7 +103,10 @@ export function startJobCleanup(
  * The listener is created once; the upgrade handler is re-attached on every evaluation so
  * gateway code edits apply without dropping already-connected agents.
  */
-export async function ensureDevAgentGateway(runtime: PrintRuntime, port: number): Promise<void> {
+export async function ensureDevAgentGateway(
+  runtime: PrintRuntime,
+  port: number,
+): Promise<void> {
   if (runtime.devGateway && runtime.devGateway.port !== port) {
     runtime.devGateway.detach?.();
     runtime.devGateway.server.close();
@@ -93,7 +114,9 @@ export async function ensureDevAgentGateway(runtime: PrintRuntime, port: number)
   }
   if (!runtime.devGateway) {
     const server = createServer((_request, response) => {
-      response.writeHead(404, { 'content-type': 'text/plain' }).end('Not Found');
+      response
+        .writeHead(404, { 'content-type': 'text/plain' })
+        .end('Not Found');
     });
     runtime.devGateway = { server, port };
     try {
@@ -109,21 +132,30 @@ export async function ensureDevAgentGateway(runtime: PrintRuntime, port: number)
       throw error;
     }
     server.unref();
-    console.log(`Agent WebSocket dev gateway listening on ws://127.0.0.1:${port}`);
+    console.log(
+      `Agent WebSocket dev gateway listening on ws://127.0.0.1:${port}`,
+    );
   }
   runtime.devGateway.detach?.();
-  runtime.devGateway.detach = attachAgentGateway(runtime.devGateway.server, {
-    getHub: () => runtime.hub,
-    authenticate: (token) => authenticateAgent(runtime, token),
-    rejectUnknownPaths: true,
-  });
+  runtime.devGateway.detach = attachAgentGateway(
+    runtime.devGateway.server,
+    {
+      getHub: () => runtime.hub,
+      authenticate: (token) => authenticateAgent(runtime, token),
+      rejectUnknownPaths: true,
+    },
+  );
 }
 
 export function shutdownPrintRuntime(): void {
   const runtime = store[RUNTIME_KEY];
-  if (!runtime) return;
+  if (!runtime) {
+    return;
+  }
   store[RUNTIME_KEY] = undefined;
-  if (runtime.cleanupTimer) clearInterval(runtime.cleanupTimer);
+  if (runtime.cleanupTimer) {
+    clearInterval(runtime.cleanupTimer);
+  }
   runtime.hub.dispose();
   if (runtime.devGateway) {
     runtime.devGateway.detach?.();

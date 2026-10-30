@@ -14,8 +14,12 @@ export async function isValidPasscode(
   config: PasscodeConfig | undefined,
   passcode: string | undefined,
 ): Promise<boolean> {
-  if (!config) return false;
-  if (!passcode?.trim()) return false;
+  if (!config) {
+    return false;
+  }
+  if (!passcode?.trim()) {
+    return false;
+  }
   const connection = await mysql.createConnection({
     host: config.host,
     port: config.port,
@@ -25,7 +29,9 @@ export async function isValidPasscode(
     connectTimeout: 5000,
   });
   try {
-    const [rows] = await connection.execute(config.query, [passcode.trim().toLowerCase()]);
+    const [rows] = await connection.execute(config.query, [
+      passcode.trim().toLowerCase(),
+    ]);
     return Array.isArray(rows) && rows.length === 1;
   } finally {
     await connection.end();

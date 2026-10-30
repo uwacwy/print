@@ -13,11 +13,19 @@ export interface AgentGatewayOptions {
   rejectUnknownPaths?: boolean;
 }
 
-export function bearerToken(header: string | undefined): string | undefined {
-  return header?.startsWith('Bearer ') ? header.slice(7).trim() || undefined : undefined;
+export function bearerToken(
+  header: string | undefined,
+): string | undefined {
+  return header?.startsWith('Bearer ')
+    ? header.slice(7).trim() || undefined
+    : undefined;
 }
 
-function rejectUpgrade(socket: Duplex, status: number, message: string): void {
+function rejectUpgrade(
+  socket: Duplex,
+  status: number,
+  message: string,
+): void {
   socket.end(
     `HTTP/1.1 ${status} ${message}\r\nConnection: close\r\nContent-Type: text/plain\r\nContent-Length: ${Buffer.byteLength(message)}\r\n\r\n${message}`,
   );
@@ -27,19 +35,37 @@ function rejectUpgrade(socket: Duplex, status: number, message: string): void {
  * Attaches the agent WebSocket endpoint to an HTTP server and returns a detach function.
  * Detaching stops accepting new agents; established sockets belong to the hub and stay open.
  */
-export function attachAgentGateway(server: Server, options: AgentGatewayOptions): () => void {
-  const wss = new WebSocketServer({ noServer: true, perMessageDeflate: false, maxPayload: 4096 });
+export function attachAgentGateway(
+  server: Server,
+  options: AgentGatewayOptions,
+): () => void {
+  const wss = new WebSocketServer({
+    noServer: true,
+    perMessageDeflate: false,
+    maxPayload: 4096,
+  });
 
-  const onUpgrade = (request: IncomingMessage, socket: Duplex, head: Buffer) => {
-    const pathname = new URL(request.url ?? '/', 'http://localhost').pathname;
+  const onUpgrade = (
+    request: IncomingMessage,
+    socket: Duplex,
+    head: Buffer,
+  ) => {
+    const pathname = new URL(request.url ?? '/', 'http://localhost')
+      .pathname;
     if (pathname !== AGENT_WS_PATH) {
-      if (options.rejectUnknownPaths) rejectUpgrade(socket, 404, 'Not Found');
+      if (options.rejectUnknownPaths) {
+        rejectUpgrade(socket, 404, 'Not Found');
+      }
       return;
     }
     const token = bearerToken(request.headers.authorization);
     const printer = token ? options.authenticate(token) : undefined;
-    if (!printer) return rejectUpgrade(socket, 401, 'Unauthorized');
-    wss.handleUpgrade(request, socket, head, (ws) => options.getHub().connect(ws, printer));
+    if (!printer) {
+      return rejectUpgrade(socket, 401, 'Unauthorized');
+    }
+    wss.handleUpgrade(request, socket, head, (ws) =>
+      options.getHub().connect(ws, printer),
+    );
   };
 
   server.on('upgrade', onUpgrade);
