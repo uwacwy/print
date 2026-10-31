@@ -11,7 +11,13 @@ import { AuthenticatedComponent } from './components/authenticated/authenticated
 
 export const routes: Routes = [
   { path: 'auth/callback', pathMatch: 'full', redirectTo: '' },
-  { path: '', component: WelcomeComponent },
+  {
+    path: '',
+    component: WelcomeComponent,
+    data: {
+      width: 6,
+    },
+  },
   {
     path: 'print/:slug',
     component: PrintComponent,

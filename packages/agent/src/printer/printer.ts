@@ -16,7 +16,9 @@ export interface PrintJob {
 }
 
 export interface IPrinter {
+  new (conn: string | URL): IPrinter;
   print(pdf: Buffer, job: PrintJob): Promise<void>;
+  destroy(): void;
 }
 
 export class CupsPrinter implements IPrinter {
@@ -32,12 +34,21 @@ export class CupsPrinter implements IPrinter {
       const file = join(directory, 'document.pdf');
       await writeFile(file, pdf, { mode: 0o600, flag: 'wx' });
       await new Promise<void>((resolve, reject) => {
+        const start = Date.now();
         const title =
           job.title.replace(/[\0-\x1f\x7f]/g, ' ').slice(0, 120) ||
           'Print job';
         const child = spawn(
           'lp',
-          ['-d', this.queue, '-t', title, file],
+          [
+            '-d',
+            this.queue,
+            '-t',
+            title,
+            '-o',
+            'print-quality=3',
+            file,
+          ],
           {
             stdio: ['ignore', 'ignore', 'pipe'],
           },
@@ -55,6 +66,9 @@ export class CupsPrinter implements IPrinter {
         child.once('close', (code, signal) => {
           clearTimeout(timeout);
           if (code === 0) {
+            console.log(
+              `${new Date().toISOString()} Job ${title} finished in ${(Date.now() - start).toLocaleString()}ms`,
+            );
             resolve();
           } else {
             reject(

@@ -1,11 +1,15 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
+import { Router, type Params } from '@angular/router';
 import {
-  ActivatedRoute,
-  convertToParamMap,
-  Router,
-  type Params,
-} from '@angular/router';
-import { BehaviorSubject, of, throwError } from 'rxjs';
+  MsalBroadcastService,
+  MsalService,
+} from '@azure/msal-angular';
+import {
+  InteractionStatus,
+  type AccountInfo,
+} from '@azure/msal-browser';
+import { of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import {
   PrinterService,
@@ -21,6 +25,7 @@ const printerWith = (
   name: 'Front Office',
   coverPage: false,
   access: {
+    signedIn: false,
     pinEnabled: true,
     token: 'valid',
     tokenExpiresAt: null,
@@ -36,31 +41,41 @@ const printerWith = (
 async function render(
   service: Partial<PrinterService>,
   query: Params = { token: 'jwt' },
+  account: Partial<AccountInfo> | null = null,
 ) {
-  const queryParams = new BehaviorSubject(convertToParamMap(query));
+  // Stands in for withComponentInputBinding(): navigation rebinds the token input.
   const navigate = vi.fn(
     (_commands: unknown[], extras?: { queryParams?: Params }) => {
-      queryParams.next(convertToParamMap(extras?.queryParams ?? {}));
+      fixture.componentRef.setInput(
+        'token',
+        extras?.queryParams?.['token'],
+      );
       return Promise.resolve(true);
     },
   );
   await TestBed.configureTestingModule({
     imports: [PrintComponent],
     providers: [
-      {
-        provide: ActivatedRoute,
-        useValue: {
-          snapshot: {
-            paramMap: convertToParamMap({ slug: 'front-office' }),
-          },
-          queryParamMap: queryParams,
-        },
-      },
       { provide: Router, useValue: { navigate } },
       { provide: PrinterService, useValue: service },
+      {
+        provide: MsalService,
+        useValue: {
+          instance: {
+            getActiveAccount: () => account,
+            getAllAccounts: () => (account ? [account] : []),
+          },
+        },
+      },
+      {
+        provide: MsalBroadcastService,
+        useValue: { inProgress$: of(InteractionStatus.None) },
+      },
     ],
   }).compileComponents();
   const fixture = TestBed.createComponent(PrintComponent);
+  fixture.componentRef.setInput('slug', 'front-office');
+  fixture.componentRef.setInput('token', query['token']);
   await fixture.whenStable();
   return {
     fixture,
@@ -132,7 +147,7 @@ describe('PrintComponent', () => {
       'select',
     ) as HTMLSelectElement;
     copies.value = '2';
-    copies.dispatchEvent(new Event('change'));
+    copies.dispatchEvent(new Event('input'));
     (element.querySelector('form') as HTMLFormElement).dispatchEvent(
       new Event('submit'),
     );
@@ -176,6 +191,35 @@ describe('PrintComponent', () => {
     ).toContain('Too many print jobs');
   });
 
+  it('requires a document and enforces the size limit before submitting', async () => {
+    const submitJob = vi.fn();
+    const { fixture, element } = await render({
+      getPrinter: () => of(printerWith()),
+      submitJob,
+    });
+    const form = element.querySelector('form') as HTMLFormElement;
+
+    form.dispatchEvent(new Event('submit'));
+    await fixture.whenStable();
+    expect(
+      element.querySelector('.alert-danger')?.textContent,
+    ).toContain('Choose at least one document');
+
+    const big = new File(['x'], 'huge.pdf');
+    Object.defineProperty(big, 'size', { value: 6 * 1048576 });
+    chooseFile(element, 'input[type=file]', big);
+    await fixture.whenStable();
+    form.dispatchEvent(new Event('submit'));
+    await fixture.whenStable();
+
+    expect(submitJob).not.toHaveBeenCalled();
+    const file = element.querySelector('input[type=file]');
+    expect(file?.getAttribute('aria-invalid')).toBe('true');
+    expect(
+      element.querySelector('.invalid-feedback')?.textContent,
+    ).toContain('huge.pdf exceeds the 5 MB limit');
+  });
+
   it('asks for the PIN without a token, then navigates with the issued token', async () => {
     const getPrinter = vi.fn(
       (_slug: string, token?: string | null) =>
@@ -191,6 +235,7 @@ describe('PrintComponent', () => {
 
     expect(element.querySelector('input[type=file]')).toBeNull();
     const input = typePin(element, '123456789');
+    await fixture.whenStable();
     expect(input.value).toBe('123-456-789');
     expect(input.getAttribute('inputmode')).toBe('numeric');
     (element.querySelector('form') as HTMLFormElement).dispatchEvent(
@@ -311,12 +356,106 @@ describe('PrintComponent', () => {
     expect(element.querySelector('#printer-pin')).not.toBeNull();
   });
 
+  it('lets a signed-in user print without a token or PIN', async () => {
+    const getPrinter = vi.fn(() =>
+      of(printerWith({ signedIn: true, token: null })),
+    );
+    const submitJob = vi.fn(() =>
+      of({ jobId: 'id', title: 'Taxes', agentOnline: true }),
+    );
+    const { fixture, element } = await render(
+      { getPrinter, submitJob },
+      {},
+      { username: 'pat@example.org' },
+    );
+
+    expect(getPrinter).toHaveBeenCalledWith(
+      'front-office',
+      undefined,
+    );
+    expect(element.querySelector('#printer-pin')).toBeNull();
+    expect(element.textContent).toContain(
+      'Printing as pat@example.org.',
+    );
+
+    chooseFile(
+      element,
+      'input[type=file]',
+      new File(['%PDF-1.7'], 'taxes.pdf'),
+    );
+    (element.querySelector('form') as HTMLFormElement).dispatchEvent(
+      new Event('submit'),
+    );
+    await fixture.whenStable();
+
+    expect(submitJob).toHaveBeenCalledWith(
+      'front-office',
+      expect.any(FormData),
+      null,
+    );
+    expect(
+      element.querySelector('[role=status]')?.textContent,
+    ).toContain('sent to Front Office');
+  });
+
+  it('prefers a valid upload token over the signed-in user', async () => {
+    const { element } = await render(
+      {
+        getPrinter: () =>
+          of(
+            printerWith({
+              signedIn: false,
+              tokenExpiresAt: '2030-01-01T00:00:00Z',
+            }),
+          ),
+      },
+      { token: 'jwt' },
+      { username: 'pat@example.org' },
+    );
+    expect(element.textContent).not.toContain('Printing as');
+    expect(element.textContent).toContain('This link works until');
+  });
+
+  it('asks signed-in users the server does not accept for the PIN', async () => {
+    const { element } = await render(
+      { getPrinter: () => of(printerWith({ token: null })) },
+      {},
+      { username: 'guest@example.org' },
+    );
+    expect(element.querySelector('#printer-pin')).not.toBeNull();
+    expect(element.querySelector('input[type=file]')).toBeNull();
+  });
+
   it('shows a not-found message for unknown printers', async () => {
     const { element } = await render({
-      getPrinter: () => throwError(() => new Error('404')),
+      getPrinter: () =>
+        throwError(() => new HttpErrorResponse({ status: 404 })),
     });
     expect(element.querySelector('h1')?.textContent).toContain(
       'Printer not found',
+    );
+  });
+
+  it('offers a retry when the printer fails to load', async () => {
+    const getPrinter = vi
+      .fn()
+      .mockReturnValueOnce(
+        throwError(() => new HttpErrorResponse({ status: 503 })),
+      )
+      .mockReturnValue(of(printerWith()));
+    const { fixture, element } = await render({ getPrinter });
+
+    expect(
+      element.querySelector('[role=alert]')?.textContent,
+    ).toContain('Unable to load this printer');
+    (
+      element.querySelector('main button') as HTMLButtonElement
+    ).click();
+    await fixture.whenStable();
+
+    expect(getPrinter).toHaveBeenCalledTimes(2);
+    expect(element.querySelector('h1')?.textContent).toContain(
+      'Print to Front Office',
     );
   });
 });

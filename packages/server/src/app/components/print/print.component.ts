@@ -1,36 +1,71 @@
-import { DatePipe } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { DatePipe, isPlatformBrowser } from '@angular/common';
 import {
-  FormControl,
-  FormGroup,
-  ReactiveFormsModule,
-  Validators,
-} from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+  Component,
+  computed,
+  DestroyRef,
+  Directive,
+  effect,
+  ElementRef,
+  inject,
+  input,
+  InputSignal,
+  InputSignalWithTransform,
+  model,
+  ModelSignal,
+  output,
+  OutputRef,
+  PLATFORM_ID,
+  signal,
+  viewChild,
+} from '@angular/core';
+import { rxResource, toSignal } from '@angular/core/rxjs-interop';
 import {
-  catchError,
-  distinctUntilChanged,
+  applyEach,
+  DisabledReason,
+  form,
+  FormField,
+  FormRoot,
+  FormValueControl,
+  maxLength,
+  MaybeFieldTree,
+  pattern,
+  required,
+  validate,
+  ValidationError,
+  WithOptionalFieldTree,
+  type FieldTree,
+  type TreeValidationResult,
+} from '@angular/forms/signals';
+import { Router } from '@angular/router';
+import {
+  MsalBroadcastService,
+  MsalService,
+} from '@azure/msal-angular';
+import { InteractionStatus } from '@azure/msal-browser';
+import {
+  filter,
+  firstValueFrom,
+  fromEvent,
   map,
   of,
   startWith,
-  switchMap,
 } from 'rxjs';
 import {
   PrinterService,
-  type PublicPrinter,
   type UploadTokenStatus,
 } from '../../services/printer/printer.service';
+import { FileInput } from './file-input.component';
 
 interface DocumentRow {
   id: number;
   file: File | null;
-  copies: number;
+  /** Kept as a string because native selects bind string values. */
+  copies: string;
 }
 
-interface PageState {
-  token: string | null;
-  printer: PublicPrinter | undefined;
+interface UploadModel {
+  title: string;
+  documents: DocumentRow[];
 }
 
 type AccessMode = 'upload' | 'pin' | 'qr-only';
@@ -38,6 +73,8 @@ type AccessMode = 'upload' | 'pin' | 'qr-only';
 const ACCEPTED_TYPES =
   '.pdf,.jpg,.jpeg,.png,.heic,.heif,application/pdf,image/jpeg,image/png,image/heic,image/heif';
 const PIN_DIGITS = 9;
+const PIN_HINT = 'Enter the 9-digit PIN posted at the printer.';
+const TITLE_MAX_LENGTH = 120;
 
 const TOKEN_MESSAGES: Record<
   Exclude<UploadTokenStatus, 'valid'>,
@@ -71,6 +108,20 @@ function apiError(error: unknown): {
   };
 }
 
+/** HTTP status behind a resource error; rxResource may wrap non-Error values in `cause`. */
+function httpStatus(error: unknown): number | undefined {
+  const source =
+    error instanceof Error && error.cause !== undefined
+      ? error.cause
+      : error;
+  return typeof source === 'object' &&
+    source !== null &&
+    'status' in source &&
+    typeof source.status === 'number'
+    ? source.status
+    : undefined;
+}
+
 /** Formats up to nine digits as ###-###-### while the user types. */
 export function formatPinInput(value: string): string {
   const digits = value.replace(/\D/g, '').slice(0, PIN_DIGITS);
@@ -79,243 +130,72 @@ export function formatPinInput(value: string): string {
 
 @Component({
   selector: 'app-print',
-  imports: [ReactiveFormsModule, DatePipe],
-  template: `
-    <main class="col">
-      @if (loading()) {
-        <h1 class="h2">Print</h1>
-        <p role="status">Loading printer...</p>
-      } @else if (printer(); as printer) {
-        <h1 class="h2 mb-1">Print to {{ printer.name }}</h1>
-
-        @if (notice()) {
-          <div class="alert alert-warning" role="alert">
-            {{ notice() }}
-          </div>
-        }
-
-        @switch (mode()) {
-          @case ('upload') {
-            <p class="text-muted">
-              PDF, JPEG, PNG, or HEIC; up to {{ maxUploadMb() }} MB
-              per document.
-              @if (printer.access.tokenExpiresAt; as expiresAt) {
-                This link works until
-                {{ expiresAt | date: 'short' }}.
-              }
-            </p>
-
-            <div aria-live="polite" aria-atomic="true">
-              @if (success(); as success) {
-                <div class="alert alert-success" role="status">
-                  {{ success }}
-                </div>
-              }
-            </div>
-            @if (error()) {
-              <div class="alert alert-danger" role="alert">
-                {{ error() }}
-              </div>
-            }
-
-            <form
-              [formGroup]="form"
-              (ngSubmit)="submit(printer)"
-              class="d-flex flex-column gap-3"
-            >
-              <div>
-                <label class="form-label" for="job-title"
-                  >Job title (optional)</label
-                >
-                <input
-                  id="job-title"
-                  class="form-control"
-                  formControlName="title"
-                  maxlength="120"
-                />
-              </div>
-
-              <fieldset class="border rounded p-3">
-                <legend class="float-none w-auto px-2 fs-6 mb-0">
-                  Documents
-                </legend>
-                @for (
-                  document of documents();
-                  track document.id;
-                  let index = $index
-                ) {
-                  <div class="row g-2 align-items-end mb-3">
-                    <div class="col-sm-7">
-                      <label
-                        class="form-label"
-                        [for]="'document-file-' + document.id"
-                      >
-                        Document {{ index + 1 }}
-                      </label>
-                      <input
-                        class="form-control"
-                        type="file"
-                        [id]="'document-file-' + document.id"
-                        [accept]="acceptedTypes"
-                        (change)="pickFile(document.id, $event)"
-                      />
-                    </div>
-                    <div class="col-6 col-sm-3">
-                      <label
-                        class="form-label"
-                        [for]="'document-copies-' + document.id"
-                        >Copies</label
-                      >
-                      <select
-                        class="form-select"
-                        [id]="'document-copies-' + document.id"
-                        [value]="document.copies"
-                        (change)="setCopies(document.id, $event)"
-                      >
-                        @for (count of copyOptions(); track count) {
-                          <option [value]="count">
-                            {{ count }}
-                          </option>
-                        }
-                      </select>
-                    </div>
-                    <div class="col-6 col-sm-2">
-                      <button
-                        type="button"
-                        class="btn btn-outline-secondary w-100"
-                        [disabled]="documents().length <= 1"
-                        [attr.aria-label]="
-                          'Remove document ' + (index + 1)
-                        "
-                        (click)="removeDocument(document.id)"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-                }
-                <button
-                  type="button"
-                  class="btn btn-outline-primary"
-                  [disabled]="
-                    documents().length >= printer.upload.maxDocuments
-                  "
-                  (click)="addDocument()"
-                >
-                  Add another document
-                </button>
-              </fieldset>
-
-              <div>
-                <button
-                  class="btn btn-primary"
-                  type="submit"
-                  [disabled]="submitting()"
-                >
-                  {{ submitting() ? 'Sending...' : 'Print' }}
-                </button>
-              </div>
-            </form>
-          }
-          @case ('pin') {
-            <p class="text-muted">
-              Enter the PIN posted at the printer, or scan its QR
-              code.
-            </p>
-            <form
-              [formGroup]="pinForm"
-              class="d-flex flex-column gap-3"
-              (ngSubmit)="exchangePin(printer)"
-              novalidate
-            >
-              <div>
-                <label class="form-label" for="printer-pin"
-                  >Printer PIN</label
-                >
-                <input
-                  id="printer-pin"
-                  class="form-control form-control-lg font-monospace"
-                  [class.is-invalid]="!!pinError()"
-                  formControlName="pin"
-                  inputmode="numeric"
-                  autocomplete="one-time-code"
-                  placeholder="123-456-789"
-                  maxlength="11"
-                  aria-describedby="printer-pin-help"
-                  [attr.aria-invalid]="!!pinError()"
-                  [attr.aria-errormessage]="
-                    pinError() ? 'printer-pin-error' : null
-                  "
-                  (input)="formatPin()"
-                />
-                <div id="printer-pin-help" class="form-text">
-                  9 digits
-                </div>
-                @if (pinError()) {
-                  <div
-                    id="printer-pin-error"
-                    class="invalid-feedback d-block"
-                    role="alert"
-                  >
-                    {{ pinError() }}
-                  </div>
-                }
-              </div>
-              <div>
-                <button
-                  class="btn btn-primary"
-                  type="submit"
-                  [disabled]="exchanging()"
-                >
-                  {{ exchanging() ? 'Checking...' : 'Continue' }}
-                </button>
-              </div>
-            </form>
-          }
-          @default {
-            <p>Scan the QR code posted at the printer to print.</p>
-          }
-        }
-      } @else {
-        <h1 class="h2">Printer not found</h1>
-        <p>Check the link or QR code and try again.</p>
-      }
-    </main>
-  `,
+  imports: [DatePipe, FormField, FormRoot, FileInput],
+  templateUrl: './print.component.html',
 })
 export class PrintComponent {
   readonly #printers = inject(PrinterService);
   readonly #router = inject(Router);
-  readonly #route = inject(ActivatedRoute);
-  readonly #slug = this.#route.snapshot.paramMap.get('slug') ?? '';
+  readonly #msal = inject(MsalService);
+  readonly #browser = isPlatformBrowser(inject(PLATFORM_ID));
   #nextId = 1;
 
-  /** Re-fetches whenever the token query parameter changes (e.g. after a PIN exchange). */
-  readonly #state = toSignal(
-    this.#route.queryParamMap.pipe(
-      map((params) => params.get('token')),
-      distinctUntilChanged(),
-      switchMap((token) =>
-        this.#printers.getPrinter(this.#slug, token).pipe(
-          map((printer): PageState => ({ token, printer })),
-          catchError(() =>
-            of<PageState>({ token, printer: undefined }),
+  firstFileOrNull(fileList: FileList | null): File | null {
+    return fileList?.[0] ?? null;
+  }
+
+  /** Bound from the route by `withComponentInputBinding()`. */
+  readonly slug = input.required<string>();
+  /** The `?token=` upload token from a QR code or PIN exchange. */
+  readonly token = input<string>();
+
+  /** Re-fetches whenever the slug or token changes (e.g. after a PIN exchange). */
+  protected readonly printerResource = rxResource({
+    params: () => ({ slug: this.slug(), token: this.token() }),
+    stream: ({ params }) =>
+      this.#printers.getPrinter(params.slug, params.token),
+  });
+
+  /** The MSAL account, re-read whenever an interaction finishes; always null during SSR. */
+  readonly #account = toSignal(
+    this.#browser
+      ? inject(MsalBroadcastService).inProgress$.pipe(
+          filter((status) => status === InteractionStatus.None),
+          startWith(InteractionStatus.None),
+          map(
+            () =>
+              this.#msal.instance.getActiveAccount() ??
+              this.#msal.instance.getAllAccounts()[0] ??
+              null,
           ),
-          startWith(undefined),
-        ),
-      ),
-    ),
+        )
+      : of(null),
+    { initialValue: null },
   );
 
   readonly acceptedTypes = ACCEPTED_TYPES;
-  readonly loading = computed(() => this.#state() === undefined);
-  readonly printer = computed(() => this.#state()?.printer);
+  readonly printer = computed(() =>
+    this.printerResource.hasValue()
+      ? this.printerResource.value()
+      : undefined,
+  );
+  readonly notFound = computed(
+    () => httpStatus(this.printerResource.error()) === 404,
+  );
+  /** Upload tokens take precedence; otherwise a signed-in user the server accepts prints as themselves. */
+  readonly #tokenValid = computed(
+    () => this.printer()?.access.token === 'valid',
+  );
+  readonly printingAs = computed(() =>
+    !this.#tokenValid() && this.printer()?.access.signedIn
+      ? (this.#account()?.username ?? null)
+      : null,
+  );
   readonly mode = computed<AccessMode>(() => {
-    const access = this.printer()?.access;
-    if (access?.token === 'valid') {
+    if (this.#tokenValid() || this.printingAs()) {
       return 'upload';
     }
-    return access?.pinEnabled ? 'pin' : 'qr-only';
+    return this.printer()?.access.pinEnabled ? 'pin' : 'qr-only';
   });
   readonly #tokenNotice = computed(() => {
     const status = this.printer()?.access.token;
@@ -328,29 +208,10 @@ export class PrintComponent {
     () => this.#submitNotice() || this.#tokenNotice(),
   );
 
-  readonly documents = signal<DocumentRow[]>([this.#newDocument()]);
-  readonly submitting = signal(false);
-  readonly error = signal('');
-  readonly success = signal('');
-  readonly form = new FormGroup({
-    title: new FormControl('', { nonNullable: true }),
-  });
-
-  readonly pin = new FormControl('', {
-    nonNullable: true,
-    validators: [
-      Validators.required,
-      Validators.pattern(/^\d{3}-\d{3}-\d{3}$/),
-    ],
-  });
-  readonly pinForm = new FormGroup({ pin: this.pin });
-  readonly pinError = signal('');
-  readonly exchanging = signal(false);
-
   readonly copyOptions = computed(() =>
     Array.from(
       { length: this.printer()?.upload.maxCopies ?? 1 },
-      (_, index) => index + 1,
+      (_, index) => String(index + 1),
     ),
   );
   readonly maxUploadMb = computed(() =>
@@ -359,116 +220,155 @@ export class PrintComponent {
     ),
   );
 
-  formatPin(): void {
-    this.pin.setValue(formatPinInput(this.pin.value));
+  readonly success = signal('');
+  readonly #upload = signal<UploadModel>(this.#emptyUpload());
+  readonly uploadForm = form(
+    this.#upload,
+    (path) => {
+      maxLength(path.title, TITLE_MAX_LENGTH);
+      validate(path.documents, ({ value }) =>
+        value().some((document) => document.file)
+          ? undefined
+          : {
+              kind: 'documents',
+              message: 'Choose at least one document to print.',
+            },
+      );
+      applyEach(path.documents, (document) => {
+        validate(document.file, ({ value }) => {
+          const file = value();
+          const limit = this.printer()?.upload.maxUploadBytes;
+          return file && limit !== undefined && file.size > limit
+            ? {
+                kind: 'fileSize',
+                message: `${file.name} exceeds the ${this.maxUploadMb()} MB limit.`,
+              }
+            : undefined;
+        });
+      });
+    },
+    { submission: { action: () => this.#submitJob() } },
+  );
+  /** Form-level problems: no documents chosen, or the server rejected the job. */
+  readonly uploadError = computed(() => {
+    const documents = this.uploadForm.documents();
+    return (
+      [
+        ...this.uploadForm().errors(),
+        ...(documents.touched() ? documents.errors() : []),
+      ][0]?.message ?? ''
+    );
+  });
+
+  readonly #pin = signal({ pin: '' });
+  readonly pinForm = form(
+    this.#pin,
+    (path) => {
+      required(path.pin, { message: PIN_HINT });
+      // Also renders maxlength so typing stops at ###-###-###.
+      maxLength(path.pin, PIN_DIGITS + 2);
+      pattern(path.pin, /^\d{3}-\d{3}-\d{3}$/, {
+        message: PIN_HINT,
+      });
+    },
+    {
+      submission: {
+        action: (field) => this.#exchangePin(field.pin),
+      },
+    },
+  );
+  readonly pinError = computed(() => this.errorOf(this.pinForm.pin));
+
+  /** The first error message of a field once the user has interacted with it. */
+  errorOf(field: FieldTree<unknown>): string {
+    const state = field();
+    return state.touched() ? (state.errors()[0]?.message ?? '') : '';
   }
 
-  exchangePin(printer: PublicPrinter): void {
-    this.formatPin();
-    if (this.pin.invalid) {
-      this.pinError.set(
-        'Enter the 9-digit PIN posted at the printer.',
-      );
-      return;
-    }
-    this.pinError.set('');
-    this.exchanging.set(true);
-    this.#printers
-      .exchangePin(printer.slug, this.pin.value)
-      .subscribe({
-        next: ({ token }) => {
-          this.exchanging.set(false);
-          this.pin.reset();
-          this.#submitNotice.set('');
-          void this.#router.navigate(['/print', printer.slug], {
-            queryParams: { token },
-          });
-        },
-        error: (error: unknown) => {
-          this.exchanging.set(false);
-          this.pinError.set(
-            apiError(error).message ??
-              'Unable to check the PIN. Please try again.',
-          );
-        },
-      });
+  formatPin(): void {
+    this.pinForm.pin().value.update(formatPinInput);
   }
 
   addDocument(): void {
-    this.documents.update((documents) => [
-      ...documents,
-      this.#newDocument(),
-    ]);
+    this.#upload.update((upload) => ({
+      ...upload,
+      documents: [...upload.documents, this.#newDocument()],
+    }));
   }
 
   removeDocument(id: number): void {
-    this.documents.update((documents) =>
-      documents.filter((document) => document.id !== id),
+    this.#upload.update((upload) => ({
+      ...upload,
+      documents: upload.documents.filter(
+        (document) => document.id !== id,
+      ),
+    }));
+  }
+
+  pickFile(document: FieldTree<DocumentRow>, event: Event): void {
+    const file = document.file();
+    file.value.set(
+      (event.target as HTMLInputElement).files?.[0] ?? null,
+    );
+    file.markAsTouched();
+  }
+
+  #exchangePin(
+    pin: FieldTree<string>,
+  ): Promise<TreeValidationResult> {
+    return firstValueFrom(
+      this.#printers.exchangePin(this.slug(), pin().value()),
+    ).then(
+      ({ token }) => {
+        this.pinForm().reset({ pin: '' });
+        this.#submitNotice.set('');
+        void this.#router.navigate(['/print', this.slug()], {
+          queryParams: { token },
+        });
+        return undefined;
+      },
+      (error: unknown) => ({
+        kind: 'server',
+        fieldTree: pin,
+        message:
+          apiError(error).message ??
+          'Unable to check the PIN. Please try again.',
+      }),
     );
   }
 
-  pickFile(id: number, event: Event): void {
-    const file =
-      (event.target as HTMLInputElement).files?.[0] ?? null;
-    this.#updateDocument(id, { file });
-  }
-
-  setCopies(id: number, event: Event): void {
-    this.#updateDocument(id, {
-      copies: Number((event.target as HTMLSelectElement).value),
-    });
-  }
-
-  submit(printer: PublicPrinter): void {
-    this.error.set('');
+  #submitJob(): Promise<TreeValidationResult> {
+    const printer = this.printer();
+    const token = this.#tokenValid() ? this.token() : null;
+    if (!printer || (!token && !this.printingAs())) {
+      return Promise.resolve(undefined);
+    }
     this.success.set('');
-    const chosen = this.documents().filter(
-      (document) => document.file,
-    );
-    if (!chosen.length) {
-      this.error.set('Choose at least one document to print.');
-      return;
-    }
-    const tooLarge = chosen.find(
-      (document) =>
-        document.file!.size > printer.upload.maxUploadBytes,
-    );
-    if (tooLarge) {
-      this.error.set(
-        `${tooLarge.file!.name} exceeds the ${this.maxUploadMb()} MB limit.`,
-      );
-      return;
-    }
-
+    const { title, documents } = this.#upload();
     const body = new FormData();
-    body.set('job__title', this.form.getRawValue().title);
-    chosen.forEach((document, index) => {
-      body.set(`document__copies_${index}`, String(document.copies));
-      body.set(
-        `document__file_${index}`,
-        document.file!,
-        document.file!.name,
-      );
-    });
+    body.set('job__title', title);
+    documents
+      .flatMap(({ file, copies }) =>
+        file ? [{ file, copies }] : [],
+      )
+      .forEach(({ file, copies }, index) => {
+        body.set(`document__copies_${index}`, copies);
+        body.set(`document__file_${index}`, file, file.name);
+      });
 
-    const token = this.#state()?.token;
-    if (!token) {
-      return;
-    }
-    this.submitting.set(true);
-    this.#printers.submitJob(printer.slug, body, token).subscribe({
-      next: (job) => {
-        this.submitting.set(false);
+    return firstValueFrom(
+      this.#printers.submitJob(printer.slug, body, token),
+    ).then(
+      (job) => {
         this.success.set(
           job.agentOnline
             ? `"${job.title}" was sent to ${printer.name}.`
             : `"${job.title}" is queued and will print when ${printer.name} is back online.`,
         );
-        this.form.reset();
-        this.documents.set([this.#newDocument()]);
+        this.uploadForm().reset(this.#emptyUpload());
+        return undefined;
       },
-      error: (error: unknown) => {
-        this.submitting.set(false);
+      (error: unknown) => {
         const { code, message } = apiError(error);
         if (code?.startsWith('token_')) {
           // The link stopped working mid-session; drop it so the PIN prompt (or QR hint) returns.
@@ -476,25 +376,23 @@ export class PrintComponent {
             message ?? 'This print link is no longer valid.',
           );
           void this.#router.navigate(['/print', printer.slug]);
-          return;
+          return undefined;
         }
-        this.error.set(
-          message ??
+        return {
+          kind: 'server',
+          message:
+            message ??
             'Unable to send this print job. Please try again.',
-        );
+        };
       },
-    });
+    );
+  }
+
+  #emptyUpload(): UploadModel {
+    return { title: '', documents: [this.#newDocument()] };
   }
 
   #newDocument(): DocumentRow {
-    return { id: this.#nextId++, file: null, copies: 1 };
-  }
-
-  #updateDocument(id: number, changes: Partial<DocumentRow>): void {
-    this.documents.update((documents) =>
-      documents.map((document) =>
-        document.id === id ? { ...document, ...changes } : document,
-      ),
-    );
+    return { id: this.#nextId++, file: null, copies: '1' };
   }
 }

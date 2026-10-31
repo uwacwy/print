@@ -1,0 +1,236 @@
+<main class="col">
+  @if (printerResource.isLoading()) {
+    <h1 class="h2">Print</h1>
+    <p role="status">Loading printer...</p>
+  } @else if (printerResource.hasValue()) {
+    @let printer = printerResource.value();
+
+    <h1 class="h2 mb-1">Print to {{ printer.name }}</h1>
+
+    @if (notice()) {
+      <div class="alert alert-warning" role="alert">
+        {{ notice() }}
+      </div>
+    }
+
+    @switch (mode()) {
+      @case ("upload") {
+        <p class="text-muted">
+          @if (printingAs(); as username) {
+            Printing as {{ username }}.
+          } @else if (printer.access.tokenExpiresAt; as expiresAt) {
+            This link works until
+            {{ expiresAt | date: "short" }}.
+          }
+        </p>
+
+        <div aria-live="polite" aria-atomic="true">
+          @if (success(); as success) {
+            <div class="alert alert-success" role="status">
+              {{ success }}
+            </div>
+          }
+        </div>
+        @if (uploadError(); as message) {
+          <div class="alert alert-danger" role="alert">
+            {{ message }}
+          </div>
+        }
+
+        <form
+          [formRoot]="uploadForm"
+          class="d-flex flex-column gap-3"
+        >
+          <div>
+            <label class="form-label" for="job-title"
+              >Job Title/Reference</label
+            >
+            <input
+              id="job-title"
+              class="form-control"
+              [formField]="uploadForm.title"
+            />
+          </div>
+
+          <fieldset class="border rounded p-3">
+            <legend class="float-none w-auto px-2 fs-6 mb-0">
+              Documents
+            </legend>
+            <p class="text-muted">
+              Upload PDF, JPEG, PNG, or HEIC/HEIF documents; up to
+              {{ maxUploadMb() }} MB per document.
+            </p>
+            @for (
+              document of uploadForm.documents;
+              track document;
+              let index = $index
+            ) {
+              @let id = document.id().value();
+              @let fileState = document.file();
+              @let file = fileState.value();
+              @let fileError = errorOf(document.file);
+              <div class="row g-2 align-items-end mb-3">
+                <div class="col-sm-7">
+                  <label
+                    class="form-label"
+                    [for]="'document-file-' + id"
+                  >
+                    Document {{ index + 1 }}
+                  </label>
+                  <input
+                    class="form-control"
+                    type="file"
+                    [id]="'document-file-' + id"
+                    [accept]="acceptedTypes"
+                    [class.is-invalid]="!!fileError"
+                    [attr.aria-invalid]="!!fileError"
+                    [attr.aria-errormessage]="
+                      fileError ? 'document-file-error-' + id : null
+                    "
+                    [formField]="document.file"
+                  />
+                </div>
+                <div class="col-6 col-sm-3">
+                  <label
+                    class="form-label"
+                    [for]="'document-copies-' + id"
+                    >Copies</label
+                  >
+                  <select
+                    class="form-select"
+                    [id]="'document-copies-' + id"
+                    [formField]="document.copies"
+                  >
+                    @for (count of copyOptions(); track count) {
+                      <option [value]="count">
+                        {{ count }}
+                      </option>
+                    }
+                  </select>
+                </div>
+                <div class="col-6 col-sm-2">
+                  <button
+                    type="button"
+                    class="btn btn-outline-secondary w-100"
+                    [disabled]="uploadForm.documents.length <= 1"
+                    [attr.aria-label]="
+                      'Remove document ' + (index + 1)
+                    "
+                    (click)="removeDocument(id)"
+                  >
+                    Remove
+                  </button>
+                </div>
+                @if (fileError) {
+                  <div
+                    class="col-12 invalid-feedback d-block mt-1"
+                    [id]="'document-file-error-' + id"
+                    role="alert"
+                  >
+                    {{ fileError }}
+                  </div>
+                }
+              </div>
+              <div class="row">
+                <p class="text-muted">
+                  {{ file?.name }} - {{ file?.size }} bytes
+                </p>
+              </div>
+            }
+            <button
+              type="button"
+              class="btn btn-outline-primary"
+              [disabled]="
+                uploadForm.documents.length >=
+                printer.upload.maxDocuments
+              "
+              (click)="addDocument()"
+            >
+              Add another document
+            </button>
+          </fieldset>
+
+          <div>
+            <button
+              class="btn btn-primary"
+              type="submit"
+              [disabled]="uploadForm().submitting()"
+            >
+              {{
+                uploadForm().submitting() ? "Sending..." : "Print"
+              }}
+            </button>
+          </div>
+        </form>
+      }
+      @case ("pin") {
+        <p class="text-muted">
+          Enter the PIN posted at the printer, or scan its QR code.
+        </p>
+        <form [formRoot]="pinForm" class="d-flex flex-column gap-3">
+          <div>
+            <label class="form-label" for="printer-pin"
+              >Printer PIN</label
+            >
+            <input
+              id="printer-pin"
+              class="form-control form-control-lg font-monospace"
+              [class.is-invalid]="!!pinError()"
+              [formField]="pinForm.pin"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              placeholder="123-456-789"
+              aria-describedby="printer-pin-help"
+              [attr.aria-invalid]="!!pinError()"
+              [attr.aria-errormessage]="
+                pinError() ? 'printer-pin-error' : null
+              "
+              (input)="formatPin()"
+            />
+            <div id="printer-pin-help" class="form-text">
+              9 digits
+            </div>
+            @if (pinError()) {
+              <div
+                id="printer-pin-error"
+                class="invalid-feedback d-block"
+                role="alert"
+              >
+                {{ pinError() }}
+              </div>
+            }
+          </div>
+          <div>
+            <button
+              class="btn btn-primary"
+              type="submit"
+              [disabled]="pinForm().submitting()"
+            >
+              {{
+                pinForm().submitting() ? "Checking..." : "Continue"
+              }}
+            </button>
+          </div>
+        </form>
+      }
+      @default {
+        <p>Scan the QR code posted at the printer to print.</p>
+      }
+    }
+  } @else if (notFound()) {
+    <h1 class="h2">Printer not found</h1>
+    <p>Check the link or QR code and try again.</p>
+  } @else {
+    <h1 class="h2">Print</h1>
+    <div class="alert alert-danger" role="alert">
+      Unable to load this printer.
+    </div>
+    <button
+      type="button"
+      class="btn btn-primary"
+      (click)="printerResource.reload()"
+    >
+      Try again
+    </button>
+  }
+</main>

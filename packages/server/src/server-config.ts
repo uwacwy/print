@@ -188,7 +188,6 @@ export function loadServerConfig(
       adminGroupIds: splitList(e.ENTRA_ADMIN_GROUP_IDS),
     },
     socketDevPort:
-      (e.SOCKET_DEV_PORT ?? (devServer ? 4201 : 0)) ||
-      undefined,
+      (e.SOCKET_DEV_PORT ?? (devServer ? 4201 : 0)) || undefined,
   };
 }

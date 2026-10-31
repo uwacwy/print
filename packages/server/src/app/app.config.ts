@@ -12,7 +12,10 @@ import {
   provideHttpClient,
   withInterceptorsFromDi,
 } from '@angular/common/http';
-import { provideRouter } from '@angular/router';
+import {
+  provideRouter,
+  withComponentInputBinding,
+} from '@angular/router';
 import {
   MSAL_GUARD_CONFIG,
   MSAL_INSTANCE,
@@ -36,7 +39,7 @@ import { SignedInMsalInterceptor } from './auth/signed-in-msal.interceptor';
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideRouter(routes),
+    provideRouter(routes, withComponentInputBinding()),
     provideClientHydration(),
     provideHttpClient(withInterceptorsFromDi()),
     {

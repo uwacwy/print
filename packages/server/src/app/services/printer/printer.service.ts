@@ -25,6 +25,8 @@ export type UploadTokenStatus =
   | 'not-yet-valid';
 
 export interface UploadAccess {
+  /** True when the request carried a Microsoft Entra sign-in allowed to print without a PIN or token. */
+  signedIn: boolean;
   pinEnabled: boolean;
   /** Verification result for the Bearer token sent with the request, or null when none was sent. */
   token: UploadTokenStatus | null;
@@ -111,13 +113,13 @@ export class PrinterService {
   }
 
   /** Multipart upload; the header proves same-origin intent (see api/middleware/same-origin.ts). */
-  submitJob(slug: string, form: FormData, token: string) {
+  /** Without an upload token, the MSAL interceptor supplies the signed-in user's access token. */
+  submitJob(slug: string, form: FormData, token?: string | null) {
+    const headers = token ? bearer(token) : new HttpHeaders();
     return this.#http.post<SubmittedJob>(
       `${printerUrl(slug)}/jobs`,
       form,
-      {
-        headers: bearer(token).set('x-print-upload', '1'),
-      },
+      { headers: headers.set('x-print-upload', '1') },
     );
   }
 

@@ -19,8 +19,9 @@ export function getMsalConfiguration(
       redirectUri: clientEnvironment.msal.redirectUri,
       postLogoutRedirectUri: clientEnvironment.msal.redirectUri,
     },
+    // Shared across tabs so print links opened from the manage pages (target="_blank") stay signed in.
     cache: {
-      cacheLocation: 'sessionStorage',
+      cacheLocation: 'localStorage',
     },
   };
 }

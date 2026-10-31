@@ -45,6 +45,7 @@ Everything the Angular server runs lives in `packages/server/src`:
 
   Each router and middleware lives in its own directory beside its tests, for example
   `middleware/auth/pin/pin.strategy.ts` and `pin.strategy.test.ts`.
+
 - `realtime/`: process-wide runtime state (database, hub, cleanup timer, dev socket server)
 
 The legacy Fastify server in `server/` is retired: its sources are kept only as `*.ts.bak` and nothing
@@ -83,7 +84,10 @@ succeeds wins; when none succeed, the response explains the most relevant failur
 
 Browser uploads and PIN exchanges must also send `x-print-upload: 1` from the same origin. In the
 SPA, MSAL adds the Entra token only for signed-in users, and only to requests that don't already
-carry an `Authorization` header.
+carry an `Authorization` header. `GET /api/printers/:slug` reports `access.signedIn` when that
+token passes `entraUser`. The print page then shows the upload form without a PIN or QR token
+("Printing as …"), and the upload goes out with the Entra token. A valid QR/PIN upload token
+still takes precedence.
 
 ## Code scaffolding
 

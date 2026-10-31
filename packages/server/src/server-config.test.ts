@@ -53,23 +53,17 @@ describe('server config', () => {
   });
 
   it('enables the agent dev gateway only under ng serve unless configured', () => {
-    expect(loadServerConfig(secret, true).socketDevPort).toBe(
-      4201,
-    );
+    expect(loadServerConfig(secret, true).socketDevPort).toBe(4201);
     expect(
       loadServerConfig(secret, false).socketDevPort,
     ).toBeUndefined();
     expect(
-      loadServerConfig(
-        { ...secret, SOCKET_DEV_PORT: '0' },
-        true,
-      ).socketDevPort,
+      loadServerConfig({ ...secret, SOCKET_DEV_PORT: '0' }, true)
+        .socketDevPort,
     ).toBeUndefined();
     expect(
-      loadServerConfig(
-        { ...secret, SOCKET_DEV_PORT: '4300' },
-        false,
-      ).socketDevPort,
+      loadServerConfig({ ...secret, SOCKET_DEV_PORT: '4300' }, false)
+        .socketDevPort,
     ).toBe(4300);
   });
 

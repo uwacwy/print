@@ -5,7 +5,7 @@
   "workspaces": [
     "shared",
     "packages/server",
-    "agent"
+    "packages/agent"
   ],
   "type": "module",
   "scripts": {
@@ -15,11 +15,11 @@
     "watch": "ng build print-server --watch --configuration development",
     "test": "ng test print-server --watch=false && npm run test:api",
     "test:spa": "ng test print-server --watch=false",
-    "test:api": "vitest run agent/src/**/*.test.ts packages/server/src/*.test.ts packages/server/src/api/ packages/server/src/app/auth/msal.config.spec.ts",
-    "build:api": "tsc -b shared && npm run build -w agent",
-    "typecheck:api": "tsc -b shared && tsc -p packages/server/tsconfig.app.json --noEmit && tsc -p agent --noEmit && npm run typecheck:api:tests",
-    "typecheck:api:tests": "tsc -b shared && tsc -p packages/server/tsconfig.test.json && tsc -p agent/tsconfig.test.json",
-    "dev:agent": "npm run build -w agent && node --env-file-if-exists=agent/.env agent/dist/print-agent.cjs",
+    "test:api": "vitest run packages/agent/src/**/*.test.ts packages/server/src/*.test.ts packages/server/src/api/ packages/server/src/app/auth/msal.config.spec.ts",
+    "build:api": "tsc -b shared && npm run build -w @uwacwy/print-agent",
+    "typecheck:api": "tsc -b shared && tsc -p packages/server/tsconfig.app.json --noEmit && tsc -p packages/agent --noEmit && npm run typecheck:api:tests",
+    "typecheck:api:tests": "tsc -b shared && tsc -p packages/server/tsconfig.test.json && tsc -p packages/agent/tsconfig.test.json",
+    "dev:agent": "npm run build -w @uwacwy/print-agent && node --env-file-if-exists=packages/agent/.env packages/agent/dist/print-agent.cjs",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "fmt": "oxfmt",

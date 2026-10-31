@@ -43,7 +43,7 @@ __screenshots__/
 .DS_Store
 Thumbs.db
 
-agent/dist/
+packages/agent/dist/
 server/dist/
 shared/dist/
 

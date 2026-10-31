@@ -8,12 +8,12 @@ services:
       target: dev
     init: true
     env_file:
-      - path: ./server/.env
+      - path: ./packages/server/.env
         required: false
     environment:
       HOST: 0.0.0.0
       PORT: 8080
-      AGENT_DEV_GATEWAY_PORT: 4201
+      SOCKET_DEV_PORT: 4201
       DATA_DIR: /data
       NODE_ENV: development
       PUBLIC_URL: http://localhost:${DEV_HTTP_PORT:-4200}
@@ -23,9 +23,7 @@ services:
     volumes:
       - ./package.json:/app/package.json:ro
       - ./package-lock.json:/app/package-lock.json:ro
-      - ./server/package.json:/app/server/package.json:ro
       - ./shared/package.json:/app/shared/package.json:ro
-      - ./agent/package.json:/app/agent/package.json:ro
       - ./angular.json:/app/angular.json:ro
       - ./proxy.conf.json:/app/proxy.conf.json:ro
       - ./packages:/app/packages:ro

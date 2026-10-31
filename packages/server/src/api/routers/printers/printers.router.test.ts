@@ -71,6 +71,7 @@ describe('printers router', () => {
         name: 'Front Office',
         coverPage: true,
         access: {
+          signedIn: false,
           pinEnabled: false,
           token: null,
           tokenExpiresAt: null,
@@ -89,7 +90,7 @@ describe('printers router', () => {
       expect(await managed.json()).toMatchObject({
         id: created.printer.id,
         queue: 'cups://Front_Office',
-        access: { token: null },
+        access: { signedIn: true, token: null },
       });
 
       const list = await (

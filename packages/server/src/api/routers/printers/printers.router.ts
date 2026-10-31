@@ -363,11 +363,14 @@ export default function printersRouter({
             printer,
             request,
           );
+          const signedIn =
+            optionalPrincipal(request)?.kind === 'entraUser';
           response.set('Cache-Control', 'no-store').json({
-            ...(optionalPrincipal(request)?.kind === 'entraUser'
+            ...(signedIn
               ? summary(printer)
               : publicPrinter(printer)),
             access: {
+              signedIn,
               pinEnabled: printer.pin !== null,
               token: token?.status ?? null,
               tokenExpiresAt:
