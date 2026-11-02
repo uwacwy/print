@@ -15,6 +15,7 @@ import {
 } from '@uwacwy/print-shared';
 import { firstValueFrom, Observable, share } from 'rxjs';
 import { io, type Socket } from 'socket.io-client';
+import { CLIENT_ENVIRONMENT } from '../../auth/client-environment';
 import { getApiScope } from '../../auth/msal.config';
 
 export type { LiveEvent };
@@ -34,6 +35,7 @@ const MAX_RETRY_MS = 30_000;
 @Service()
 export class LiveEventsService {
   readonly #msal = inject(MsalService);
+  readonly #clientEnvironment = inject(CLIENT_ENVIRONMENT);
   readonly #io = inject(SOCKET_IO);
   readonly #isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
   readonly #onlinePrinterIds = signal<ReadonlySet<number>>(
@@ -106,7 +108,7 @@ export class LiveEventsService {
   ).pipe(share());
 
   async #accessToken(): Promise<string> {
-    const scope = getApiScope();
+    const scope = getApiScope(this.#clientEnvironment);
     const instance = this.#msal.instance;
     const account =
       instance.getActiveAccount() ?? instance.getAllAccounts()[0];

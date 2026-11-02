@@ -67,6 +67,67 @@ describe('server config', () => {
     ).toBe(4300);
   });
 
+  it('derives browser sign-in settings only when Entra is configured', () => {
+    expect(loadServerConfig(secret, false).client).toEqual({});
+    expect(
+      loadServerConfig(
+        {
+          ...secret,
+          ENTRA_TENANT_ID: tenant,
+          ENTRA_CLIENT_ID: client,
+        },
+        false,
+      ).client,
+    ).toEqual({
+      msal: {
+        tenantId: tenant,
+        clientId: client,
+        authority: `https://login.microsoftonline.com/${tenant}`,
+        apiScope: `api://${client}/Printers.Manage`,
+      },
+    });
+    expect(
+      loadServerConfig(
+        {
+          ...secret,
+          ENTRA_TENANT_ID: tenant,
+          ENTRA_CLIENT_ID: client,
+          ENTRA_API_AUDIENCE: 'api://print.example.org',
+          ENTRA_ADMIN_SCOPE: 'Print.Admin',
+        },
+        false,
+      ).client.msal?.apiScope,
+    ).toBe('api://print.example.org/Print.Admin');
+  });
+
+  it('resolves DATA_DIR from the working directory', () => {
+    expect(loadServerConfig(secret, false).dataDir).toBe(
+      join(process.cwd(), 'data'),
+    );
+    expect(
+      loadServerConfig({ ...secret, DATA_DIR: '/srv/print' }, false)
+        .dataDir,
+    ).toBe('/srv/print');
+  });
+
+  it('keeps 14 days of access logs in DATA_DIR/logs unless ACCESS_LOG_DAYS is 0', () => {
+    expect(
+      loadServerConfig({ ...secret, DATA_DIR: '/srv/print' }, false)
+        .accessLog,
+    ).toEqual({ dir: '/srv/print/logs', maxDays: 14 });
+    expect(
+      loadServerConfig({ ...secret, ACCESS_LOG_DAYS: '30' }, false)
+        .accessLog?.maxDays,
+    ).toBe(30);
+    expect(
+      loadServerConfig({ ...secret, ACCESS_LOG_DAYS: '0' }, false)
+        .accessLog,
+    ).toBeUndefined();
+    expect(() =>
+      loadServerConfig({ ...secret, ACCESS_LOG_DAYS: '-1' }, false),
+    ).toThrow();
+  });
+
   it('requires a long upload token secret and derives access limits', () => {
     expect(() => loadServerConfig({}, false)).toThrow(
       'UPLOAD_TOKEN_SECRET is required',

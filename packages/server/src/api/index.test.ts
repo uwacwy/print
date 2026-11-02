@@ -36,4 +36,29 @@ describe('API root', () => {
     await api.connectAgent(token);
     expect((await status()).body).toEqual({ printersOnline: 1 });
   });
+
+  it('publicly serves the runtime sign-in settings for the browser', async () => {
+    const clientConfig = () =>
+      fetch(`${api.baseUrl}/api/client-config`).then(
+        async (response) => ({
+          status: response.status,
+          cache: response.headers.get('cache-control'),
+          body: await response.json(),
+        }),
+      );
+    expect(await clientConfig()).toEqual({
+      status: 200,
+      cache: 'no-cache',
+      body: {},
+    });
+
+    const msal = {
+      tenantId: 'tenant',
+      clientId: 'client',
+      authority: 'https://login.microsoftonline.com/tenant',
+      apiScope: 'api://client/Printers.Manage',
+    };
+    await api.start({ client: { msal } });
+    expect((await clientConfig()).body).toEqual({ msal });
+  });
 });

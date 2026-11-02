@@ -1,5 +1,6 @@
 import {
   AngularNodeAppEngine,
+  AngularNodeAppEngineOptions,
   createNodeRequestHandler,
   isMainModule,
   writeResponseToNodeResponse,
@@ -7,7 +8,8 @@ import {
 import express from 'express';
 import { join } from 'node:path';
 import http from 'node:http';
-import { isMainThread } from 'node:worker_threads';
+import { randomBytes } from 'node:crypto';
+import { isMainThread, workerData } from 'node:worker_threads';
 import type { Server as SocketServer } from 'socket.io';
 import apiRoot from './api';
 import agentRouter from './api/routers/agent/agent.router';
@@ -21,13 +23,32 @@ import {
   shutdownPrintRuntime,
   startJobCleanup,
 } from './realtime/runtime';
-import { loadLocalEnvFile, loadServerConfig } from './server-config';
+import { openAccessLog } from './api/helpers/access-log/access-log';
+import {
+  loadLocalEnvFile,
+  loadServerConfig,
+} from './api/helpers/server-config/server-config';
 import { Observable, Subject } from 'rxjs';
+import { AddressInfo } from 'node:net';
 
 const browserDistFolder = join(import.meta.dirname, '../browser');
 
+// Angular's build imports this module in worker threads to extract and prerender
+// routes. Those never serve API requests, so they must not require deployment secrets.
+const angularBuildWorker =
+  !isMainThread &&
+  typeof (workerData as { outputMode?: unknown } | null)
+    ?.outputMode === 'string';
+
 loadLocalEnvFile();
-const config = loadServerConfig();
+const config = loadServerConfig(
+  angularBuildWorker && !process.env['UPLOAD_TOKEN_SECRET']
+    ? {
+        ...process.env,
+        UPLOAD_TOKEN_SECRET: randomBytes(32).toString('base64url'),
+      }
+    : process.env,
+);
 // Survives `ng serve` re-evaluations of this module; see realtime/runtime.ts.
 const runtime = getPrintRuntime(config);
 const getHub = () => runtime.hub;
@@ -38,8 +59,41 @@ const { verify } = createAuthenticate({
 });
 
 const app = express();
-const angularApp = new AngularNodeAppEngine();
+const angularAppOptions: AngularNodeAppEngineOptions = {};
+if (config.trustProxy) {
+  angularAppOptions.trustProxyHeaders = true;
+}
+const allowedHosts = [];
+if (config.publicUrl) {
+  const hostname = new URL(config.publicUrl).hostname;
+  allowedHosts.push(hostname);
+}
+if (process.env['NG_ALLOWED_HOSTS']) {
+  allowedHosts.push(...process.env['NG_ALLOWED_HOSTS'].split(','));
+}
+if (allowedHosts.length) {
+  console.log(
+    '[AngularNodeAppEngine] allowedHosts',
+    allowedHosts.join(', '),
+  );
+  angularAppOptions.allowedHosts = allowedHosts;
+} else {
+  console.warn('[ng app engine] no allowed hosts');
+}
+const angularApp = new AngularNodeAppEngine({
+  ...angularAppOptions,
+});
+
 app.set('trust proxy', config.trustProxy);
+
+// Registered first so every response is logged, including static files and errors.
+const accessLog =
+  config.accessLog && !angularBuildWorker
+    ? openAccessLog(config.accessLog)
+    : undefined;
+if (accessLog) {
+  app.use(accessLog.middleware);
+}
 
 // Print links carry upload tokens in the query string; never leak them to other sites.
 app.use((_request, response, next) => {
@@ -74,6 +128,7 @@ app.use(
     upload: config.upload,
     publicUrl: config.publicUrl,
     entra: config.entra,
+    client: config.client,
   }),
 );
 
@@ -147,13 +202,24 @@ const listen = (
     });
   });
 
+const printHttpServerAddress = (
+  address: AddressInfo | string | null,
+) => {
+  if (address === null) {
+    return '(null)';
+  }
+  return typeof address === 'object'
+    ? `${address.address}:${address.port}`
+    : `${address}`;
+};
+
 /**
  * `ng serve` owns the HTTP server and never exposes its `upgrade` event, so socket.io listens on a
  * loopback side port that proxy.conf.mjs forwards `/ws` (SOCKET_PATH) to. The listener is created once
  * per process; later evaluations only swap in fresh options and await the same `ready` promise,
  * so this module never finishes loading before sockets are accepting connections.
  */
-function ensureDevSockets(port: number): Promise<void> {
+function startDevServer(port: number): Promise<void> {
   const existing = globals.devSockets;
   if (existing && existing.port === port) {
     existing.options = socketOptions;
@@ -176,9 +242,11 @@ function ensureDevSockets(port: number): Promise<void> {
     ready: listen(server, port, '127.0.0.1').then(
       () => {
         // Don't keep the dev server's process alive just for this listener.
+        const address = server.address();
         server.unref();
+
         console.log(
-          `socket.io dev server listening on http://127.0.0.1:${port}`,
+          `[WebSockets] Listening on ${printHttpServerAddress(address)}`,
         );
       },
       (error: unknown) => {
@@ -203,14 +271,19 @@ async function startServer(): Promise<void> {
   const io = attachWebSockets(server, socketOptions);
   await listen(server, config.port);
   console.log(
-    `Node Express server listening on http://localhost:${config.port}`,
+    `Node Express server listening on http://${server.address()?.toString()}:${config.port}`,
   );
 
   const shutdown = () => {
     console.log('Shutting down');
     shutdownPrintRuntime();
     // Also closes the HTTP server.
-    void io.close(() => process.exit(0));
+    const serverClosed = new Promise<void>((resolve) =>
+      io.close(() => resolve()),
+    );
+    void Promise.all([serverClosed, accessLog?.close()]).then(() =>
+      process.exit(0),
+    );
     server.closeIdleConnections();
     setTimeout(() => process.exit(0), 5000).unref();
   };
@@ -224,13 +297,21 @@ async function startServer(): Promise<void> {
 }
 
 /**
- * Start the server if this module is the main entry point, or it is ran via PM2. Otherwise this is
- * `ng serve` (main thread, socketDevPort set) or a build worker extracting routes (no sockets).
+ * Start the server if this module is the main entry point, the `uwacwy-print-server` bin imported it,
+ * or it is ran via PM2. Otherwise this is `ng serve` (main thread, socketDevPort set) or a build
+ * worker extracting routes (no sockets).
  */
-if (isMainModule(import.meta.url) || process.env['pm_id']) {
+const startedByBin =
+  (globalThis as { uwacwyPrintServerMain?: boolean })
+    .uwacwyPrintServerMain === true;
+if (
+  isMainModule(import.meta.url) ||
+  startedByBin ||
+  process.env['pm_id']
+) {
   await startServer();
 } else if (isMainThread && config.socketDevPort) {
-  await ensureDevSockets(config.socketDevPort);
+  await startDevServer(config.socketDevPort);
 }
 
 /**

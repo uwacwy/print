@@ -1,10 +1,10 @@
-name: omega-print-dev
+name: uwacwy-print-dev
 
 services:
   print:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: packages/server/Dockerfile
       target: dev
     init: true
     env_file:

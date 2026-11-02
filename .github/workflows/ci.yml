@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run version:check
+      - run: npm run fmt:check
+      - run: npm run lint
+      - run: npm run typecheck:api
+      - run: npm test
+      - run: npm run build
+      - name: Pack (dry run)
+        run: npm pack --dry-run -w @uwacwy/print-server -w @uwacwy/print-agent
+      - run: npm run compose:check
+
+  images:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: print-server
+            platforms: linux/amd64
+          - name: print-agent
+            platforms: linux/amd64,linux/arm64
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: packages/${{ matrix.name == 'print-server' && 'server' || 'agent' }}/Dockerfile
+          target: runtime
+          platforms: ${{ matrix.platforms }}
+          push: false
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}

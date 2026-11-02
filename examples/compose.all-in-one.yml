@@ -1,0 +1,36 @@
+# Server and one IPP agent on the same host. The agent reaches the server over
+# the compose network, so the server's port only needs to be published for browsers.
+#
+#   UPLOAD_TOKEN_SECRET=$(openssl rand -base64 48) docker compose -f examples/compose.all-in-one.yml up -d print-server
+#   # add the printer in /manage, then:
+#   PRINT_AGENT_TOKEN=... docker compose -f examples/compose.all-in-one.yml up -d
+name: uwacwy-print
+
+services:
+  print-server:
+    image: ghcr.io/uwacwy/print-server:${PRINT_VERSION:-latest}
+    restart: unless-stopped
+    init: true
+    environment:
+      UPLOAD_TOKEN_SECRET: ${UPLOAD_TOKEN_SECRET:?set UPLOAD_TOKEN_SECRET}
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8080}
+      TIME_ZONE: ${TIME_ZONE:-America/Denver}
+    ports:
+      - "8080:8080"
+    volumes:
+      - print-data:/data
+
+  print-agent:
+    image: ghcr.io/uwacwy/print-agent:${PRINT_VERSION:-latest}
+    restart: unless-stopped
+    init: true
+    depends_on:
+      print-server:
+        condition: service_healthy
+    environment:
+      PRINT_SERVER_URL: http://print-server:8080
+      PRINT_AGENT_TOKEN: ${PRINT_AGENT_TOKEN:-}
+      PRINTER_URI: ${PRINTER_URI:-ipp://printer.local:631/ipp/print}
+
+volumes:
+  print-data:

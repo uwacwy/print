@@ -1,0 +1,141 @@
+# Publishes @uwacwy/print-server and @uwacwy/print-agent to npm and their images to
+# ghcr.io when a vX.Y.Z tag is pushed. Tags with a prerelease suffix (v0.2.0-rc.1)
+# publish to the npm "next" dist-tag and do not move the "latest" image tag.
+name: Release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Check tag matches package versions
+        run: npm run version:check -- "$GITHUB_REF_NAME"
+      - id: version
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if [[ "$version" == *-* ]]; then echo "prerelease=true"; else echo "prerelease=false"; fi >> "$GITHUB_OUTPUT"
+      - run: npm run fmt:check
+      - run: npm run lint
+      - run: npm run typecheck:api
+      - run: npm test
+      - run: npm run build
+      - run: npm pack --dry-run -w @uwacwy/print-server -w @uwacwy/print-agent
+
+  npm:
+    needs: verify
+    runs-on: ubuntu-latest
+    # npm trusted publishing: the trusted publisher on npmjs.com names this
+    # repository, release.yml, and this environment.
+    environment: release
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          registry-url: https://registry.npmjs.org
+      # Trusted publishing (OIDC) needs npm 11.5.1 or later.
+      - run: npm install --global npm@^11.5.1
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Publish
+        env:
+          DIST_TAG: ${{ needs.verify.outputs.prerelease == 'true' && 'next' || 'latest' }}
+          VERSION: ${{ needs.verify.outputs.version }}
+        run: |
+          for pkg in @uwacwy/print-server @uwacwy/print-agent; do
+            # Skips versions already on npm (the manual first publish, or a rerun).
+            if npm view "$pkg@$VERSION" version >/dev/null 2>&1; then
+              echo "$pkg@$VERSION is already published."
+              continue
+            fi
+            npm publish -w "$pkg" --access public --tag "$DIST_TAG"
+          done
+
+  images:
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: print-server
+            dockerfile: packages/server/Dockerfile
+            platforms: linux/amd64
+          - name: print-agent
+            dockerfile: packages/agent/Dockerfile
+            platforms: linux/amd64,linux/arm64
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/${{ matrix.name }}
+          flavor: |
+            latest=${{ needs.verify.outputs.prerelease == 'false' }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}},enable=${{ needs.verify.outputs.prerelease == 'false' }}
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          target: runtime
+          platforms: ${{ matrix.platforms }}
+          push: true
+          build-args: VERSION=${{ needs.verify.outputs.version }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          annotations: ${{ steps.meta.outputs.annotations }}
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+
+  github-release:
+    needs: [verify, npm, images]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRERELEASE: ${{ needs.verify.outputs.prerelease }}
+        run: |
+          flags=(--repo "$GITHUB_REPOSITORY" --verify-tag --generate-notes --title "$GITHUB_REF_NAME")
+          if [[ "$PRERELEASE" == true ]]; then flags+=(--prerelease); fi
+          gh release create "$GITHUB_REF_NAME" "${flags[@]}"

@@ -1,25 +1,25 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { resolve } from 'node:path';
 import { parseEnv } from 'node:util';
+import type { ClientConfig } from '@uwacwy/print-shared';
 import { z } from 'zod';
-import type { EntraUserOptions } from './api/middleware/auth/entra-user/entra-user.strategy';
+import type { EntraUserOptions } from '../../middleware/auth/entra-user/entra-user.strategy';
 import {
   DEFAULT_UPLOAD_TOKEN_ISSUER,
   type UploadTokenKey,
-} from './api/middleware/auth/upload-token/upload-token';
+} from '../../middleware/auth/upload-token/upload-token';
 
 const ServerEnvironment = z.object({
   PORT: z.coerce.number().int().positive().default(4000),
-  DATA_DIR: z
-    .string()
-    .default(join(import.meta.dirname, '../../../data')),
+  /** Relative paths resolve from the working directory. */
+  DATA_DIR: z.string().default('data'),
   /** Canonical public origin for QR posters; defaults to the request's origin. */
   PUBLIC_URL: z.preprocess(
     (value) =>
       typeof value === 'string' && value.trim() === ''
         ? undefined
         : value,
-    z.string().url().optional(),
+    z.url().optional(),
   ),
   SITE_TITLE: z.string().default('VITA Secure Print'),
   TIME_ZONE: z.string().default('America/Denver'),
@@ -37,6 +37,8 @@ const ServerEnvironment = z.object({
   UPLOADS_PER_MINUTE: z.coerce.number().int().min(1).default(10),
   JOB_TTL_HOURS: z.coerce.number().positive().default(24),
   RETENTION_DAYS: z.coerce.number().positive().default(7),
+  /** Days of daily access logs kept in DATA_DIR/logs; 0 disables the access log. */
+  ACCESS_LOG_DAYS: z.coerce.number().int().min(0).default(14),
   /** HS256 key that signs upload tokens (QR codes and PIN exchanges); changing it revokes them all. */
   UPLOAD_TOKEN_SECRET: z
     .string({
@@ -102,24 +104,36 @@ export interface UploadAccessConfig extends UploadTokenKey {
 
 export interface ServerConfig {
   port: number;
+  /** Served to the browser by `GET /api/client-config`. */
+  client: ClientConfig;
   dataDir: string;
   trustProxy: boolean;
   publicUrl: URL | undefined;
   jobTtlMs: number;
   retentionMs: number;
+  /** Undefined when ACCESS_LOG_DAYS is 0. */
+  accessLog: { dir: string; maxDays: number } | undefined;
   upload: UploadConfig;
   entra: EntraUserOptions;
   socketDevPort: number | undefined;
 }
 
+/** Env files tried, relative to the working directory, when `PRINT_ENV_FILE` is unset. */
+const DEFAULT_ENV_FILES = ['.env', 'packages/server/.env'];
+
 /**
- * Loads local settings (default `packages/server/.env`, relative to the working directory) so a bare
- * `ng serve` behaves like `npm start`. Variables already present in the environment win.
- * Production images ship without this file and configure the process environment directly.
+ * Loads local settings from `PRINT_ENV_FILE`, else the first of `.env` (an installed server) or
+ * `packages/server/.env` (the repo root, so a bare `ng serve` behaves like `npm run start:server`).
+ * Variables already present in the environment win. Container images configure the environment
+ * directly and ship without an env file.
  */
 export function loadLocalEnvFile(
   env: NodeJS.ProcessEnv = process.env,
-  file = resolve(env['PRINT_ENV_FILE'] ?? 'packages/server/.env'),
+  file = resolve(
+    env['PRINT_ENV_FILE'] ??
+      DEFAULT_ENV_FILES.find((candidate) => existsSync(candidate)) ??
+      DEFAULT_ENV_FILES[0],
+  ),
 ): void {
   if (!existsSync(file)) {
     return;
@@ -158,13 +172,29 @@ export function loadServerConfig(
       .split(',')
       .map((item) => item.trim())
       .filter(Boolean);
+  const msal =
+    e.ENTRA_TENANT_ID && e.ENTRA_CLIENT_ID
+      ? {
+          tenantId: e.ENTRA_TENANT_ID,
+          clientId: e.ENTRA_CLIENT_ID,
+          authority: `https://login.microsoftonline.com/${e.ENTRA_TENANT_ID}`,
+          apiScope: `${e.ENTRA_API_AUDIENCE ?? `api://${e.ENTRA_CLIENT_ID}`}/${e.ENTRA_ADMIN_SCOPE}`,
+        }
+      : undefined;
   return {
     port: e.PORT,
-    dataDir: e.DATA_DIR,
+    client: msal ? { msal } : {},
+    dataDir: resolve(e.DATA_DIR),
     trustProxy: e.TRUST_PROXY,
     publicUrl: e.PUBLIC_URL ? new URL(e.PUBLIC_URL) : undefined,
     jobTtlMs: e.JOB_TTL_HOURS * 3_600_000,
     retentionMs: e.RETENTION_DAYS * 86_400_000,
+    accessLog: e.ACCESS_LOG_DAYS
+      ? {
+          dir: resolve(e.DATA_DIR, 'logs'),
+          maxDays: e.ACCESS_LOG_DAYS,
+        }
+      : undefined,
     upload: {
       siteTitle: e.SITE_TITLE,
       timeZone: e.TIME_ZONE,

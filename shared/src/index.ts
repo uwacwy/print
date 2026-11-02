@@ -9,6 +9,18 @@ export type JobStatus = (typeof JOB_STATUSES)[number];
 
 /** socket.io endpoint shared by every namespace; the dev proxy forwards it to the socket server. */
 export const SOCKET_PATH = '/ws';
+
+/** `GET /api/client-config`: browser sign-in settings the server reads from its environment at runtime. */
+export interface ClientConfig {
+  /** Absent when Entra sign-in is not configured. */
+  msal?: {
+    tenantId: string;
+    clientId: string;
+    authority: string;
+    /** Delegated scope the SPA requests for the admin REST API. */
+    apiScope: string;
+  };
+}
 /** Print agents, authenticated with their printer's agent token. */
 export const AGENT_NAMESPACE = '/agent';
 /** Management UI live updates, authenticated with an Entra access token. */

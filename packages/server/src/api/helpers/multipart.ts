@@ -1,6 +1,6 @@
 import type { Request } from 'express';
 import busboy from 'busboy';
-import type { UploadConfig } from '../../server-config';
+import type { UploadConfig } from './server-config/server-config';
 import { UploadError } from './errors';
 import { cleanFileName } from './strings';
 

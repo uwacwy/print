@@ -1,7 +1,8 @@
+import type { ClientConfig } from '@uwacwy/print-shared';
 import express from 'express';
 import type { PrintDatabase } from './helpers/database/database';
 import type { AgentHub } from './sockets/agent-hub/agent-hub';
-import type { UploadConfig } from '../server-config';
+import type { UploadConfig } from './helpers/server-config/server-config';
 import type { EntraUserOptions } from './middleware/auth/entra-user/entra-user.strategy';
 import { createAuthenticate } from './middleware/auth/passport/passport';
 import printersRouter from './routers/printers/printers.router';
@@ -14,6 +15,7 @@ export interface ApiRootOptions {
   getHub: () => AgentHub;
   upload: UploadConfig;
   publicUrl?: URL;
+  client?: ClientConfig;
 }
 
 /** `/api`: each segment's router declares the credentials every endpoint accepts. */
@@ -32,6 +34,11 @@ export default (options: ApiRootOptions) => {
       response.set('cache-control', 'no-store').json({
         printersOnline: options.getHub().onlinePrinterIds().length,
       });
+    })
+    .get('/client-config', (_request, response) => {
+      response
+        .set('cache-control', 'no-cache')
+        .json(options.client ?? ({} satisfies ClientConfig));
     })
     .use('/session', sessionRouter({ authenticate }))
     .use('/printers', printersRouter({ ...options, authenticate }));

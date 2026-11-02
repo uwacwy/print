@@ -20,7 +20,7 @@ import {
   openDatabase,
   type PrintDatabase,
 } from '../api/helpers/database/database';
-import type { UploadConfig } from '../server-config';
+import type { UploadConfig } from '../api/helpers/server-config/server-config';
 import { generateKeyPairSync } from 'node:crypto';
 import { SignJWT, type JWTPayload } from 'jose';
 import type { EntraUserOptions } from '../api/middleware/auth/entra-user/entra-user.strategy';

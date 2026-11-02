@@ -24,12 +24,32 @@ import {
   tap,
 } from 'rxjs';
 import { io, type Socket } from 'socket.io-client';
+import { AGENT_VERSION } from './version.js';
 import { acceptsMimeType } from './printer-options/printer-options.js';
 import {
   createPrinter,
   type IPrinter,
   type PrintResult,
 } from './printer/printer.js';
+
+const USAGE = `Usage: uwacwy-print-agent [env-file]
+
+Connects to a Quick Print server and prints its printer's jobs.
+Settings come from the environment, or from env-file when given (existing
+environment variables win): PRINT_SERVER_URL, PRINT_AGENT_TOKEN, PRINTER_URI.`;
+
+const [argument] = process.argv.slice(2);
+if (argument === '--help' || argument === '-h') {
+  console.log(USAGE);
+  process.exit(0);
+}
+if (argument === '--version' || argument === '-v') {
+  console.log(AGENT_VERSION);
+  process.exit(0);
+}
+if (argument) {
+  process.loadEnvFile(argument);
+}
 
 const serverUrlText = process.env.PRINT_SERVER_URL;
 const token = process.env.PRINT_AGENT_TOKEN;
@@ -220,7 +240,7 @@ async function run(): Promise<void> {
   printer = createPrinter(printerConnection(printerUriText!));
   await printer.ready();
   log(
-    `Using ${printer.constructor.name} (max ${(printer.options.maxBytes / 1048576).toFixed(1)} MB, ${printer.options.mimeTypes.join(', ')}).`,
+    `Agent ${AGENT_VERSION} using ${printer.constructor.name} (max ${(printer.options.maxBytes / 1048576).toFixed(1)} MB, ${printer.options.mimeTypes.join(', ')}).`,
   );
   if (stopping) {
     return;
@@ -234,27 +254,24 @@ async function run(): Promise<void> {
       path: SOCKET_PATH,
       transports: ['websocket'],
       auth: { token },
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 60_000,
+      // Retries are scheduled below so each one can report its delay.
+      reconnection: false,
     },
   );
   currentSocket = socket;
 
-  // socket.io retries dropped connections itself, but not rejected handshakes or
-  // server-initiated disconnects (a replaced connection, a rotated token, a server reload).
   let retryDelay = 1000;
-  const reconnect = () => {
-    if (stopping) {
-      return;
-    }
+  /** Schedules the next connection attempt and returns the wait in seconds. */
+  const reconnect = (): number => {
     clearTimeout(retryTimer);
     const jitter = Math.floor((Math.random() * retryDelay) / 3);
-    retryTimer = setTimeout(
-      () => socket.connect(),
-      retryDelay + jitter,
-    );
+    const wait = retryDelay + jitter;
+    retryTimer = setTimeout(() => socket.connect(), wait);
     retryDelay = Math.min(retryDelay * 2, 60_000);
+    return Math.max(1, Math.round(wait / 1000));
   };
+  const seconds = (count: number) =>
+    `${count} second${count === 1 ? '' : 's'}`;
 
   socket.on('connect', () => {
     retryDelay = 1000;
@@ -268,17 +285,25 @@ async function run(): Promise<void> {
     parseAgentJobs(value)?.forEach((job) => incoming.next(job));
   });
   socket.on('connect_error', (error) => {
-    log(`Connection error: ${error.message}`);
-    console.error(error);
-    if (!socket.active) {
-      reconnect();
+    if (stopping) {
+      return;
     }
+    // Transport failures only say "websocket error"; a rejected handshake says why.
+    const detail =
+      error.message && error.message !== 'websocket error'
+        ? ` (${error.message})`
+        : '';
+    log(
+      `Unable to connect to ${websocketBase}${detail}; retrying in ${seconds(reconnect())}.`,
+    );
   });
   socket.on('disconnect', (reason) => {
-    log(`Disconnected (${reason}).`);
-    if (reason === 'io server disconnect') {
-      reconnect();
+    if (stopping || reason === 'io client disconnect') {
+      return;
     }
+    log(
+      `Disconnected (${reason}); reconnecting in ${seconds(reconnect())}.`,
+    );
   });
   // Picks up jobs whose push was missed, e.g. queued while a dispatch raced a reconnect.
   syncTimer = setInterval(() => {

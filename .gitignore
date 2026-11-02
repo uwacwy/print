@@ -50,3 +50,10 @@ shared/dist/
 .env
 */tsconfig.tsbuildinfo
 data/
+
+# Copied in by scripts/prepack.mjs
+packages/*/LICENSE
+packages/*/dist
+
+# Local deployment helper
+redeploy-agent.sh

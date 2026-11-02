@@ -20,7 +20,7 @@ import {
   testEntra,
   testUploadConfig,
 } from '../realtime/test-support';
-import type { UploadConfig } from '../server-config';
+import type { UploadConfig } from './helpers/server-config/server-config';
 import agentRouter from './routers/agent/agent.router';
 import apiRoot, { type ApiRootOptions } from './index';
 import { Observable } from 'rxjs';
@@ -48,6 +48,7 @@ export async function uploadForm(
 export interface StartOptions {
   upload?: UploadConfig;
   entra?: ApiRootOptions['entra'];
+  client?: ApiRootOptions['client'];
 }
 
 /**
@@ -94,6 +95,7 @@ export function useApiServer(defaults: StartOptions = {}) {
   const start = async ({
     upload: uploadConfig = defaults.upload ?? testUploadConfig,
     entra = defaultEntra,
+    client,
   }: StartOptions = {}) => {
     await stop();
     upload = uploadConfig;
@@ -105,7 +107,14 @@ export function useApiServer(defaults: StartOptions = {}) {
     );
     app.use(
       '/api',
-      apiRoot({ db, jobsDir, getHub: () => hub, upload, entra }),
+      apiRoot({
+        db,
+        jobsDir,
+        getHub: () => hub,
+        upload,
+        entra,
+        client,
+      }),
     );
     server = createServer(app);
     io = attachWebSockets(server, {

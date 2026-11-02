@@ -1,7 +1,13 @@
 **/node_modules
 **/dist
 **/*.tsbuildinfo
+**/*.tgz
 **/.env
-data
-test
+**/LICENSE
+!LICENSE
+.angular
 .git
+.github
+data
+examples
+test

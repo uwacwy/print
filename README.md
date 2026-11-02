@@ -1,6 +1,132 @@
-# UwacwyPrint
+# United Way Quick Print
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.1.3.
+Walk-up printing for United Way sites. People upload documents or photos from their phones through a
+QR code or a printer PIN, and a small print agent next to each printer prints them.
+
+| Package                                                                | npm                    | Container image                             |
+| ---------------------------------------------------------------------- | ---------------------- | ------------------------------------------- |
+| [`packages/server`](packages/server) — web app, REST API, agent socket | `@uwacwy/print-server` | `ghcr.io/uwacwy/print-server` (amd64)       |
+| [`packages/agent`](packages/agent) — prints jobs through CUPS or IPP   | `@uwacwy/print-agent`  | `ghcr.io/uwacwy/print-agent` (amd64, arm64) |
+
+`shared` holds types used by both and is bundled into each package; it is not published.
+
+## Deploying
+
+The server is one Node.js process that serves pages, the REST API, and the agents' socket (`/ws`) on
+`PORT`, and keeps its SQLite database and queued jobs in `DATA_DIR`. Run it behind an HTTPS reverse
+proxy for anything public. Each printer needs one agent, which connects out to the server, so printers
+can sit on private networks.
+
+### Docker Compose
+
+Ready-made files live in [`examples/`](examples):
+
+| File                                                        | Runs                                                    |
+| ----------------------------------------------------------- | ------------------------------------------------------- |
+| [`compose.server.yml`](examples/compose.server.yml)         | the server, with a named volume for `/data`             |
+| [`compose.agent.yml`](examples/compose.agent.yml)           | an IPP agent and a CUPS agent that uses the host's CUPS |
+| [`compose.all-in-one.yml`](examples/compose.all-in-one.yml) | the server and one agent on the same host               |
+
+Server:
+
+```yaml
+services:
+  print-server:
+    image: ghcr.io/uwacwy/print-server:0.1 # or :latest, or an exact :0.1.0
+    restart: unless-stopped
+    init: true
+    environment:
+      UPLOAD_TOKEN_SECRET: ${UPLOAD_TOKEN_SECRET:?set UPLOAD_TOKEN_SECRET} # openssl rand -base64 48
+      PUBLIC_URL: https://print.example.org
+      TRUST_PROXY: "true" # only behind a reverse proxy
+      TIME_ZONE: America/Denver
+    ports:
+      - "8080:8080"
+    volumes:
+      - print-data:/data
+
+volumes:
+  print-data:
+```
+
+```bash
+UPLOAD_TOKEN_SECRET=$(openssl rand -base64 48) docker compose -f examples/compose.server.yml up -d
+```
+
+Keep `UPLOAD_TOKEN_SECRET` stable (store it in an env file or secret store): changing it invalidates
+every QR code and PIN link. The image runs as user `node` (uid 1000), listens on 8080, and has a
+health check on `/api/healthz`.
+
+Agent for a network printer that speaks IPP (most AirPrint/Mopria printers):
+
+```yaml
+services:
+  print-agent:
+    image: ghcr.io/uwacwy/print-agent:0.1
+    restart: unless-stopped
+    init: true
+    environment:
+      PRINT_SERVER_URL: https://print.example.org
+      PRINT_AGENT_TOKEN: ${PRINT_AGENT_TOKEN:?copy it from /manage}
+      PRINTER_URI: ipp://printer.local:631/ipp/print
+```
+
+Agent for a queue on the host's CUPS server, for example a USB printer on a Raspberry Pi. The image
+includes `lp`, which talks to the host's CUPS through its socket:
+
+```yaml
+services:
+  print-agent:
+    image: ghcr.io/uwacwy/print-agent:0.1
+    restart: unless-stopped
+    init: true
+    environment:
+      PRINT_SERVER_URL: https://print.example.org
+      PRINT_AGENT_TOKEN: ${PRINT_AGENT_TOKEN:?copy it from /manage}
+      PRINTER_URI: cups://HP-LaserJet-MFP-M129-M134 # lpstat -p on the host
+      CUPS_SERVER: /run/cups/cups.sock
+    volumes:
+      - /run/cups/cups.sock:/run/cups/cups.sock
+```
+
+When the agent runs in the same compose project as the server, use `PRINT_SERVER_URL:
+http://print-server:8080` (see `compose.all-in-one.yml`). `npm run compose:check` validates every
+example with `docker compose config`.
+
+### npm
+
+Both packages need Node.js 24 (server) or 20.12+ (agent):
+
+```bash
+npm install --global @uwacwy/print-server
+uwacwy-print-server /etc/uwacwy-print-server.env   # or set the variables in the environment
+
+npm install --global @uwacwy/print-agent
+uwacwy-print-agent /etc/uwacwy-print-agent.env
+```
+
+Each command takes an optional env file. Existing environment variables win over the file, and both
+commands accept `--help` and `--version`. The server's `.env.example` and the agent's `.env.example`
+ship in each package and list every setting.
+
+### Server settings worth knowing
+
+- `UPLOAD_TOKEN_SECRET` (required, 32+ characters) signs QR code and PIN upload links.
+- `DATA_DIR` holds `print.db`, queued jobs, and `logs/`. The default is `./data`; the image uses `/data`.
+- `ACCESS_LOG_DAYS` (default 14; `0` disables) keeps that many days of HTTP access logs. Each request is a
+  JSON line in `DATA_DIR/logs/access-YYYY-MM-DD.log`, and `DATA_DIR/logs/access.log` links to the current
+  day, so `tail -F data/logs/access.log` (or `docker compose exec print-server tail -F /data/logs/access.log`)
+  follows it across rotations. Upload tokens and other query credentials are redacted, `/api/healthz` is
+  skipped, and agent socket traffic on `/ws` is not logged. Logs hold client IP addresses, so keep the
+  retention short.
+- `PUBLIC_URL` is the address people use. It is printed in QR codes, and its host name is allowed
+  for server-side rendering.
+- `NG_ALLOWED_HOSTS` lists other comma-separated host names the app may be reached by, for example a
+  LAN IP. Pages requested with any other `Host` header get `400 Bad Request` (the API is unaffected).
+- `ENTRA_TENANT_ID` and `ENTRA_CLIENT_ID` enable Microsoft Entra sign-in and `/manage`. The browser
+  reads them at startup from `GET /api/client-config`, so one prebuilt image or package works for any
+  tenant.
+- `TRUST_PROXY=true` only behind a reverse proxy; otherwise clients could spoof their IP to dodge rate limits.
 
 ## Development server
 
@@ -32,7 +158,7 @@ unless you add `option_<name>=<value>` parameters, which become `-o <name>=<valu
 `cups://Queue?option_print-quality=3&option_sides=two-sided-long-edge`.
 Unknown or unsupported options stop the agent at startup. See `packages/agent/.env.example`.
 
-In production (`npm run build`, then `node dist/print-server/server/server.mjs`), one process on
+In production (`npm run build`, then `npm run start:server`), one process on
 `PORT` serves pages, the REST API, and socket.io (at `/ws`, `SOCKET_PATH`) for agents and admin live updates.
 
 ### Server code layout
@@ -123,6 +249,11 @@ connections, so the Pi only needs outbound access to the server.
    once; `POST /api/printers/:slug/agent-token` rotates it. The server stores only its SHA-256 hash.
 
 ### 2. Build the bundle (on a development machine)
+
+The Pi can also run the agent from npm (`npm install --global @uwacwy/print-agent`, then point a
+service at `uwacwy-print-agent <env-file>`) or from the `ghcr.io/uwacwy/print-agent` image (see
+[Docker Compose](#docker-compose)). The steps below use the self-contained bundle, which needs neither
+npm nor Docker.
 
 ```bash
 npm run package -w packages/agent
@@ -223,14 +354,14 @@ To upgrade, copy a new bundle, repeat the "Agent bundle" step, and run
 A healthy start logs:
 
 ```
-Using CupsPrinter (max 100.0 MB, application/pdf).
+Agent 0.1.0 using CupsPrinter (max 100.0 MB, application/pdf).
 Connecting to https://print.example.org/ws
 Connected to print server.
 Registered for <printer name>.
 ```
 
 `GET /api/status` on the server counts the agent in `printersOnline`, and `/manage` shows the printer
-online. A token typo logs `Connection error: Unauthorized` and keeps retrying. A malformed `PRINTER_URI`
+online. A token typo logs `Unable to connect to <server>/ws (Unauthorized); retrying in N seconds.` and keeps retrying; an unreachable server logs the same line without the reason. A malformed `PRINTER_URI`
 or an unsupported option stops the agent at startup. The agent does not check that the CUPS queue exists
 (only `install.sh` does), so a wrong queue name shows up as failed jobs. Check it with `lpstat -a`.
 
@@ -239,13 +370,13 @@ or an unsupported option stops the agent at startup. The agent does not check th
 `ng serve` listens only on `127.0.0.1`, and it does not work reliably when reached by IP address. Use
 the built server instead; it listens on every interface:
 
-1. Add the workstation's LAN IP to `security.allowedHosts` under the `build` options in `angular.json`.
-   Otherwise SSR rejects requests that use that `Host` header.
+1. Allow the workstation's LAN IP for server-side rendering: add `NG_ALLOWED_HOSTS=<workstation-ip>`
+   to `packages/server/.env`. Otherwise pages requested by that `Host` return 400.
 2. Build and run:
 
    ```bash
    npm run build:server
-   npm run start:server        # node dist/print-server/server/server.mjs, port PORT (4200)
+   npm run start:server        # packages/server/dist, port PORT (4200)
    ```
 
 3. On the Pi, set `PRINT_SERVER_URL=http://<workstation-ip>:4200` and restart the agent.
@@ -268,48 +399,66 @@ ssh -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 \
 - It is registered as the dev printer `raspberry-pi` ("HP LaserJet M130 / via pi") and connects directly
   to the built server on the workstation at `http://10.1.10.138:4200`.
 
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+## Building and testing
 
 ```bash
-ng generate component component-name
+npm run build            # server (packages/server/dist) and agent (packages/agent/dist/print-agent.cjs)
+npm test                 # Angular unit tests, then API and agent tests
+npm run typecheck:api
+npm run lint && npm run fmt:check
+npm run compose:check    # validates examples/compose.*.yml and compose.yml
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+Images build from the repository root:
 
 ```bash
-ng generate --help
+docker build -f packages/server/Dockerfile -t print-server .
+docker buildx build -f packages/agent/Dockerfile --platform linux/amd64,linux/arm64 -t print-agent .
 ```
 
-## Building
+`compose.yml` runs `ng serve` in a container (the `dev` target of `packages/server/Dockerfile`).
 
-To build the project run:
+## Releasing
+
+All four `package.json` files share one version, and a `vX.Y.Z` tag publishes it.
+[`release.yml`](.github/workflows/release.yml) then:
+
+1. checks that the tag matches every manifest, and runs the format, lint, type, and test checks and the builds
+2. publishes `@uwacwy/print-server` and `@uwacwy/print-agent` to npm with provenance, through npm
+   trusted publishing (no npm token is stored in GitHub)
+3. pushes `ghcr.io/uwacwy/print-server` (linux/amd64) and `ghcr.io/uwacwy/print-agent` (linux/amd64,
+   linux/arm64) with SBOM and provenance attestations, tagged `0.2.0`, `0.2`, and `latest`
+4. creates a GitHub release with generated notes
 
 ```bash
-ng build
+npm run version:set -- 0.2.0   # updates every manifest, internal pins, and package-lock.json
+git commit -am "Release 0.2.0"
+git tag v0.2.0
+git push origin main v0.2.0
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+A prerelease such as `v0.2.0-rc.1` publishes to the npm `next` dist-tag and pushes only the exact image
+tag, leaving `latest` and `0.2` alone. [`ci.yml`](.github/workflows/ci.yml) runs the same checks, plus
+image builds without pushing, on every pull request and push to `main`.
 
-## Running unit tests
+### One-time setup
 
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+1. Create the public GitHub repository `uwacwy/print` and push `main`.
+2. On npmjs.com, create the `uwacwy` organization (or confirm you can publish to `@uwacwy`).
+3. Trusted publishing applies only to packages that already exist, so publish 0.1.0 once by hand:
 
-```bash
-ng test
-```
+   ```bash
+   npm login
+   npm run build
+   npm publish -w @uwacwy/print-server -w @uwacwy/print-agent --access public --provenance=false
+   ```
 
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+4. For each package on npmjs.com, go to Settings, then Trusted Publisher, then GitHub Actions: organization
+   `uwacwy`, repository `print`, workflow `release.yml`, environment `release`. Then set "Publishing access"
+   to require two-factor authentication and disallow tokens.
+5. In the GitHub repository settings, create the `release` environment. Optionally restrict it to
+   `v*` tags and require a reviewer.
+6. Tag `v0.1.0` and push it. The npm job skips versions that are already published, so this run pushes
+   the images and creates the release; later tags publish to npm as well.
+7. After the first image push, open each package under github.com/orgs/uwacwy/packages, set its
+   visibility to public, and connect it to the `print` repository.

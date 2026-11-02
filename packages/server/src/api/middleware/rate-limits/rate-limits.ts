@@ -4,7 +4,7 @@ import {
   rateLimit,
   type AugmentedRequest,
 } from 'express-rate-limit';
-import type { UploadConfig } from '../../../server-config';
+import type { UploadConfig } from '../../helpers/server-config/server-config';
 import { pinCredential } from '../auth/credentials';
 
 const minutesUntil = (request: Request) => {

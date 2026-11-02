@@ -1,0 +1,32 @@
+# Print agents. Each agent serves one printer; run one service per printer.
+#
+#   docker compose -f examples/compose.agent.yml up -d agent-ipp
+#   docker compose -f examples/compose.agent.yml up -d agent-cups
+name: uwacwy-print-agent
+
+services:
+  # Network printer that speaks IPP (most AirPrint/Mopria printers). No CUPS needed.
+  agent-ipp:
+    image: ghcr.io/uwacwy/print-agent:${PRINT_VERSION:-latest}
+    restart: unless-stopped
+    init: true
+    environment:
+      PRINT_SERVER_URL: ${PRINT_SERVER_URL:?set PRINT_SERVER_URL, e.g. https://print.example.org}
+      # Shown once when the printer is added in /manage.
+      PRINT_AGENT_TOKEN: ${PRINT_AGENT_TOKEN_IPP:?set PRINT_AGENT_TOKEN_IPP}
+      PRINTER_URI: ${PRINTER_URI_IPP:-ipp://printer.local:631/ipp/print}
+
+  # Queue on the host's CUPS server (e.g. a USB printer on a Raspberry Pi).
+  # The container's lp talks to the host CUPS over its socket, so the queue
+  # must already exist on the host (lpstat -p lists queues).
+  agent-cups:
+    image: ghcr.io/uwacwy/print-agent:${PRINT_VERSION:-latest}
+    restart: unless-stopped
+    init: true
+    environment:
+      PRINT_SERVER_URL: ${PRINT_SERVER_URL:?set PRINT_SERVER_URL, e.g. https://print.example.org}
+      PRINT_AGENT_TOKEN: ${PRINT_AGENT_TOKEN_CUPS:?set PRINT_AGENT_TOKEN_CUPS}
+      PRINTER_URI: ${PRINTER_URI_CUPS:-cups://Queue_Name}
+      CUPS_SERVER: /run/cups/cups.sock
+    volumes:
+      - /run/cups/cups.sock:/run/cups/cups.sock

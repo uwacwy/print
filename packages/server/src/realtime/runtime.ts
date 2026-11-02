@@ -8,7 +8,7 @@ import {
   purgeFinishedJobs,
   type PrintDatabase,
 } from '../api/helpers/database/database';
-import type { ServerConfig } from '../server-config';
+import type { ServerConfig } from '../api/helpers/server-config/server-config';
 import { AgentHub } from '../api/sockets/agent-hub/agent-hub';
 import {
   attachWebSockets,

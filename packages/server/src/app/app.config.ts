@@ -34,6 +34,7 @@ import {
   getMsalGuardConfiguration,
   getMsalInterceptorConfiguration,
 } from './auth/msal.config';
+import { CLIENT_ENVIRONMENT } from './auth/client-environment';
 import { SignedInMsalInterceptor } from './auth/signed-in-msal.interceptor';
 
 export const appConfig: ApplicationConfig = {
@@ -45,15 +46,19 @@ export const appConfig: ApplicationConfig = {
     {
       provide: MSAL_INSTANCE,
       useFactory: () =>
-        new PublicClientApplication(getMsalConfiguration()),
+        new PublicClientApplication(
+          getMsalConfiguration(inject(CLIENT_ENVIRONMENT)),
+        ),
     },
     {
       provide: MSAL_GUARD_CONFIG,
-      useValue: getMsalGuardConfiguration(),
+      useFactory: () =>
+        getMsalGuardConfiguration(inject(CLIENT_ENVIRONMENT)),
     },
     {
       provide: MSAL_INTERCEPTOR_CONFIG,
-      useValue: getMsalInterceptorConfiguration(),
+      useFactory: () =>
+        getMsalInterceptorConfiguration(inject(CLIENT_ENVIRONMENT)),
     },
     MsalService,
     MsalGuard,

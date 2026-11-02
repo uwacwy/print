@@ -37,7 +37,7 @@ import {
   generatePin,
 } from '../../middleware/auth/pin/pin';
 import type { AgentHub } from '../../sockets/agent-hub/agent-hub';
-import type { UploadConfig } from '../../../server-config';
+import type { UploadConfig } from '../../helpers/server-config/server-config';
 import { UploadError } from '../../helpers/errors';
 import { copiesValid, jobTitle } from '../../helpers/jobs';
 import {

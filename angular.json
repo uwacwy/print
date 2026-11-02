@@ -21,6 +21,7 @@
           "builder": "@angular/build:application",
           "options": {
             "browser": "packages/server/src/main.ts",
+            "outputPath": "packages/server/dist",
             "tsConfig": "packages/server/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [
@@ -42,19 +43,12 @@
             "outputMode": "server",
             "externalDependencies": [
               "better-sqlite3",
-              "heic-decode",
-              "libheif-js",
+              "heic-convert",
+              "sharp",
               "ws",
               "bufferutil",
               "utf-8-validate"
             ],
-            "security": {
-              "allowedHosts": [
-                "localhost",
-                "127.0.0.1",
-                "10.1.10.138"
-              ]
-            },
             "ssr": {
               "entry": "packages/server/src/server.ts"
             }
@@ -88,6 +82,9 @@
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true,
+              "security": {
+                "allowedHosts": ["*"]
+              },
               "fileReplacements": [
                 {
                   "replace": "packages/server/src/environments/environment.ts",
@@ -96,14 +93,14 @@
               ]
             }
           },
-          "defaultConfiguration": "development"
+          "defaultConfiguration": "production"
         },
         "serve": {
           "builder": "@angular/build:dev-server",
           "options": {
             "port": 4200,
             "proxyConfig": "proxy.conf.mjs",
-            "allowedHosts": ["*"]
+            "host": "0.0.0.0"
           },
           "configurations": {
             "production": {

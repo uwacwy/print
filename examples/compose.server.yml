@@ -1,0 +1,33 @@
+# Print server only. Put it behind an HTTPS reverse proxy for anything public;
+# Microsoft Entra sign-in for /manage requires an https:// PUBLIC_URL.
+#
+#   cp packages/server/.env.example print-server.env   # then fill it in
+#   docker compose -f examples/compose.server.yml up -d
+name: uwacwy-print-server
+
+services:
+  print-server:
+    image: ghcr.io/uwacwy/print-server:${PRINT_VERSION:-latest}
+    restart: unless-stopped
+    init: true
+    env_file:
+      - path: ./print-server.env
+        required: false
+    environment:
+      # Required, at least 32 characters: openssl rand -base64 48
+      UPLOAD_TOKEN_SECRET: ${UPLOAD_TOKEN_SECRET:?set UPLOAD_TOKEN_SECRET}
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8080}
+      # Extra host names the web app may be served under (comma-separated).
+      # PUBLIC_URL's host name is always allowed.
+      NG_ALLOWED_HOSTS: ${NG_ALLOWED_HOSTS:-}
+      # Only "true" behind a reverse proxy that sets X-Forwarded-For.
+      TRUST_PROXY: ${TRUST_PROXY:-false}
+      TIME_ZONE: ${TIME_ZONE:-America/Denver}
+    ports:
+      - "8080:8080"
+    volumes:
+      # print.db and queued jobs
+      - print-data:/data
+
+volumes:
+  print-data:

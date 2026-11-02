@@ -1,28 +1,57 @@
 {
   "name": "@uwacwy/print-agent",
-  "version": "1.0.0",
-  "private": true,
+  "version": "0.1.0",
+  "description": "United Way Quick Print agent: connects to a Quick Print server and prints its jobs through CUPS or IPP.",
+  "keywords": [
+    "cups",
+    "ipp",
+    "print",
+    "print-agent",
+    "raspberry-pi"
+  ],
+  "homepage": "https://github.com/uwacwy/print#readme",
+  "bugs": {
+    "url": "https://github.com/uwacwy/print/issues"
+  },
+  "license": "MIT",
+  "author": "United Way of Albany County",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/uwacwy/print.git",
+    "directory": "packages/agent"
+  },
+  "bin": {
+    "uwacwy-print-agent": "dist/print-agent.cjs"
+  },
+  "files": [
+    "dist/print-agent.cjs",
+    ".env.example"
+  ],
   "type": "module",
-  "exports": {
-    ".": {
-      "node": "./dist/print-agent.mjs"
-    }
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   },
   "scripts": {
     "start": "tsx --watch --env-file-if-exists=.env src/index.ts",
-    "build": "tsc -p tsconfig.json --noEmit && esbuild src/index.ts --bundle --platform=node --target=node20 --format=cjs --external:ipp --external:bufferutil --external:utf-8-validate --outfile=dist/print-agent.cjs",
-    "package": "npm run build && tar -czf dist/uwacwy-print-agent.tar.gz --transform 's,^,uwacwy-print-agent/,' -C dist print-agent.cjs -C .. install.sh uwacwy-print-agent.service -C ../.. node_modules/ipp"
+    "build": "tsc -p tsconfig.json --noEmit && node build.mjs",
+    "package": "npm run build && tar -czf dist/uwacwy-print-agent.tar.gz --transform 's,^,uwacwy-print-agent/,' -C dist print-agent.cjs -C .. install.sh uwacwy-print-agent.service -C ../.. node_modules/ipp",
+    "prepack": "npm run build && node ../../scripts/prepack.mjs dist/print-agent.cjs",
+    "postpack": "node ../../scripts/prepack.mjs --clean"
   },
   "dependencies": {
-    "@uwacwy/print-shared": "1.0.0",
-    "ipp": "^1.1.0",
-    "rxjs": "~7.8.2",
-    "socket.io-client": "^4.8.4"
+    "ipp": "^1.1.0"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",
+    "@uwacwy/print-shared": "0.1.0",
     "esbuild": "^0.25.0",
+    "rxjs": "~7.8.2",
+    "socket.io-client": "^4.8.4",
     "tsx": "^4.23.15",
     "typescript": "~5.9.3"
+  },
+  "engines": {
+    "node": ">=20.12"
   }
 }
