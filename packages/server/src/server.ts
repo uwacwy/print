@@ -115,11 +115,6 @@ app.use(
 app.use(express.json({ limit: '32kb' }));
 
 app.use(
-  '/agent',
-  agentRouter({ db: runtime.db, jobsDir: runtime.jobsDir, getHub }),
-);
-
-app.use(
   '/api',
   apiRoot({
     db: runtime.db,

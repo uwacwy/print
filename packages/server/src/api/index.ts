@@ -7,6 +7,7 @@ import type { EntraUserOptions } from './middleware/auth/entra-user/entra-user.s
 import { createAuthenticate } from './middleware/auth/passport/passport';
 import printersRouter from './routers/printers/printers.router';
 import sessionRouter from './routers/session/session.router';
+import agentRouter from './routers/agent/agent.router';
 
 export interface ApiRootOptions {
   entra: EntraUserOptions;
@@ -40,6 +41,7 @@ export default (options: ApiRootOptions) => {
         .set('cache-control', 'no-cache')
         .json(options.client ?? ({} satisfies ClientConfig));
     })
+    .use('/agent', agentRouter(options))
     .use('/session', sessionRouter({ authenticate }))
     .use('/printers', printersRouter({ ...options, authenticate }));
 };
