@@ -6,7 +6,7 @@ import {
 } from '@uwacwy/print-shared';
 import { Server } from 'socket.io';
 import type { Authenticate } from '../middleware/auth/passport/passport';
-import type { PrintServerEvents } from '../../server';
+import type { PrintServerEvents } from '../types';
 import type { AgentHub, AgentSocket } from './agent-hub/agent-hub';
 import { handshake } from './handshake/handshake';
 

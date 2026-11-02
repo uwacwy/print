@@ -10,9 +10,7 @@ import { join } from 'node:path';
 import http from 'node:http';
 import { randomBytes } from 'node:crypto';
 import { isMainThread, workerData } from 'node:worker_threads';
-import type { Server as SocketServer } from 'socket.io';
 import apiRoot from './api';
-import agentRouter from './api/routers/agent/agent.router';
 import { createAuthenticate } from './api/middleware/auth/passport/passport';
 import {
   attachWebSockets,
@@ -28,8 +26,14 @@ import {
   loadLocalEnvFile,
   loadServerConfig,
 } from './api/helpers/server-config/server-config';
-import { Observable, Subject } from 'rxjs';
+import { Subject } from 'rxjs';
 import { AddressInfo } from 'node:net';
+import type {
+  DevSockets,
+  PrintServerEvent,
+  PrintServerEvents,
+  ServerGlobals,
+} from './api/types';
 
 const browserDistFolder = join(import.meta.dirname, '../browser');
 
@@ -139,36 +143,6 @@ app.use((req, res, next) => {
     .catch(next);
 });
 
-type JobCreatedEvent = {
-  type: 'job-created';
-};
-
-type PrintServerEvent = JobCreatedEvent;
-
-export type PrintServerEvents = {
-  next: (event: PrintServerEvent) => void;
-  events$: Observable<PrintServerEvent>;
-};
-
-/**
- * Process-wide state that must outlive `ng serve` re-evaluations of this module: the event bus
- * (so subscribers keep receiving events) and the dev socket.io listener.
- */
-interface ServerGlobals {
-  eventBus?: Subject<PrintServerEvent>;
-  devSockets?: DevSockets;
-}
-
-interface DevSockets {
-  port: number;
-  server: http.Server;
-  io: SocketServer;
-  /** Re-pointed on every evaluation so socket handlers use the latest hub and verifier. */
-  options: WebSocketOptions;
-  /** Settles once the side port is listening; a rejected listener is discarded and retried. */
-  ready: Promise<void>;
-}
-
 const SERVER_GLOBALS_KEY = Symbol.for('@uwacwy/print/server');
 const globals = ((globalThis as Record<symbol, unknown>)[
   SERVER_GLOBALS_KEY
@@ -176,6 +150,7 @@ const globals = ((globalThis as Record<symbol, unknown>)[
 
 const eventBus = (globals.eventBus ??=
   new Subject<PrintServerEvent>());
+
 const events: PrintServerEvents = {
   next: (event) => eventBus.next(event),
   events$: eventBus.asObservable(),
