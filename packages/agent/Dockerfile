@@ -22,8 +22,8 @@ LABEL org.opencontainers.image.title="uwacwy print-agent" \
       org.opencontainers.image.source="https://github.com/uwacwy/print" \
       org.opencontainers.image.licenses="MIT" \
       org.opencontainers.image.version="${VERSION}"
-# cups-client provides lp for cups:// printers; ghostscript converts PDF to PCLm for
-# ipp:// printers without PDF support.
+# cups-client provides lp, lpstat, and cupsenable for cups:// printers; ghostscript
+# downsamples images before lp and converts PDF to PCLm for ipp:// printers without PDF support.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends cups-client ghostscript \
  && rm -rf /var/lib/apt/lists/*

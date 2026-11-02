@@ -1,7 +1,9 @@
 {
   "extends": "../../tsconfig.test.json",
   "compilerOptions": {
-    "rootDir": "src"
+    "rootDir": "src",
+    "module": "preserve",
+    "moduleResolution": "bundler"
   },
   "include": ["src/**/*.test.ts", "src/**/*.d.ts"],
   "references": [{ "path": "../../shared" }]

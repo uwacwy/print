@@ -5,7 +5,7 @@ import {
   getSupportedDocumentFormats,
   printDocument,
   validateIppPrinterUri,
-} from './ipp-printer.js';
+} from './ipp';
 
 vi.mock('ipp', () => ({ default: { Printer: vi.fn() } }));
 

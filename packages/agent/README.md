@@ -7,8 +7,9 @@ connections.
 
 ## Install
 
-Requires Node.js 20.12 or newer. `cups://` printers need the CUPS client (`lp`); IPP printers without
-PDF support need Ghostscript (`gs`) to convert jobs to PCLm.
+Requires Node.js 20.12 or newer. `cups://` printers need the CUPS client (`lp`, `lpstat`, `cupsenable`)
+and should have Ghostscript (`gs`), which shrinks images before printing. IPP printers without PDF
+support need Ghostscript to convert jobs to PCLm.
 
 ```bash
 npm install --global @uwacwy/print-agent

@@ -6,9 +6,7 @@ import {
   parseAgentJobs,
   SOCKET_PATH,
   SYNC_INTERVAL_MS,
-  type AgentClientEvents,
   type AgentJob,
-  type AgentServerEvents,
   type JobReport,
 } from '@uwacwy/print-shared';
 import {
@@ -23,14 +21,30 @@ import {
   Subject,
   tap,
 } from 'rxjs';
-import { io, type Socket } from 'socket.io-client';
-import { AGENT_VERSION } from './version.js';
-import { acceptsMimeType } from './printer-options/printer-options.js';
+import { io } from 'socket.io-client';
 import {
-  createPrinter,
-  type IPrinter,
-  type PrintResult,
-} from './printer/printer.js';
+  checkDownloadedDocument,
+  checkDownloadHeaders,
+  isJobId,
+} from './helpers/jobs/jobs';
+import { log } from './helpers/logging';
+import {
+  connectErrorDetail,
+  formatSeconds,
+  INITIAL_RETRY_MS,
+  nextRetryDelay,
+  toWholeSeconds,
+  withJitter,
+} from './helpers/reconnect/reconnect';
+import { errorMessage } from './helpers/text/text';
+import { createPrinter } from './helpers/create-printer/create-printer';
+import type {
+  AgentSocket,
+  IPrinter,
+  PrintRequest,
+  PrintResult,
+} from './types';
+import { AGENT_VERSION } from './version';
 
 const USAGE = `Usage: uwacwy-print-agent [env-file]
 
@@ -60,19 +74,6 @@ if (!serverUrlText || !token || !printerUriText) {
   );
 }
 
-/** MAX_JOB_MB still works for older installs; `?maxBytes=` on PRINTER_URI wins. */
-function printerConnection(uriText: string): URL {
-  const uri = new URL(uriText);
-  const legacyMb = process.env.MAX_JOB_MB;
-  if (legacyMb !== undefined && !uri.searchParams.has('maxBytes')) {
-    const bytes = Number(legacyMb) * 1024 * 1024;
-    if (!Number.isSafeInteger(bytes) || bytes < 1024 * 1024) {
-      throw new Error('MAX_JOB_MB must be a positive size in MB.');
-    }
-    uri.searchParams.set('maxBytes', String(bytes));
-  }
-  return uri;
-}
 const serverUrl = new URL(serverUrlText);
 if (
   serverUrl.protocol !== 'https:' &&
@@ -81,21 +82,15 @@ if (
   throw new Error('PRINT_SERVER_URL must use HTTP or HTTPS.');
 }
 const apiOrigin = serverUrl.origin;
-type AgentSocket = Socket<AgentServerEvents, AgentClientEvents>;
-const JOB_ID =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 /** Jobs from download through acknowledgement, so repeated pushes are ignored. */
 const activeJobs = new Set<string>();
 const incoming = new Subject<AgentJob>();
+/** Downloaded jobs for the printer; completing it drops any not yet printing. */
+const requests = new Subject<PrintRequest>();
 let stopping = false;
 let currentSocket: AgentSocket | undefined;
 let syncTimer: NodeJS.Timeout | undefined;
 let retryTimer: NodeJS.Timeout | undefined;
-let printer: IPrinter | undefined;
-
-function log(message: string): void {
-  console.log(`${new Date().toISOString()} ${message}`);
-}
 
 async function report(
   jobId: string,
@@ -155,31 +150,18 @@ async function download(
     throw new Error(`Job download failed (${response.status}).`);
   }
   const contentType = response.headers.get('content-type');
-  if (!acceptsMimeType(options, contentType)) {
-    throw new Error(
-      `Printer does not accept ${contentType ?? 'untyped documents'}.`,
-    );
-  }
-  if (
-    Number(response.headers.get('content-length') ?? 0) >
-    options.maxBytes
-  ) {
-    throw new Error('Downloaded job exceeds the printer maxBytes.');
-  }
-  const document = Buffer.from(await response.arrayBuffer());
-  if (document.length > options.maxBytes) {
-    throw new Error('Downloaded job exceeds the printer maxBytes.');
-  }
-  if (
-    acceptsMimeType(
-      { mimeTypes: ['application/pdf'] },
+  checkDownloadHeaders(
+    {
       contentType,
-    ) &&
-    document.subarray(0, 5).toString('ascii') !== '%PDF-'
-  ) {
-    throw new Error('Downloaded job is not a valid PDF.');
-  }
-  return document;
+      contentLength: response.headers.get('content-length'),
+    },
+    options,
+  );
+  return checkDownloadedDocument(
+    contentType,
+    Buffer.from(await response.arrayBuffer()),
+    options,
+  );
 }
 
 /** Reports a result; if that fails, reconnecting makes the server offer the job again. */
@@ -191,11 +173,11 @@ async function acknowledge(result: PrintResult): Promise<void> {
   try {
     await report(job.id, outcome);
     if (outcome.status === 'printed') {
-      log(`Submitted job ${job.id} to printer.`);
+      log(`Submitted job ${job.id} => ${job.title} to printer.`);
     }
   } catch (error) {
     log(
-      `Could not acknowledge job ${job.id}: ${error instanceof Error ? error.message : error}`,
+      `Could not acknowledge job ${job.id}: ${errorMessage(error, String(error))}`,
     );
     currentSocket?.disconnect().connect();
   } finally {
@@ -208,9 +190,7 @@ function startPipeline(printer: IPrinter): void {
   const downloadFailures = new Subject<PrintResult>();
   incoming
     .pipe(
-      filter(
-        (job) => JOB_ID.test(job.id) && !activeJobs.has(job.id),
-      ),
+      filter((job) => isJobId(job.id) && !activeJobs.has(job.id)),
       tap((job) => activeJobs.add(job.id)),
       concatMap((job) =>
         defer(() => download(job, printer)).pipe(
@@ -219,17 +199,14 @@ function startPipeline(printer: IPrinter): void {
             downloadFailures.next({
               job,
               status: 'failed',
-              error:
-                error instanceof Error
-                  ? error.message.slice(0, 500)
-                  : 'Unknown download error',
+              error: errorMessage(error, 'Unknown download error'),
             });
             return EMPTY;
           }),
         ),
       ),
     )
-    .subscribe(({ job, pdf }) => printer.enqueue(job, pdf));
+    .subscribe((request) => requests.next(request));
 
   merge(printer.results$, downloadFailures)
     .pipe(concatMap((result) => from(acknowledge(result))))
@@ -237,17 +214,17 @@ function startPipeline(printer: IPrinter): void {
 }
 
 async function run(): Promise<void> {
-  printer = createPrinter(printerConnection(printerUriText!));
+  const printer = createPrinter(printerUriText!, requests);
   await printer.ready();
   log(
-    `Agent ${AGENT_VERSION} using ${printer.constructor.name} (max ${(printer.options.maxBytes / 1048576).toFixed(1)} MB, ${printer.options.mimeTypes.join(', ')}).`,
+    `@uwacwy/print-agent ${AGENT_VERSION} using ${printer.constructor.name} (max ${(printer.options.maxBytes / 1048576).toFixed(1)} MB, ${printer.options.mimeTypes.join(', ')}).`,
   );
   if (stopping) {
     return;
   }
   startPipeline(printer);
   const websocketBase = new URL(SOCKET_PATH, serverUrl).href;
-  console.log('Connecting to '.concat(websocketBase));
+  log('Connecting to '.concat(websocketBase));
   const socket: AgentSocket = io(
     new URL(AGENT_NAMESPACE, serverUrl).href,
     {
@@ -260,21 +237,18 @@ async function run(): Promise<void> {
   );
   currentSocket = socket;
 
-  let retryDelay = 1000;
-  /** Schedules the next connection attempt and returns the wait in seconds. */
-  const reconnect = (): number => {
+  let retryDelay = INITIAL_RETRY_MS;
+  /** Schedules the next connection attempt and describes the wait, e.g. "2 seconds". */
+  const reconnect = (): string => {
     clearTimeout(retryTimer);
-    const jitter = Math.floor((Math.random() * retryDelay) / 3);
-    const wait = retryDelay + jitter;
+    const wait = withJitter(retryDelay);
     retryTimer = setTimeout(() => socket.connect(), wait);
-    retryDelay = Math.min(retryDelay * 2, 60_000);
-    return Math.max(1, Math.round(wait / 1000));
+    retryDelay = nextRetryDelay(retryDelay);
+    return formatSeconds(toWholeSeconds(wait));
   };
-  const seconds = (count: number) =>
-    `${count} second${count === 1 ? '' : 's'}`;
 
   socket.on('connect', () => {
-    retryDelay = 1000;
+    retryDelay = INITIAL_RETRY_MS;
     log('Connected to print server.');
     socket.emit('sync');
   });
@@ -288,22 +262,15 @@ async function run(): Promise<void> {
     if (stopping) {
       return;
     }
-    // Transport failures only say "websocket error"; a rejected handshake says why.
-    const detail =
-      error.message && error.message !== 'websocket error'
-        ? ` (${error.message})`
-        : '';
     log(
-      `Unable to connect to ${websocketBase}${detail}; retrying in ${seconds(reconnect())}.`,
+      `Unable to connect to ${websocketBase}${connectErrorDetail(error)}; retrying in ${reconnect()}.`,
     );
   });
   socket.on('disconnect', (reason) => {
     if (stopping || reason === 'io client disconnect') {
       return;
     }
-    log(
-      `Disconnected (${reason}); reconnecting in ${seconds(reconnect())}.`,
-    );
+    log(`Disconnected (${reason}); reconnecting in ${reconnect()}.`);
   });
   // Picks up jobs whose push was missed, e.g. queued while a dispatch raced a reconnect.
   syncTimer = setInterval(() => {
@@ -320,7 +287,7 @@ function shutdown(): void {
   clearInterval(syncTimer);
   clearTimeout(retryTimer);
   incoming.complete();
-  printer?.destroy();
+  requests.complete();
   currentSocket?.disconnect();
 }
 

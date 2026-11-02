@@ -3,7 +3,7 @@ import {
   acceptsMimeType,
   DEFAULT_PRINTER_OPTIONS,
   parsePrinterConnection,
-} from './printer-options.js';
+} from './options';
 
 describe('parsePrinterConnection', () => {
   it('applies defaults and strips the query from the destination', () => {

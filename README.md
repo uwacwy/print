@@ -156,6 +156,14 @@ go in its query string. Every driver supports `maxBytes`, `mimeTypes`, and `time
 supports `quality` and `format`. The CUPS driver runs `lp -d <queue> -t <title>` with no other options
 unless you add `option_<name>=<value>` parameters, which become `-o <name>=<value>`, for example
 `cups://Queue?option_print-quality=3&option_sides=two-sided-long-edge`.
+
+Before `lp`, the CUPS driver uses Ghostscript to downsample every image in the PDF to `dpi` (default
+150; `dpi=0` sends the PDF untouched, as does a missing `gs`). The queue's own filters then rasterize
+the smaller PDF to whatever the printer accepts. Low-memory printers such as the HP LaserJet M130fw
+stall or reboot on full-resolution raster, and sending them Ghostscript PCLm directly crashed them.
+The driver reports a job printed only after CUPS completes it, waiting up to 10 minutes. If CUPS stops
+the queue mid-job (as it does when the printer drops a document), the agent cancels that job, reports
+it failed, and re-enables the queue; it also re-enables a stopped queue before each job.
 Unknown or unsupported options stop the agent at startup. See `packages/agent/.env.example`.
 
 In production (`npm run build`, then `npm run start:server`), one process on

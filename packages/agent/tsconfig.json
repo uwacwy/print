@@ -3,7 +3,9 @@
   "compilerOptions": {
     "rootDir": "src",
     "outDir": "dist",
-    "module": "node20"
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "noEmit": true
   },
   "include": ["src"],
   "exclude": ["src/**/*.test.ts"]

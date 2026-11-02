@@ -1,27 +1,9 @@
-export type PrintQuality = 'draft' | 'normal' | 'high';
-export type PrintDocumentFormat =
-  | 'application/pdf'
-  | 'application/PCLm';
-
-/** Driver settings read from the PRINTER_URI query string. */
-export interface PrinterOptions {
-  /** Largest document (and converted output) the printer will handle. */
-  maxBytes: number;
-  /** Content types the agent accepts from the server. */
-  mimeTypes: readonly string[];
-  quality?: PrintQuality;
-  /** Kills or aborts a single print after this long. */
-  timeoutMs: number;
-  /** IPP only: skips Get-Printer-Attributes negotiation. */
-  format?: PrintDocumentFormat;
-}
-
-export type PrinterOptionName =
-  | 'maxBytes'
-  | 'mimeTypes'
-  | 'quality'
-  | 'timeout'
-  | 'format';
+import type {
+  PrintDocumentFormat,
+  PrinterOptionName,
+  PrinterOptions,
+  PrintQuality,
+} from '../../types';
 
 export const DEFAULT_PRINTER_OPTIONS: PrinterOptions = {
   maxBytes: 100 * 1024 * 1024,
@@ -97,6 +79,9 @@ const PARSERS: Record<
     timeoutMs: positiveInteger('timeout', value, 1000),
   }),
   format: (value) => ({ format: oneOf('format', value, FORMATS) }),
+  dpi: (value) => ({
+    dpi: value === '0' ? 0 : positiveInteger('dpi', value, 72),
+  }),
 };
 
 /**
