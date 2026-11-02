@@ -78,15 +78,6 @@ type AgentConfig = z.infer<typeof AgentConfig>;
 
 const config = AgentConfig.parse(process.env);
 
-// const serverUrlText = process.env.PRINT_SERVER_URL;
-// const token = process.env.PRINT_AGENT_TOKEN;
-// const printerUriText = process.env.PRINTER_URI;
-// if (!serverUrlText || !token || !printerUriText) {
-//   throw new Error(
-//     'PRINT_SERVER_URL, PRINT_AGENT_TOKEN, and PRINTER_URI are required.',
-//   );
-// }
-
 const serverUrl = new URL(config.PRINT_SERVER_URL);
 if (
   serverUrl.protocol !== 'https:' &&
