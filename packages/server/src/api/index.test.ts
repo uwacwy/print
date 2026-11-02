@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { useApiServer } from './test-support';
+import { addPrinter } from '../realtime/test-support';
 
 describe('API root', () => {
   const api = useApiServer();
@@ -15,5 +16,24 @@ describe('API root', () => {
     expect(
       (await fetch(`${api.baseUrl}/api/admin/session`)).status,
     ).toBe(404);
+  });
+
+  it('publicly reports only how many printers have a connected agent', async () => {
+    const status = () =>
+      fetch(`${api.baseUrl}/api/status`).then(async (response) => ({
+        status: response.status,
+        cache: response.headers.get('cache-control'),
+        body: await response.json(),
+      }));
+    expect(await status()).toEqual({
+      status: 200,
+      cache: 'no-store',
+      body: { printersOnline: 0 },
+    });
+
+    addPrinter(api.db, 'offline-printer');
+    const { token } = addPrinter(api.db, 'online-printer');
+    await api.connectAgent(token);
+    expect((await status()).body).toEqual({ printersOnline: 1 });
   });
 });

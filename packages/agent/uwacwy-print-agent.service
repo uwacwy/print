@@ -1,13 +1,13 @@
 [Unit]
-Description=Omega secure print agent
+Description=United Way Quick Print agent
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
-User=omega-print
-EnvironmentFile=/etc/omega-print-agent.env
-ExecStart=/usr/bin/node /opt/omega-print-agent/print-agent.cjs
+User=uwacwy-print
+EnvironmentFile=/etc/uwacwy-print-agent.env
+ExecStart=/usr/bin/node /opt/uwacwy-print-agent/print-agent.cjs
 Restart=always
 RestartSec=5
 NoNewPrivileges=true

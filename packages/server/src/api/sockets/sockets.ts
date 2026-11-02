@@ -4,15 +4,16 @@ import {
   LIVE_NAMESPACE,
   SOCKET_PATH,
 } from '@uwacwy/print-shared';
-import { Server, type Namespace } from 'socket.io';
+import { Server } from 'socket.io';
 import type { Authenticate } from '../middleware/auth/passport/passport';
-import { agentNamespace } from './agent/agent.namespace';
-import type { AgentHub } from './agent-hub/agent-hub';
-import { liveNamespace } from './live/live.namespace';
+import type { PrintServerEvents } from '../../server';
+import type { AgentHub, AgentSocket } from './agent-hub/agent-hub';
+import { handshake } from './handshake/handshake';
 
 export interface WebSocketOptions {
   getHub: () => AgentHub;
   verify: Authenticate['verify'];
+  events: PrintServerEvents;
 }
 
 /**
@@ -33,10 +34,37 @@ export const attachWebSockets = (
   io.of('/').use((_socket, next) =>
     next(new Error('Invalid namespace')),
   );
-  // socket.io types one event map per server; each namespace speaks its own protocol.
-  const of = <N extends Namespace>(name: string) =>
-    io.of(name) as unknown as N;
-  agentNamespace(of(AGENT_NAMESPACE), options);
-  liveNamespace(of(LIVE_NAMESPACE), options);
+
+  io.of(AGENT_NAMESPACE)
+    .use(handshake(options.verify, 'agentToken'))
+    .on('connection', (socket) => {
+      const { principal } = socket.data;
+      if (principal.kind === 'agent') {
+        options
+          .getHub()
+          .connect(socket as AgentSocket, principal.printer);
+      } else {
+        socket.disconnect(true);
+      }
+    });
+
+  io.of(LIVE_NAMESPACE)
+    .use(handshake(options.verify, 'entraUser'))
+    .on('connection', (socket) => {
+      const hub = options.getHub();
+      socket.emit('live', {
+        type: 'snapshot',
+        onlinePrinterIds: hub.onlinePrinterIds(),
+      });
+      // When the hub is replaced (dev reload) the client reconnects for a fresh snapshot.
+      const unsubscribe = hub.subscribe(
+        (event) => socket.emit('live', event),
+        () => socket.disconnect(true),
+      );
+      socket.on('disconnect', unsubscribe);
+    });
+
+  console.log('[WebSockets] attached');
+
   return io;
 };

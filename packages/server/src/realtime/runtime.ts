@@ -100,52 +100,53 @@ export function startJobCleanup(
 
 /**
  * Dev only: the Angular dev server owns the HTTP server and never exposes `upgrade`, so
- * socket.io listens on a side port that proxy.conf.json forwards `/socket.io` to.
+ * socket.io listens on a side port that proxy.conf.mjs forwards `/ws` to.
  * The listener is created once and keeps its sockets across reloads; `verify` is re-pointed
  * on every evaluation, but edits to the namespace code itself need a dev-server restart.
  */
-export async function ensureDevSockets(
-  runtime: PrintRuntime,
-  port: number,
-  options: Pick<WebSocketOptions, 'verify'>,
-): Promise<void> {
-  if (runtime.devSockets && runtime.devSockets.port !== port) {
-    void runtime.devSockets.io.close();
-    runtime.devSockets = undefined;
-  }
-  if (runtime.devSockets) {
-    runtime.devSockets.options = options;
-    return;
-  }
-  const server = createServer();
-  const devSockets: NonNullable<PrintRuntime['devSockets']> = {
-    server,
-    port,
-    options,
-    io: attachWebSockets(server, {
-      getHub: () => runtime.hub,
-      verify: (...args) => devSockets.options.verify(...args),
-    }),
-  };
-  runtime.devSockets = devSockets;
-  try {
-    await new Promise<void>((resolve, reject) => {
-      server.once('error', reject);
-      server.listen(port, '127.0.0.1', () => {
-        server.off('error', reject);
-        resolve();
-      });
-    });
-  } catch (error) {
-    runtime.devSockets = undefined;
-    void devSockets.io.close();
-    throw error;
-  }
-  server.unref();
-  console.log(
-    `socket.io dev server listening on http://127.0.0.1:${port}`,
-  );
-}
+// export async function ensureDevSockets(
+//   runtime: PrintRuntime,
+//   port: number,
+//   options: Pick<WebSocketOptions, 'verify'>,
+// ): Promise<void> {
+//   if (runtime.devSockets && runtime.devSockets.port !== port) {
+//     void runtime.devSockets.io.close();
+//     runtime.devSockets = undefined;
+//   }
+//   if (runtime.devSockets) {
+//     runtime.devSockets.options = options;
+//     return;
+//   }
+//   const server = createServer();
+//   const devSockets: NonNullable<PrintRuntime['devSockets']> = {
+//     server,
+//     port,
+//     options,
+//     io: attachWebSockets(server, {
+//       getHub: () => runtime.hub,
+//       verify: (...args) => devSockets.options.verify(...args),
+
+//     }),
+//   };
+//   runtime.devSockets = devSockets;
+//   try {
+//     await new Promise<void>((resolve, reject) => {
+//       server.once('error', reject);
+//       server.listen(port, '127.0.0.1', () => {
+//         server.off('error', reject);
+//         resolve();
+//       });
+//     });
+//   } catch (error) {
+//     runtime.devSockets = undefined;
+//     void devSockets.io.close();
+//     throw error;
+//   }
+//   server.unref();
+//   console.log(
+//     `socket.io dev server listening on http://127.0.0.1:${port}`,
+//   );
+// }
 
 export function shutdownPrintRuntime(): void {
   const runtime = store[RUNTIME_KEY];

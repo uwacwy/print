@@ -19,9 +19,40 @@ const HEIC_MIMES = new Set<AcceptedMime>([
   'image/heif-sequence',
 ]);
 
+/** US Letter, in PDF points (72 per inch). */
+const PAGE = { width: 612, height: 792 } as const;
+/** Area an image is fitted into, in inches: Letter with 0.5 in margins. */
+const PRINTABLE_INCHES = { width: 7.5, height: 10 } as const;
+
+export const DEFAULT_IMAGE_DPI = 150;
+
+export interface NormalizeOptions {
+  /**
+   * Resolution images are downsampled to over the printable area, e.g. 150 dpi caps an image at
+   * 1125 × 1500 px (7.5 × 10 in). Smaller images are never enlarged. PDFs pass through untouched.
+   */
+  imageDpi?: number;
+}
+
+/** Largest pixel box an image may occupy at `dpi` without exceeding the printable area. */
+export function maxImagePixels(dpi: number): {
+  width: number;
+  height: number;
+} {
+  if (!Number.isFinite(dpi) || dpi <= 0) {
+    throw new RangeError('Image DPI must be a positive number.');
+  }
+  return {
+    width: Math.round(PRINTABLE_INCHES.width * dpi),
+    height: Math.round(PRINTABLE_INCHES.height * dpi),
+  };
+}
+
 export async function normalizeDocument(
   buffer: Buffer,
+  { imageDpi = DEFAULT_IMAGE_DPI }: NormalizeOptions = {},
 ): Promise<{ pdf: Buffer; mime: AcceptedMime }> {
+  const limit = maxImagePixels(imageDpi);
   const detected = await fileTypeFromBuffer(buffer);
   if (detected?.mime === 'application/pdf') {
     const source = await PDFDocument.load(buffer, {
@@ -53,23 +84,28 @@ export async function normalizeDocument(
   if (!metadata.width || !metadata.height) {
     throw new Error('Unable to read image dimensions.');
   }
-  const oriented = await image.toBuffer();
+  const oriented = await image
+    .resize({
+      ...limit,
+      fit: 'inside',
+      withoutEnlargement: true,
+    })
+    .toBuffer();
   const pdf = await PDFDocument.create();
   const embedded =
     mime === 'image/png'
       ? await pdf.embedPng(oriented)
       : await pdf.embedJpg(oriented);
-  const page = pdf.addPage([612, 792]);
-  const margin = 72;
+  const page = pdf.addPage([PAGE.width, PAGE.height]);
   const scale = Math.min(
-    (612 - margin * 2) / embedded.width,
-    (792 - margin * 2) / embedded.height,
+    (PRINTABLE_INCHES.width * 72) / embedded.width,
+    (PRINTABLE_INCHES.height * 72) / embedded.height,
   );
   const width = embedded.width * scale;
   const height = embedded.height * scale;
   page.drawImage(embedded, {
-    x: (612 - width) / 2,
-    y: (792 - height) / 2,
+    x: (PAGE.width - width) / 2,
+    y: (PAGE.height - height) / 2,
     width,
     height,
   });
@@ -83,12 +119,14 @@ export interface JobDocument {
 
 export async function combineDocuments(
   documents: readonly JobDocument[],
+  options: NormalizeOptions = {},
 ): Promise<Buffer> {
   if (documents.length === 0) {
     throw new Error('Choose at least one document to print.');
   }
   if (documents.length === 1 && documents[0]!.copies === 1) {
-    return (await normalizeDocument(documents[0]!.buffer)).pdf;
+    return (await normalizeDocument(documents[0]!.buffer, options))
+      .pdf;
   }
 
   const combined = await PDFDocument.create();
@@ -103,7 +141,10 @@ export async function combineDocuments(
         'Copies must be between 1 and 5 for each document.',
       );
     }
-    const normalized = await normalizeDocument(document.buffer);
+    const normalized = await normalizeDocument(
+      document.buffer,
+      options,
+    );
     const source = await PDFDocument.load(normalized.pdf, {
       updateMetadata: false,
     });

@@ -72,7 +72,7 @@ describe('LiveEventsService', () => {
       },
     ];
     expect(namespace).toBe('/live');
-    expect(options.path).toBe('/socket.io');
+    expect(options.path).toBe('/ws');
     const auth = vi.fn();
     await options.auth(auth);
     expect(auth).toHaveBeenCalledWith({ token: 'token-123' });

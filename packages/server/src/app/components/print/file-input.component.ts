@@ -30,8 +30,6 @@ const isFileInput = (el: any): el is HTMLFileInputElement =>
   template: `<!-- file input -->`,
 })
 export class FileInput implements FormValueControl<File | null> {
-  readonly firstFileOrNull = firstFileOrNull;
-
   readonly #host =
     inject<ElementRef<HTMLInputElement & { files: FileList }>>(
       ElementRef,
@@ -94,8 +92,6 @@ export class FileInput implements FormValueControl<File | null> {
   template: `<!-- file input -->`,
 })
 export class FilesInput implements FormValueControl<File[]> {
-  readonly firstFileOrNull = firstFileOrNull;
-
   readonly #host =
     inject<ElementRef<HTMLInputElement & { files: FileList }>>(
       ElementRef,

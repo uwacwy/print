@@ -11,24 +11,47 @@ import {
   type AgentServerEvents,
   type JobReport,
 } from '@uwacwy/print-shared';
+import {
+  catchError,
+  concatMap,
+  defer,
+  EMPTY,
+  filter,
+  from,
+  map,
+  merge,
+  Subject,
+  tap,
+} from 'rxjs';
 import { io, type Socket } from 'socket.io-client';
-import { createPrinter, type IPrinter } from './printer/printer.js';
+import { acceptsMimeType } from './printer-options/printer-options.js';
+import {
+  createPrinter,
+  type IPrinter,
+  type PrintResult,
+} from './printer/printer.js';
 
 const serverUrlText = process.env.PRINT_SERVER_URL;
 const token = process.env.PRINT_AGENT_TOKEN;
 const printerUriText = process.env.PRINTER_URI;
-const maximumPdfBytes =
-  Number(process.env.MAX_JOB_MB ?? 100) * 1024 * 1024;
 if (!serverUrlText || !token || !printerUriText) {
   throw new Error(
     'PRINT_SERVER_URL, PRINT_AGENT_TOKEN, and PRINTER_URI are required.',
   );
 }
-if (
-  !Number.isFinite(maximumPdfBytes) ||
-  maximumPdfBytes < 1024 * 1024
-) {
-  throw new Error('MAX_JOB_MB must be a positive size in MB.');
+
+/** MAX_JOB_MB still works for older installs; `?maxBytes=` on PRINTER_URI wins. */
+function printerConnection(uriText: string): URL {
+  const uri = new URL(uriText);
+  const legacyMb = process.env.MAX_JOB_MB;
+  if (legacyMb !== undefined && !uri.searchParams.has('maxBytes')) {
+    const bytes = Number(legacyMb) * 1024 * 1024;
+    if (!Number.isSafeInteger(bytes) || bytes < 1024 * 1024) {
+      throw new Error('MAX_JOB_MB must be a positive size in MB.');
+    }
+    uri.searchParams.set('maxBytes', String(bytes));
+  }
+  return uri;
 }
 const serverUrl = new URL(serverUrlText);
 if (
@@ -39,13 +62,16 @@ if (
 }
 const apiOrigin = serverUrl.origin;
 type AgentSocket = Socket<AgentServerEvents, AgentClientEvents>;
+const JOB_ID =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+/** Jobs from download through acknowledgement, so repeated pushes are ignored. */
 const activeJobs = new Set<string>();
+const incoming = new Subject<AgentJob>();
 let stopping = false;
 let currentSocket: AgentSocket | undefined;
 let syncTimer: NodeJS.Timeout | undefined;
 let retryTimer: NodeJS.Timeout | undefined;
-let jobChain = Promise.resolve();
-let printer: IPrinter;
+let printer: IPrinter | undefined;
 
 function log(message: string): void {
   console.log(`${new Date().toISOString()} ${message}`);
@@ -94,79 +120,114 @@ async function report(
   );
 }
 
-async function processJob(
+async function download(
   job: AgentJob,
-  socket: AgentSocket,
-): Promise<void> {
+  { options }: IPrinter,
+): Promise<Buffer> {
+  const response = await fetch(
+    new URL(agentJobFilePath(job.id), apiOrigin),
+    {
+      headers: { authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(60_000),
+    },
+  );
+  if (!response.ok) {
+    throw new Error(`Job download failed (${response.status}).`);
+  }
+  const contentType = response.headers.get('content-type');
+  if (!acceptsMimeType(options, contentType)) {
+    throw new Error(
+      `Printer does not accept ${contentType ?? 'untyped documents'}.`,
+    );
+  }
   if (
-    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-      job.id,
-    )
+    Number(response.headers.get('content-length') ?? 0) >
+    options.maxBytes
   ) {
-    return;
+    throw new Error('Downloaded job exceeds the printer maxBytes.');
   }
-  if (activeJobs.has(job.id)) {
-    return;
+  const document = Buffer.from(await response.arrayBuffer());
+  if (document.length > options.maxBytes) {
+    throw new Error('Downloaded job exceeds the printer maxBytes.');
   }
-  activeJobs.add(job.id);
+  if (
+    acceptsMimeType(
+      { mimeTypes: ['application/pdf'] },
+      contentType,
+    ) &&
+    document.subarray(0, 5).toString('ascii') !== '%PDF-'
+  ) {
+    throw new Error('Downloaded job is not a valid PDF.');
+  }
+  return document;
+}
+
+/** Reports a result; if that fails, reconnecting makes the server offer the job again. */
+async function acknowledge(result: PrintResult): Promise<void> {
+  const { job, ...outcome } = result;
+  if (outcome.status === 'failed') {
+    log(`Job ${job.id} failed: ${outcome.error}`);
+  }
   try {
-    let printError: unknown;
-    try {
-      const response = await fetch(
-        new URL(agentJobFilePath(job.id), apiOrigin),
-        {
-          headers: { authorization: `Bearer ${token}` },
-          signal: AbortSignal.timeout(60_000),
-        },
-      );
-      if (!response.ok) {
-        throw new Error(`Job download failed (${response.status}).`);
-      }
-      const contentLength = Number(
-        response.headers.get('content-length') ?? 0,
-      );
-      if (contentLength > maximumPdfBytes) {
-        throw new Error('Downloaded job exceeds MAX_JOB_MB.');
-      }
-      const pdf = Buffer.from(await response.arrayBuffer());
-      if (
-        pdf.length > maximumPdfBytes ||
-        pdf.subarray(0, 5).toString('ascii') !== '%PDF-'
-      ) {
-        throw new Error('Downloaded job is not a valid PDF.');
-      }
-      await printer.print(pdf, job);
-    } catch (error) {
-      printError = error;
-    }
-    if (printError) {
-      const message =
-        printError instanceof Error
-          ? printError.message.slice(0, 500)
-          : 'Unknown print error';
-      log(`Job ${job.id} failed: ${message}`);
-      await report(job.id, { status: 'failed', error: message });
-    } else {
-      await report(job.id, { status: 'printed' });
+    await report(job.id, outcome);
+    if (outcome.status === 'printed') {
       log(`Submitted job ${job.id} to printer.`);
     }
   } catch (error) {
     log(
-      `Could not process or acknowledge job ${job.id}: ${error instanceof Error ? error.message : error}`,
+      `Could not acknowledge job ${job.id}: ${error instanceof Error ? error.message : error}`,
     );
-    // Reconnecting requeues the job on the server, so it is offered again.
-    socket.disconnect().connect();
+    currentSocket?.disconnect().connect();
   } finally {
     activeJobs.delete(job.id);
   }
 }
 
+/** incoming jobs → download → printer queue → results → acknowledgement. */
+function startPipeline(printer: IPrinter): void {
+  const downloadFailures = new Subject<PrintResult>();
+  incoming
+    .pipe(
+      filter(
+        (job) => JOB_ID.test(job.id) && !activeJobs.has(job.id),
+      ),
+      tap((job) => activeJobs.add(job.id)),
+      concatMap((job) =>
+        defer(() => download(job, printer)).pipe(
+          map((pdf) => ({ job, pdf })),
+          catchError((error: unknown) => {
+            downloadFailures.next({
+              job,
+              status: 'failed',
+              error:
+                error instanceof Error
+                  ? error.message.slice(0, 500)
+                  : 'Unknown download error',
+            });
+            return EMPTY;
+          }),
+        ),
+      ),
+    )
+    .subscribe(({ job, pdf }) => printer.enqueue(job, pdf));
+
+  merge(printer.results$, downloadFailures)
+    .pipe(concatMap((result) => from(acknowledge(result))))
+    .subscribe();
+}
+
 async function run(): Promise<void> {
-  printer = await createPrinter(printerUriText!, maximumPdfBytes);
-  log(`Using ${printer.constructor.name}.`);
+  printer = createPrinter(printerConnection(printerUriText!));
+  await printer.ready();
+  log(
+    `Using ${printer.constructor.name} (max ${(printer.options.maxBytes / 1048576).toFixed(1)} MB, ${printer.options.mimeTypes.join(', ')}).`,
+  );
   if (stopping) {
     return;
   }
+  startPipeline(printer);
+  const websocketBase = new URL(SOCKET_PATH, serverUrl).href;
+  console.log('Connecting to '.concat(websocketBase));
   const socket: AgentSocket = io(
     new URL(AGENT_NAMESPACE, serverUrl).href,
     {
@@ -204,18 +265,11 @@ async function run(): Promise<void> {
     log(`Registered for ${registered.name}.`),
   );
   socket.on('jobs', (value) => {
-    const jobs = parseAgentJobs(value);
-    if (!jobs) {
-      return;
-    }
-    jobChain = jobChain.then(async () => {
-      for (const job of jobs) {
-        await processJob(job, socket);
-      }
-    });
+    parseAgentJobs(value)?.forEach((job) => incoming.next(job));
   });
   socket.on('connect_error', (error) => {
     log(`Connection error: ${error.message}`);
+    console.error(error);
     if (!socket.active) {
       reconnect();
     }
@@ -240,6 +294,8 @@ function shutdown(): void {
   setTimeout(() => process.exit(0), 5000).unref();
   clearInterval(syncTimer);
   clearTimeout(retryTimer);
+  incoming.complete();
+  printer?.destroy();
   currentSocket?.disconnect();
 }
 

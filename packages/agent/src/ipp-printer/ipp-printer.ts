@@ -1,10 +1,12 @@
 import ipp from 'ipp';
 import { spawn } from 'node:child_process';
+import type {
+  PrintDocumentFormat,
+  PrintQuality,
+} from '../printer-options/printer-options.js';
 import type { PrintJob } from '../printer/printer.js';
 
-export type PrintDocumentFormat =
-  | 'application/pdf'
-  | 'application/PCLm';
+export type { PrintDocumentFormat };
 
 export function validateIppPrinterUri(value: string): URL {
   let uri: URL;
@@ -164,7 +166,7 @@ export function convertPdfToPclm(
       if (outputTooLarge) {
         return reject(
           new Error(
-            'PCLm output exceeds MAX_JOB_MB; increase the agent limit.',
+            'PCLm output exceeds maxBytes; raise ?maxBytes= on PRINTER_URI.',
           ),
         );
       }
@@ -191,13 +193,19 @@ export function convertPdfToPclm(
   });
 }
 
+export interface PrintDocumentOptions {
+  quality?: PrintQuality;
+  timeoutMs?: number;
+}
+
 export async function printDocument(
   uri: URL,
   data: Buffer,
   job: PrintJob,
   format: PrintDocumentFormat,
+  { quality, timeoutMs = 120_000 }: PrintDocumentOptions = {},
 ): Promise<void> {
-  const printer = makePrinter(uri, 120_000);
+  const printer = makePrinter(uri, timeoutMs);
   const title =
     job.title.replace(/[\0-\x1f\x7f]/g, ' ').slice(0, 120) ||
     'Print job';
@@ -210,6 +218,9 @@ export async function printDocument(
           'job-name': title,
           'document-format': format,
         },
+        ...(quality
+          ? { 'job-attributes-tag': { 'print-quality': quality } }
+          : {}),
         data,
       },
       (error, response) => {

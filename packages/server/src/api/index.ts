@@ -28,6 +28,11 @@ export default (options: ApiRootOptions) => {
     .get('/healthz', (_request, response) =>
       response.status(200).json({ status: 'ok' }),
     )
+    .get('/status', (_request, response) => {
+      response.set('cache-control', 'no-store').json({
+        printersOnline: options.getHub().onlinePrinterIds().length,
+      });
+    })
     .use('/session', sessionRouter({ authenticate }))
     .use('/printers', printersRouter({ ...options, authenticate }));
 };

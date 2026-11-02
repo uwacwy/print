@@ -23,6 +23,7 @@ import {
 import type { UploadConfig } from '../server-config';
 import agentRouter from './routers/agent/agent.router';
 import apiRoot, { type ApiRootOptions } from './index';
+import { Observable } from 'rxjs';
 
 export async function samplePdf(): Promise<Blob> {
   const pdf = await PDFDocument.create();
@@ -110,6 +111,10 @@ export function useApiServer(defaults: StartOptions = {}) {
     io = attachWebSockets(server, {
       getHub: () => hub,
       verify: createAuthenticate({ db, entra }).verify,
+      events: {
+        next: () => {},
+        events$: new Observable(),
+      },
     });
     host = await listen(server);
   };

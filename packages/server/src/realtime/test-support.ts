@@ -31,6 +31,7 @@ export const testUploadConfig: UploadConfig = {
   maxUploadBytes: 1024 * 1024,
   maxDocumentsPerJob: 3,
   maxCopies: 5,
+  imageDpi: 150,
   uploadsPerMinute: 100,
   access: {
     tokenSecret: 'test-upload-token-secret-that-is-long-enough',

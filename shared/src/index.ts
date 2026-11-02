@@ -8,7 +8,7 @@ export const JOB_STATUSES = [
 export type JobStatus = (typeof JOB_STATUSES)[number];
 
 /** socket.io endpoint shared by every namespace; the dev proxy forwards it to the socket server. */
-export const SOCKET_PATH = '/socket.io';
+export const SOCKET_PATH = '/ws';
 /** Print agents, authenticated with their printer's agent token. */
 export const AGENT_NAMESPACE = '/agent';
 /** Management UI live updates, authenticated with an Entra access token. */

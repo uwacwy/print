@@ -263,7 +263,9 @@ export default function printersRouter({
 
     let pdf: Uint8Array;
     try {
-      pdf = await combineDocuments(documents);
+      pdf = await combineDocuments(documents, {
+        imageDpi: upload.imageDpi,
+      });
       if (printer.cover_page) {
         pdf = await addCoverPage(pdf, {
           siteTitle: upload.siteTitle,

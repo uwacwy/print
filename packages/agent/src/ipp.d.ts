@@ -10,6 +10,9 @@ declare module 'ipp' {
       'job-name': string;
       'document-format': 'application/pdf' | 'application/PCLm';
     };
+    'job-attributes-tag'?: {
+      'print-quality'?: 'draft' | 'normal' | 'high';
+    };
     data: Buffer;
   }
 

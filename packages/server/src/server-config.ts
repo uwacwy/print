@@ -32,6 +32,8 @@ const ServerEnvironment = z.object({
     .max(10)
     .default(5),
   MAX_COPIES: z.coerce.number().int().min(1).max(5).default(5),
+  /** Uploaded photos are downsampled to this resolution over a 7.5 × 10 in area. */
+  IMAGE_DPI: z.coerce.number().int().min(72).max(600).default(150),
   UPLOADS_PER_MINUTE: z.coerce.number().int().min(1).default(10),
   JOB_TTL_HOURS: z.coerce.number().positive().default(24),
   RETENTION_DAYS: z.coerce.number().positive().default(7),
@@ -69,7 +71,7 @@ const ServerEnvironment = z.object({
   /** Comma-separated client IDs of service apps (e.g. Windmill) allowed to submit print jobs. */
   ENTRA_AUTOMATION_CLIENT_IDS: z.string().optional(),
   ENTRA_AUTOMATION_ROLE: z.string().min(1).default('Jobs.Submit'),
-  /** `ng serve` only: side port for socket.io, reached through proxy.conf.json. 0 disables it. */
+  /** `ng serve` only: side port for socket.io, reached through proxy.conf.mjs. 0 disables it. */
   SOCKET_DEV_PORT: z.coerce
     .number()
     .int()
@@ -84,6 +86,8 @@ export interface UploadConfig {
   maxUploadBytes: number;
   maxDocumentsPerJob: number;
   maxCopies: number;
+  /** Resolution uploaded images are downsampled to; see `normalizeDocument`. */
+  imageDpi: number;
   uploadsPerMinute: number;
   access: UploadAccessConfig;
 }
@@ -167,6 +171,7 @@ export function loadServerConfig(
       maxUploadBytes: Math.floor(e.MAX_UPLOAD_MB * 1024 * 1024),
       maxDocumentsPerJob: e.MAX_DOCUMENTS_PER_JOB,
       maxCopies: e.MAX_COPIES,
+      imageDpi: e.IMAGE_DPI,
       uploadsPerMinute: e.UPLOADS_PER_MINUTE,
       access: {
         tokenSecret: e.UPLOAD_TOKEN_SECRET,

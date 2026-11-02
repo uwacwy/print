@@ -25,7 +25,7 @@ services:
       - ./package-lock.json:/app/package-lock.json:ro
       - ./shared/package.json:/app/shared/package.json:ro
       - ./angular.json:/app/angular.json:ro
-      - ./proxy.conf.json:/app/proxy.conf.json:ro
+      - ./proxy.conf.mjs:/app/proxy.conf.mjs:ro
       - ./packages:/app/packages:ro
       - ./shared/src:/app/shared/src:ro
       - print_dev_data:/data
