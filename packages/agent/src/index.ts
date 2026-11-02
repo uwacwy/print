@@ -45,6 +45,7 @@ import type {
   PrintResult,
 } from './types';
 import { AGENT_VERSION } from './version';
+import z from 'zod';
 
 const USAGE = `Usage: uwacwy-print-agent [env-file]
 
@@ -65,16 +66,28 @@ if (argument) {
   process.loadEnvFile(argument);
 }
 
-const serverUrlText = process.env.PRINT_SERVER_URL;
-const token = process.env.PRINT_AGENT_TOKEN;
-const printerUriText = process.env.PRINTER_URI;
-if (!serverUrlText || !token || !printerUriText) {
-  throw new Error(
-    'PRINT_SERVER_URL, PRINT_AGENT_TOKEN, and PRINTER_URI are required.',
-  );
-}
+const AgentConfig = z.object({
+  PRINT_SERVER_URL: z.url({
+    protocol: /^(http)s?$/,
+  }),
+  PRINT_AGENT_TOKEN: z.string(),
+  PRINTER_URI: z.string(),
+});
 
-const serverUrl = new URL(serverUrlText);
+type AgentConfig = z.infer<typeof AgentConfig>;
+
+const config = AgentConfig.parse(process.env);
+
+// const serverUrlText = process.env.PRINT_SERVER_URL;
+// const token = process.env.PRINT_AGENT_TOKEN;
+// const printerUriText = process.env.PRINTER_URI;
+// if (!serverUrlText || !token || !printerUriText) {
+//   throw new Error(
+//     'PRINT_SERVER_URL, PRINT_AGENT_TOKEN, and PRINTER_URI are required.',
+//   );
+// }
+
+const serverUrl = new URL(config.PRINT_SERVER_URL);
 if (
   serverUrl.protocol !== 'https:' &&
   serverUrl.protocol !== 'http:'
@@ -104,7 +117,7 @@ async function report(
         {
           method: 'POST',
           headers: {
-            authorization: `Bearer ${token}`,
+            authorization: `Bearer ${config.PRINT_AGENT_TOKEN}`,
             'content-type': 'application/json',
           },
           body: JSON.stringify(result),
@@ -142,7 +155,9 @@ async function download(
   const response = await fetch(
     new URL(agentJobFilePath(job.id), apiOrigin),
     {
-      headers: { authorization: `Bearer ${token}` },
+      headers: {
+        authorization: `Bearer ${config.PRINT_AGENT_TOKEN}`,
+      },
       signal: AbortSignal.timeout(60_000),
     },
   );
@@ -188,6 +203,7 @@ async function acknowledge(result: PrintResult): Promise<void> {
 /** incoming jobs → download → printer queue → results → acknowledgement. */
 function startPipeline(printer: IPrinter): void {
   const downloadFailures = new Subject<PrintResult>();
+
   incoming
     .pipe(
       filter((job) => isJobId(job.id) && !activeJobs.has(job.id)),
@@ -214,7 +230,7 @@ function startPipeline(printer: IPrinter): void {
 }
 
 async function run(): Promise<void> {
-  const printer = createPrinter(printerUriText!, requests);
+  const printer = createPrinter(config.PRINTER_URI, requests);
   await printer.ready();
   log(
     `@uwacwy/print-agent ${AGENT_VERSION} using ${printer.constructor.name} (max ${(printer.options.maxBytes / 1048576).toFixed(1)} MB, ${printer.options.mimeTypes.join(', ')}).`,
@@ -226,11 +242,11 @@ async function run(): Promise<void> {
   const websocketBase = new URL(SOCKET_PATH, serverUrl).href;
   log('Connecting to '.concat(websocketBase));
   const socket: AgentSocket = io(
-    new URL(AGENT_NAMESPACE, serverUrl).href,
+    new URL(AGENT_NAMESPACE, config.PRINT_SERVER_URL).href,
     {
       path: SOCKET_PATH,
       transports: ['websocket'],
-      auth: { token },
+      auth: { token: config.PRINT_AGENT_TOKEN },
       // Retries are scheduled below so each one can report its delay.
       reconnection: false,
     },
@@ -247,31 +263,35 @@ async function run(): Promise<void> {
     return formatSeconds(toWholeSeconds(wait));
   };
 
-  socket.on('connect', () => {
-    retryDelay = INITIAL_RETRY_MS;
-    log('Connected to print server.');
-    socket.emit('sync');
-  });
-  socket.on('hello', (registered) =>
-    log(`Registered for ${registered.name}.`),
-  );
-  socket.on('jobs', (value) => {
-    parseAgentJobs(value)?.forEach((job) => incoming.next(job));
-  });
-  socket.on('connect_error', (error) => {
-    if (stopping) {
-      return;
-    }
-    log(
-      `Unable to connect to ${websocketBase}${connectErrorDetail(error)}; retrying in ${reconnect()}.`,
-    );
-  });
-  socket.on('disconnect', (reason) => {
-    if (stopping || reason === 'io client disconnect') {
-      return;
-    }
-    log(`Disconnected (${reason}); reconnecting in ${reconnect()}.`);
-  });
+  socket
+    .on('connect', () => {
+      retryDelay = INITIAL_RETRY_MS;
+      log('Connected to print server.');
+      socket.emit('sync');
+    })
+    .on('hello', (registered) =>
+      log(`Registered for ${registered.name}.`),
+    )
+    .on('jobs', (value) => {
+      parseAgentJobs(value)?.forEach((job) => incoming.next(job));
+    })
+    .on('connect_error', (error) => {
+      if (stopping) {
+        return;
+      }
+      log(
+        `Unable to connect to ${websocketBase}${connectErrorDetail(error)}; retrying in ${reconnect()}.`,
+      );
+    })
+    .on('disconnect', (reason) => {
+      if (stopping || reason === 'io client disconnect') {
+        return;
+      }
+      log(
+        `Disconnected (${reason}); reconnecting in ${reconnect()}.`,
+      );
+    });
+
   // Picks up jobs whose push was missed, e.g. queued while a dispatch raced a reconnect.
   syncTimer = setInterval(() => {
     if (socket.connected) {
