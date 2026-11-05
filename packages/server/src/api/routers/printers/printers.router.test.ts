@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
@@ -422,6 +422,78 @@ describe('printers router', () => {
           false,
         );
       }
+    });
+
+    it('requeues failed jobs that still have their document', async () => {
+      const pdf = new TextEncoder().encode('%PDF-1.4');
+      const job = {
+        printerId,
+        title: 'Return',
+        copies: 1,
+        originalName: 'return.pdf',
+        submittedBy: null,
+        uploaderIp: '127.0.0.1',
+      };
+      const [kept, gone, queued] = [
+        await enqueueJob(api.db, api.jobsDir, job, pdf),
+        await enqueueJob(api.db, api.jobsDir, job, pdf),
+        await enqueueJob(api.db, api.jobsDir, job, pdf),
+      ];
+      api.db
+        .prepare(
+          "UPDATE jobs SET status = 'failed', error = 'jammed', finished_at = 'now' WHERE id IN (?, ?)",
+        )
+        .run(kept, gone);
+      rmSync(join(api.jobsDir, `${gone}.pdf`));
+      const status = (id: string) =>
+        api.db
+          .prepare('SELECT status, error FROM jobs WHERE id = ?')
+          .get(id) as { status: string; error: string | null };
+
+      const list = (await (
+        await fetch(`${api.baseUrl}/api/printers`, {
+          headers: admin,
+        })
+      ).json()) as { failedJobs: number }[];
+      expect(list[0]!.failedJobs).toBe(2);
+
+      const retry = () =>
+        fetch(
+          `${api.baseUrl}/api/printers/front-office/jobs/retry`,
+          {
+            method: 'POST',
+            headers: admin,
+          },
+        );
+      expect(
+        (
+          await fetch(
+            `${api.baseUrl}/api/printers/front-office/jobs/retry`,
+            { method: 'POST' },
+          )
+        ).status,
+      ).toBe(401);
+
+      const response = await retry();
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as {
+        retried: number;
+        printer: { activeJobs: number; failedJobs: number };
+      };
+      expect(body.retried).toBe(1);
+      expect(body.printer).toMatchObject({
+        activeJobs: 2,
+        failedJobs: 0,
+      });
+      expect(status(kept)).toEqual({
+        status: 'queued',
+        error: null,
+      });
+      expect(status(gone)).toEqual({
+        status: 'expired',
+        error: 'jammed',
+      });
+      expect(status(queued).status).toBe('queued');
     });
   });
 

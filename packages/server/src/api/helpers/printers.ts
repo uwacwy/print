@@ -23,6 +23,7 @@ export const publicPrinter = (printer: PrinterRow) => ({
 export const managedPrinter = (
   printer: PrinterRow,
   activeJobs: number,
+  failedJobs: number,
   online: boolean,
 ) => ({
   ...publicPrinter(printer),
@@ -32,6 +33,7 @@ export const managedPrinter = (
   qrEpoch: printer.qr_epoch,
   lastSeenAt: printer.last_seen_at,
   activeJobs,
+  failedJobs,
   online,
 });
 

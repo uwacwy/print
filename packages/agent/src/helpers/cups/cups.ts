@@ -1,10 +1,23 @@
 import { spawn } from 'node:child_process';
-import type { CupsJobOutcome, CupsQueueState } from '../../types';
+import type {
+  CupsJobOutcome,
+  CupsQueueState,
+  CupsWaitOptions,
+} from '../../types';
+import { log as defaultLog } from '../logging';
+import {
+  formatSeconds,
+  toWholeSeconds,
+} from '../reconnect/reconnect';
 
 /** How long a CUPS job may stay queued or printing before the agent cancels it. */
 export const CUPS_JOB_WAIT_MS = 10 * 60_000;
 export const CUPS_POLL_MS = 2_000;
 export const DEFAULT_CUPS_DPI = 150;
+/** Waits before each re-enable after CUPS stops the queue mid-job; CUPS then retries the job. */
+export const CUPS_RETRY_DELAYS_MS: readonly number[] = [
+  15_000, 30_000, 60_000,
+];
 
 const LP_OPTION_PREFIX = 'option_';
 const LP_OPTION_NAME = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$/;
@@ -268,6 +281,15 @@ export class CupsClient {
     ).then((stdout) => parseJobOutcome(stdout, jobId));
   }
 
+  /** The `Status:` line of a job still pending, e.g. "Unable to add document to print job." */
+  jobStatus(jobId: string): Promise<string> {
+    return runCups(
+      'lpstat',
+      ['-W', 'not-completed', '-l', '-o', this.queue],
+      this.timeoutMs,
+    ).then((stdout) => parseJobOutcome(stdout, jobId)?.status ?? '');
+  }
+
   cancel(jobId: string): Promise<void> {
     return runCups('cancel', [jobId], this.timeoutMs).then(
       () => undefined,
@@ -275,23 +297,51 @@ export class CupsClient {
   }
 
   /**
-   * Resolves once CUPS finishes `jobId` successfully. Rejects (cancelling the job so it can't
-   * print later as a duplicate) when CUPS stops the queue, the job ends any other way, or it
-   * is still pending after `waitMs`.
+   * Resolves once CUPS finishes `jobId` successfully.
+   *
+   * When CUPS stops the queue (e.g. the printer refused the document) the job stays pending, so
+   * the queue is re-enabled after each of `retryDelaysMs` and CUPS prints it again. Rejects,
+   * cancelling the job so it can't print later as a duplicate, once those retries are spent,
+   * when the job ends any other way, or when it is still pending after `waitMs`.
    */
   async waitForJob(
     jobId: string,
-    { waitMs, pollMs }: { waitMs: number; pollMs: number },
+    {
+      waitMs,
+      pollMs,
+      retryDelaysMs = CUPS_RETRY_DELAYS_MS,
+      log = defaultLog,
+    }: CupsWaitOptions,
   ): Promise<void> {
     const deadline = Date.now() + waitMs;
+    const sleep = (ms: number) =>
+      new Promise((resolve) => setTimeout(resolve, ms));
+    let retries = 0;
     while (await this.isPending(jobId)) {
       const state = await this.queueState();
       if (!state.enabled) {
-        await this.cancel(jobId).catch(() => undefined);
-        await this.enable().catch(() => undefined);
-        throw new Error(
-          `CUPS stopped ${this.queue} while printing: ${state.reason || 'printer error'}`,
+        const reason =
+          (await this.jobStatus(jobId).catch(() => '')) ||
+          state.reason ||
+          'printer error';
+        const delay = retryDelaysMs[retries];
+        if (delay === undefined || Date.now() + delay >= deadline) {
+          await this.cancel(jobId).catch(() => undefined);
+          await this.enable().catch(() => undefined);
+          throw new Error(
+            `CUPS stopped ${this.queue} after ${retries} ${retries === 1 ? 'retry' : 'retries'}: ${reason}`,
+          );
+        }
+        retries++;
+        log(
+          `CUPS stopped ${this.queue} (${reason}); retrying job ${jobId} in ${formatSeconds(toWholeSeconds(delay))} (attempt ${retries} of ${retryDelaysMs.length}).`,
         );
+        await sleep(delay);
+        await this.enable().catch(async (error: unknown) => {
+          await this.cancel(jobId).catch(() => undefined);
+          throw error;
+        });
+        continue;
       }
       if (Date.now() >= deadline) {
         await this.cancel(jobId).catch(() => undefined);
@@ -299,7 +349,7 @@ export class CupsClient {
           `CUPS job ${jobId} did not finish within ${Math.round(waitMs / 1000)} seconds and was canceled.`,
         );
       }
-      await new Promise((resolve) => setTimeout(resolve, pollMs));
+      await sleep(pollMs);
     }
     const outcome = await this.outcome(jobId);
     // Without job history (PreserveJobHistory No) a finished job leaves no trace to inspect.

@@ -27,9 +27,9 @@ export const AGENT_NAMESPACE = '/agent';
 export const LIVE_NAMESPACE = '/live';
 
 export const agentJobFilePath = (jobId: string): string =>
-  `/agent/jobs/${encodeURIComponent(jobId)}/file`;
+  `/api/agent/jobs/${encodeURIComponent(jobId)}/file`;
 export const agentJobStatusPath = (jobId: string): string =>
-  `/agent/jobs/${encodeURIComponent(jobId)}/status`;
+  `/api/agent/jobs/${encodeURIComponent(jobId)}/status`;
 
 /** How often agents ask for queued jobs, in case a push was missed. */
 export const SYNC_INTERVAL_MS = 25_000;
@@ -79,12 +79,15 @@ export type LiveEvent =
       jobId: string;
       status: JobStatus;
       activeJobs: number;
+      /** Failed jobs that still have their document, so they can be retried. */
+      failedJobs: number;
     }
   | {
       type: 'jobs-deleted';
       printerId: number;
       count: number;
       activeJobs: number;
+      failedJobs: number;
     };
 
 export type JobReport =

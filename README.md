@@ -162,8 +162,12 @@ Before `lp`, the CUPS driver uses Ghostscript to downsample every image in the P
 the smaller PDF to whatever the printer accepts. Low-memory printers such as the HP LaserJet M130fw
 stall or reboot on full-resolution raster, and sending them Ghostscript PCLm directly crashed them.
 The driver reports a job printed only after CUPS completes it, waiting up to 10 minutes. If CUPS stops
-the queue mid-job (as it does when the printer drops a document), the agent cancels that job, reports
-it failed, and re-enables the queue; it also re-enables a stopped queue before each job.
+the queue mid-job (as it does when the printer refuses a document), the job stays pending, and the agent
+re-enables the queue after 15, 30 and 60 seconds so CUPS retries it. A printer that stops partway
+through a document may repeat pages. If the queue stops a fourth time, the agent cancels the job and
+reports it failed. The server keeps a failed job's PDF until `JOB_TTL_HOURS` passes, so
+**Retry failed jobs** in Manage Printers can queue it again. The agent also re-enables a stopped
+queue before each job.
 Unknown or unsupported options stop the agent at startup. See `packages/agent/.env.example`.
 
 In production (`npm run build`, then `npm run start:server`), one process on
@@ -208,24 +212,24 @@ succeeds wins; when none succeed, the response explains the most relevant failur
 | `pin`         | `Authorization: Pin 111-222-333`        | Someone who knows the printer's PIN         |
 | `agentToken`  | `Authorization: Bearer <agent token>`   | The print agent for one printer             |
 
-| Endpoint                                                  | Accepts                                          |
-| --------------------------------------------------------- | ------------------------------------------------ |
-| `GET /api/healthz`                                        | anyone                                           |
-| `GET /api/status` (`printersOnline`)                      | anyone                                           |
-| `GET /api/session`                                        | `entraUser`                                      |
-| `GET, POST /api/printers`                                 | `entraUser`                                      |
-| `GET /api/printers/:slug`                                 | anyone (`entraUser` also gets management fields) |
-| `PATCH, DELETE /api/printers/:slug`                       | `entraUser`                                      |
-| `POST /api/printers/:slug/token`                          | `pin` (rate limited; returns an upload token)    |
-| `POST /api/printers/:slug/jobs`                           | `uploadToken`, `pin`, `entraUser`                |
-| `DELETE /api/printers/:slug/jobs`                         | `entraUser`                                      |
-| `GET, POST /api/printers/:slug/qr.pdf`                    | `entraUser`                                      |
-| `POST /api/printers/:slug/{qr-token,qr-print,qr-epoch}`   | `entraUser`                                      |
-| `POST, DELETE /api/printers/:slug/pin`                    | `entraUser`                                      |
-| `POST /api/printers/:slug/agent-token`                    | `entraUser` (rotates the agent token)            |
-| `GET /agent/jobs/:id/file`, `POST /agent/jobs/:id/status` | `agentToken`                                     |
-| socket.io namespace `/agent` (`auth: { token }`)          | `agentToken`                                     |
-| socket.io namespace `/live` (`auth: { token }`)           | `entraUser`                                      |
+| Endpoint                                                          | Accepts                                          |
+| ----------------------------------------------------------------- | ------------------------------------------------ |
+| `GET /api/healthz`                                                | anyone                                           |
+| `GET /api/status` (`printersOnline`)                              | anyone                                           |
+| `GET /api/session`                                                | `entraUser`                                      |
+| `GET, POST /api/printers`                                         | `entraUser`                                      |
+| `GET /api/printers/:slug`                                         | anyone (`entraUser` also gets management fields) |
+| `PATCH, DELETE /api/printers/:slug`                               | `entraUser`                                      |
+| `POST /api/printers/:slug/token`                                  | `pin` (rate limited; returns an upload token)    |
+| `POST /api/printers/:slug/jobs`                                   | `uploadToken`, `pin`, `entraUser`                |
+| `DELETE /api/printers/:slug/jobs`                                 | `entraUser`                                      |
+| `GET, POST /api/printers/:slug/qr.pdf`                            | `entraUser`                                      |
+| `POST /api/printers/:slug/{qr-token,qr-print,qr-epoch}`           | `entraUser`                                      |
+| `POST, DELETE /api/printers/:slug/pin`                            | `entraUser`                                      |
+| `POST /api/printers/:slug/agent-token`                            | `entraUser` (rotates the agent token)            |
+| `GET /api/agent/jobs/:id/file`, `POST /api/agent/jobs/:id/status` | `agentToken`                                     |
+| socket.io namespace `/agent` (`auth: { token }`)                  | `agentToken`                                     |
+| socket.io namespace `/live` (`auth: { token }`)                   | `entraUser`                                      |
 
 Browser uploads and PIN exchanges must also send `x-print-upload: 1` from the same origin. In the
 SPA, MSAL adds the Entra token only for signed-in users, and only to requests that don't already

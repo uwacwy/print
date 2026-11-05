@@ -361,6 +361,58 @@ export function countActiveJobs(
   return new Map(rows.map((row) => [row.printer_id, row.count]));
 }
 
+export function countFailedJobs(
+  db: PrintDatabase,
+): Map<number, number> {
+  const rows = db
+    .prepare(
+      "SELECT printer_id, COUNT(*) AS count FROM jobs WHERE status = 'failed' GROUP BY printer_id",
+    )
+    .all() as { printer_id: number; count: number }[];
+  return new Map(rows.map((row) => [row.printer_id, row.count]));
+}
+
+export function getFailedJobIds(
+  db: PrintDatabase,
+  printerId: number,
+): string[] {
+  return (
+    db
+      .prepare(
+        "SELECT id FROM jobs WHERE printer_id = ? AND status = 'failed' ORDER BY created_at",
+      )
+      .all(printerId) as { id: string }[]
+  ).map(({ id }) => id);
+}
+
+/** Puts failed jobs back in the queue; returns the ids that were requeued. */
+export function requeueFailedJobs(
+  db: PrintDatabase,
+  printerId: number,
+  jobIds: readonly string[],
+): string[] {
+  const requeue = db.prepare(
+    "UPDATE jobs SET status = 'queued', error = NULL, sent_at = NULL, finished_at = NULL WHERE id = ? AND printer_id = ? AND status = 'failed'",
+  );
+  return db.transaction(() =>
+    jobIds.filter((id) => requeue.run(id, printerId).changes === 1),
+  )();
+}
+
+/** Failed jobs whose document is gone can't be retried; they become expired, keeping their error. */
+export function expireFailedJobs(
+  db: PrintDatabase,
+  printerId: number,
+  jobIds: readonly string[],
+): void {
+  const expire = db.prepare(
+    "UPDATE jobs SET status = 'expired' WHERE id = ? AND printer_id = ? AND status = 'failed'",
+  );
+  db.transaction(() =>
+    jobIds.forEach((id) => expire.run(id, printerId)),
+  )();
+}
+
 export function insertJob(
   db: PrintDatabase,
   job: Pick<
@@ -484,11 +536,12 @@ export function expireStaleJobs(
 ): string[] {
   const rows = db
     .prepare(
-      "SELECT id FROM jobs WHERE status IN ('queued','printing','expired') AND created_at < ?",
+      "SELECT id FROM jobs WHERE status IN ('queued','printing','failed','expired') AND created_at < ?",
     )
     .all(cutoff) as { id: string }[];
+  // A failed job keeps its PDF for retries until now; expiring it keeps the failure's error.
   const expire = db.prepare(
-    "UPDATE jobs SET status = 'expired', error = 'Job expired before printing', finished_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ? AND status IN ('queued','printing')",
+    "UPDATE jobs SET status = 'expired', error = CASE WHEN status = 'failed' THEN error ELSE 'Job expired before printing' END, finished_at = CASE WHEN status = 'failed' THEN finished_at ELSE strftime('%Y-%m-%dT%H:%M:%fZ','now') END WHERE id = ? AND status IN ('queued','printing','failed')",
   );
   db.transaction(() => rows.forEach(({ id }) => expire.run(id)))();
   return rows.map(({ id }) => id);

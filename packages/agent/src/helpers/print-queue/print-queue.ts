@@ -15,6 +15,7 @@ import type {
   PrintResult,
 } from '../../types';
 import { errorMessage } from '../text/text';
+import { log } from '../logging';
 
 /**
  * Prints requests one at a time and emits one result per request, in order.
@@ -29,10 +30,21 @@ export function printInOrder(
   return defer(() => {
     let stopped = false;
     return jobs$.pipe(
+      tap(({ job }) =>
+        log(`[job:${job.id}] Printing: ${job.title}`),
+      ),
       tap({ complete: () => (stopped = true) }),
       concatMap(({ job, pdf }) =>
         defer(() => (stopped ? EMPTY : print(pdf, job))).pipe(
           map((): PrintResult => ({ job, status: 'printed' })),
+          tap({
+            next: () =>
+              log(`[job:${job.id}] Printed: '${job.title}'`),
+            error: (e) =>
+              log(
+                `[job:${job.id}] Error: ${errorMessage(e, 'Print error')}`,
+              ),
+          }),
           catchError((error: unknown) =>
             of<PrintResult>({
               job,

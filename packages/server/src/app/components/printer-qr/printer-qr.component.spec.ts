@@ -25,6 +25,7 @@ const frontOffice: PrinterSummary = {
   coverPage: true,
   lastSeenAt: null,
   activeJobs: 0,
+  failedJobs: 0,
   online: true,
   pin: null,
   qrEpoch: 0,

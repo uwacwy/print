@@ -80,4 +80,34 @@ describe('agent router', () => {
     expect(again.status).toBe(404);
     expect(api.hub.isOnline(id)).toBe(true);
   });
+
+  it("keeps a failed job's document so it can be retried", async () => {
+    await api.start();
+    const { token } = addPrinter(api.db);
+    const agent = await api.connectAgent(token);
+    const response = await api.postUpload(
+      await uploadForm({ job__title: 'Intake packet' }),
+    );
+    const { jobId } = (await response.json()) as { jobId: string };
+    await agent.next();
+
+    const report = await fetch(
+      `http://${api.host}${agentJobStatusPath(jobId)}`,
+      {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${token}`,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ status: 'failed', error: 'jammed' }),
+      },
+    );
+    expect(report.status).toBe(200);
+    expect(existsSync(join(api.jobsDir, `${jobId}.pdf`))).toBe(true);
+    expect(
+      api.db
+        .prepare('SELECT status, error FROM jobs WHERE id = ?')
+        .get(jobId),
+    ).toEqual({ status: 'failed', error: 'jammed' });
+  });
 });

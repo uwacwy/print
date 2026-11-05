@@ -209,22 +209,96 @@ describe('CupsClient', () => {
     );
   });
 
-  it('cancels the job and re-enables the queue when CUPS stops it', async () => {
+  const PENDING_9 =
+    'Queue-9 print 280576 today\n\tStatus: Unable to add document to print job.\n\tAlerts: job-printing\n';
+
+  it('re-enables a stopped queue so CUPS retries the job', async () => {
+    let stopped = true;
+    let polls = 0;
+    const log = vi.fn();
+    fakeCups((command, args) => {
+      if (command === 'cupsenable') {
+        stopped = false;
+        return '';
+      }
+      if (args.includes('not-completed')) {
+        return ++polls < 3 ? PENDING_9 : '';
+      }
+      if (args[0] === '-p') {
+        return stopped ? DISABLED : ENABLED;
+      }
+      return 'Queue-9 print 280576 today\n\tStatus: \n\tAlerts: job-completed-successfully\n';
+    });
+    await cups.waitForJob('Queue-9', {
+      ...wait,
+      retryDelaysMs: [0, 0, 0],
+      log,
+    });
+    expect(commands()).toContain('cupsenable Queue');
+    expect(commands()).not.toContain('cancel Queue-9');
+    expect(log).toHaveBeenCalledWith(
+      'CUPS stopped Queue (Unable to add document to print job.); retrying job Queue-9 in 1 second (attempt 1 of 3).',
+    );
+  });
+
+  it('cancels the job after the retries are spent', async () => {
+    const log = vi.fn();
+    fakeCups((command, args) => {
+      if (args.includes('not-completed')) {
+        return PENDING_9;
+      }
+      return command === 'lpstat' ? DISABLED : '';
+    });
+    await expect(
+      cups.waitForJob('Queue-9', {
+        ...wait,
+        retryDelaysMs: [0, 0, 0],
+        log,
+      }),
+    ).rejects.toThrow(
+      'CUPS stopped Queue after 3 retries: Unable to add document to print job.',
+    );
+    expect(log).toHaveBeenCalledTimes(3);
+    expect(
+      commands().filter((each) => each === 'cupsenable Queue'),
+    ).toHaveLength(4);
+    expect(commands().slice(-2)).toEqual([
+      'cancel Queue-9',
+      'cupsenable Queue',
+    ]);
+  });
+
+  it("falls back to the queue's reason when the job has no status", async () => {
     fakeCups((command, args) => {
       if (args.includes('not-completed')) {
         return 'Queue-9 print 280576 today\n';
       }
+      return command === 'lpstat'
+        ? 'printer Queue disabled since today -\n\tRendering completed\n'
+        : '';
+    });
+    await expect(
+      cups.waitForJob('Queue-9', { ...wait, retryDelaysMs: [] }),
+    ).rejects.toThrow(
+      'CUPS stopped Queue after 0 retries: Rendering completed',
+    );
+  });
+
+  it('gives up instead of retrying past the wait deadline', async () => {
+    fakeCups((command, args) => {
+      if (args.includes('not-completed')) {
+        return PENDING_9;
+      }
       return command === 'lpstat' ? DISABLED : '';
     });
-    await expect(cups.waitForJob('Queue-9', wait)).rejects.toThrow(
-      'CUPS stopped Queue while printing: Unable to add document to print job.',
-    );
-    expect(commands()).toEqual([
-      'lpstat -W not-completed -o Queue',
-      'lpstat -p Queue',
-      'cancel Queue-9',
-      'cupsenable Queue',
-    ]);
+    await expect(
+      cups.waitForJob('Queue-9', {
+        waitMs: 1000,
+        pollMs: 0,
+        retryDelaysMs: [15_000],
+      }),
+    ).rejects.toThrow('after 0 retries');
+    expect(commands()).toContain('cancel Queue-9');
   });
 
   it('cancels a job still pending after the wait', async () => {

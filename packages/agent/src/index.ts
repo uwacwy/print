@@ -174,16 +174,16 @@ async function download(
 async function acknowledge(result: PrintResult): Promise<void> {
   const { job, ...outcome } = result;
   if (outcome.status === 'failed') {
-    log(`Job ${job.id} failed: ${outcome.error}`);
+    log(`[job:${job.id}] Failed: ${outcome.error}`);
   }
   try {
     await report(job.id, outcome);
     if (outcome.status === 'printed') {
-      log(`Submitted job ${job.id} => ${job.title} to printer.`);
+      log(`[job:${job.id}] Submitted to printer.`);
     }
   } catch (error) {
     log(
-      `Could not acknowledge job ${job.id}: ${errorMessage(error, String(error))}`,
+      `[job:${job.id}] Could not acknowledge job: ${errorMessage(error, String(error))}`,
     );
     currentSocket?.disconnect().connect();
   } finally {
@@ -220,18 +220,25 @@ function startPipeline(printer: IPrinter): void {
     .subscribe();
 }
 
+import pkg from '../package.json';
+
+const websocketBase = new URL(SOCKET_PATH, serverUrl).href;
+
 async function run(): Promise<void> {
+  log(`[agent] ${pkg.name} ${pkg.version}`);
+
+  log(`[printer] Connecting: ${config.PRINTER_URI}`);
   const printer = createPrinter(config.PRINTER_URI, requests);
   await printer.ready();
-  log(
-    `@uwacwy/print-agent ${AGENT_VERSION} using ${printer.constructor.name} (max ${(printer.options.maxBytes / 1048576).toFixed(1)} MB, ${printer.options.mimeTypes.join(', ')}).`,
-  );
+  log(`[printer] Connected: ${config.PRINTER_URI}`);
+
   if (stopping) {
     return;
   }
+
   startPipeline(printer);
-  const websocketBase = new URL(SOCKET_PATH, serverUrl).href;
-  log('Connecting to '.concat(websocketBase));
+
+  log(`[ws] Connecting: ${websocketBase}`);
   const socket: AgentSocket = io(
     new URL(AGENT_NAMESPACE, config.PRINT_SERVER_URL).href,
     {
@@ -257,11 +264,13 @@ async function run(): Promise<void> {
   socket
     .on('connect', () => {
       retryDelay = INITIAL_RETRY_MS;
-      log('Connected to print server.');
+      log(`[ws] Connected: ${websocketBase}`);
       socket.emit('sync');
     })
     .on('hello', (registered) =>
-      log(`Registered for ${registered.name}.`),
+      log(
+        `[ws] Listening to queue: '${new URL(`/print/${registered.slug}`, websocketBase).href}' => '${registered.name}'`,
+      ),
     )
     .on('jobs', (value) => {
       parseAgentJobs(value)?.forEach((job) => incoming.next(job));
@@ -271,7 +280,7 @@ async function run(): Promise<void> {
         return;
       }
       log(
-        `Unable to connect to ${websocketBase}${connectErrorDetail(error)}; retrying in ${reconnect()}.`,
+        `[ws] Unable to connect to ${websocketBase}${connectErrorDetail(error)}; retrying in ${reconnect()}.`,
       );
     })
     .on('disconnect', (reason) => {
@@ -279,7 +288,7 @@ async function run(): Promise<void> {
         return;
       }
       log(
-        `Disconnected (${reason}); reconnecting in ${reconnect()}.`,
+        `[ws] Disconnected (${reason}); reconnecting in ${reconnect()}.`,
       );
     });
 

@@ -52,7 +52,7 @@ export interface PrintRequest {
 export type PrintResult = { job: AgentJob } & JobReport;
 
 /** Prints one document; rejects when the printer does not accept it. */
-export type PrintFn = (pdf: Buffer, job: PrintJob) => Promise<void>;
+export type PrintFn = (pdf: Buffer, job: AgentJob) => Promise<void>;
 
 export interface IPrinter {
   /** Settings parsed from the connection string's query. */
@@ -82,6 +82,15 @@ export interface CupsJobOutcome {
   alerts: string[];
   /** `Status:` message, often CUPS' last error for the job. */
   status: string;
+}
+
+export interface CupsWaitOptions {
+  /** Longest a job may stay pending, retries included, before it is canceled. */
+  waitMs: number;
+  pollMs: number;
+  /** Wait before each re-enable after CUPS stops the queue; its length is the retry limit. */
+  retryDelaysMs?: readonly number[];
+  log?: (message: string) => void;
 }
 
 /** Response headers checked before a job download's body is read. */

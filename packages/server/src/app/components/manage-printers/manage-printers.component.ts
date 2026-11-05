@@ -114,6 +114,11 @@ import {
                     {{ printer.activeJobs }} active
                     {{ printer.activeJobs === 1 ? 'job' : 'jobs' }}
                   </span>
+                  @if (printer.failedJobs) {
+                    <span class="badge text-bg-danger ms-1">
+                      {{ printer.failedJobs }} failed
+                    </span>
+                  }
                 </summary>
 
                 <div class="px-3 pb-3">
@@ -233,6 +238,20 @@ import {
                       <i class="bi bi-key" aria-hidden="true"></i>
                       Rotate token
                     </button>
+                    @if (printer.failedJobs) {
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-outline-primary"
+                        [disabled]="busy"
+                        (click)="retryFailedJobs(printer)"
+                      >
+                        <i
+                          class="bi bi-arrow-clockwise"
+                          aria-hidden="true"
+                        ></i>
+                        Retry failed jobs
+                      </button>
+                    }
                     <button
                       type="button"
                       class="btn btn-sm btn-outline-danger"
@@ -382,6 +401,24 @@ export class ManagePrintersComponent implements OnInit {
     );
   }
 
+  retryFailedJobs(printer: PrinterSummary): void {
+    this.#run(
+      printer.id,
+      this.#printersApi.retryFailedJobs(printer.slug),
+      ({ retried, printer: updated }) => {
+        this.#patch(printer.id, {
+          activeJobs: updated.activeJobs,
+          failedJobs: updated.failedJobs,
+        });
+        this.notice.set(
+          retried
+            ? `Retried ${retried} ${retried === 1 ? 'job' : 'jobs'} for ${printer.name}.`
+            : `No failed jobs for ${printer.name} could be retried; their documents have expired.`,
+        );
+      },
+    );
+  }
+
   deleteAllJobs(printer: PrinterSummary): void {
     if (
       !this.#confirm(
@@ -394,7 +431,7 @@ export class ManagePrintersComponent implements OnInit {
       printer.id,
       this.#printersApi.deleteAllJobs(printer.slug),
       ({ deleted }) => {
-        this.#patch(printer.id, { activeJobs: 0 });
+        this.#patch(printer.id, { activeJobs: 0, failedJobs: 0 });
         this.notice.set(
           `Deleted ${deleted} ${deleted === 1 ? 'job' : 'jobs'} for ${printer.name}.`,
         );
@@ -505,7 +542,10 @@ export class ManagePrintersComponent implements OnInit {
       );
       return;
     }
-    this.#patch(event.printerId, { activeJobs: event.activeJobs });
+    this.#patch(event.printerId, {
+      activeJobs: event.activeJobs,
+      failedJobs: event.failedJobs,
+    });
     if (
       event.type === 'job' &&
       (event.status === 'printed' || event.status === 'failed')

@@ -5,6 +5,7 @@ import type { Observable } from 'rxjs';
 import {
   CUPS_JOB_WAIT_MS,
   CUPS_POLL_MS,
+  CUPS_RETRY_DELAYS_MS,
   CupsClient,
   DEFAULT_CUPS_DPI,
   parseCupsQueue,
@@ -22,6 +23,7 @@ import type {
   PrintRequest,
   PrintResult,
 } from '../../types';
+import type { AgentJob } from '@uwacwy/print-shared';
 
 /**
  * `cups://Queue_Name?maxBytes=…&mimeTypes=…&timeout=…&dpi=…&option_<name>=<value>…` prints
@@ -29,8 +31,8 @@ import type {
  *
  * The PDF is first rewritten by Ghostscript with images downsampled to `dpi` (default 150), so
  * the queue's filters rasterize it to a format the printer supports without overrunning its
- * memory. The job is reported printed only after CUPS says it completed; a queue CUPS stopped
- * after a printer error is re-enabled before the next job.
+ * memory. The job is reported printed only after CUPS says it completed. When CUPS stops the
+ * queue after a printer error, the queue is re-enabled up to 3 times so CUPS retries the job.
  */
 export class CupsPrinter implements IPrinter {
   readonly options: PrinterOptions;
@@ -41,6 +43,7 @@ export class CupsPrinter implements IPrinter {
   readonly cups: CupsClient;
   jobWaitMs = CUPS_JOB_WAIT_MS;
   pollMs = CUPS_POLL_MS;
+  retryDelaysMs = CUPS_RETRY_DELAYS_MS;
 
   constructor(conn: string | URL, jobs$: Observable<PrintRequest>) {
     const { conn: rest, lpOptions } = takeLpOptions(conn);
@@ -62,18 +65,22 @@ export class CupsPrinter implements IPrinter {
     return Promise.resolve();
   }
 
-  async print(pdf: Buffer, job: PrintJob): Promise<void> {
+  async print(pdf: Buffer, job: AgentJob): Promise<void> {
     const { dpi = 0, maxBytes } = this.options;
     const title = jobTitle(job);
-    log(`Spooling job ${title}`);
+    log(
+      `[cups:${this.queue}] Received: '${title}' (${pdf.length.toLocaleString()} bytes)`,
+    );
     const document = dpi
       ? await simplifyPdf(pdf, { dpi, maximumBytes: maxBytes })
       : pdf;
     await this.cups.ensureEnabled();
+    log(`[cups:${this.queue}] Submitting: ${title}`);
     const jobId = await this.#submit(document, title);
     await this.cups.waitForJob(jobId, {
       waitMs: this.jobWaitMs,
       pollMs: this.pollMs,
+      retryDelaysMs: this.retryDelaysMs,
     });
   }
 

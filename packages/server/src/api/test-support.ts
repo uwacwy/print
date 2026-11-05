@@ -21,7 +21,6 @@ import {
   testUploadConfig,
 } from '../realtime/test-support';
 import type { UploadConfig } from './helpers/server-config/server-config';
-import agentRouter from './routers/agent/agent.router';
 import apiRoot, { type ApiRootOptions } from './index';
 import { Observable } from 'rxjs';
 
@@ -52,7 +51,7 @@ export interface StartOptions {
 }
 
 /**
- * Serves `/api`, `/agent`, and socket.io over a fresh database for each
+ * Serves `/api` (including `/api/agent`) and socket.io over a fresh database for each
  * test, trusting a stand-in Entra tenant unless one is given. Call `start()` in a test or
  * `beforeEach`; calling it again restarts the server.
  */
@@ -101,10 +100,6 @@ export function useApiServer(defaults: StartOptions = {}) {
     upload = uploadConfig;
     const app = express();
     app.use(express.json());
-    app.use(
-      '/agent',
-      agentRouter({ db, jobsDir, getHub: () => hub }),
-    );
     app.use(
       '/api',
       apiRoot({

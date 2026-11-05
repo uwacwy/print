@@ -29,7 +29,7 @@ const agentPrinter = (request: express.Request) => {
   return who.printer;
 };
 
-/** HTTP side of the agent protocol; mounted at `/agent` to match the shared path helpers. */
+/** HTTP side of the agent protocol; mounted at `/api/agent` to match the shared path helpers. */
 export default ({ db, jobsDir, getHub }: AgentApiOptions) => {
   const agent = createAuthenticate({ db })('agentToken');
   return express
@@ -95,7 +95,10 @@ export default ({ db, jobsDir, getHub }: AgentApiOptions) => {
           .json({ error: 'Job not found or already completed' });
         return;
       }
-      await rm(join(jobsDir, `${jobId}.pdf`), { force: true });
+      // A failed job keeps its PDF so an admin can retry it until it expires.
+      if (status === 'printed') {
+        await rm(join(jobsDir, `${jobId}.pdf`), { force: true });
+      }
       getHub().publishJob(printer.id, jobId, status);
       response.json({ accepted: true });
     });

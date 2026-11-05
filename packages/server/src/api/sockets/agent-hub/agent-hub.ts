@@ -8,6 +8,7 @@ import type {
 import type { Socket } from 'socket.io';
 import {
   countActiveJobs,
+  countFailedJobs,
   getPrinterById,
   getQueuedJobs,
   markJobsPrinting,
@@ -118,24 +119,29 @@ export class AgentHub {
     jobId: string,
     status: JobStatus,
   ): void {
-    const activeJobs = countActiveJobs(this.#db).get(printerId) ?? 0;
     this.#events.emit('event', {
       type: 'job',
       printerId,
       jobId,
       status,
-      activeJobs,
+      ...this.#jobCounts(printerId),
     });
   }
 
   publishJobsDeleted(printerId: number, count: number): void {
-    const activeJobs = countActiveJobs(this.#db).get(printerId) ?? 0;
     this.#events.emit('event', {
       type: 'jobs-deleted',
       printerId,
       count,
-      activeJobs,
+      ...this.#jobCounts(printerId),
     });
+  }
+
+  #jobCounts(printerId: number) {
+    return {
+      activeJobs: countActiveJobs(this.#db).get(printerId) ?? 0,
+      failedJobs: countFailedJobs(this.#db).get(printerId) ?? 0,
+    };
   }
 
   /** `onDispose` fires when this hub is shut down or replaced, so subscribers can follow its successor. */

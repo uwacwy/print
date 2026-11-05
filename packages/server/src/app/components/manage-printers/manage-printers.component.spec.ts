@@ -20,6 +20,7 @@ const frontOffice: PrinterSummary = {
   coverPage: true,
   lastSeenAt: null,
   activeJobs: 2,
+  failedJobs: 0,
   online: false,
   pin: '123-456-789',
   qrEpoch: 0,
@@ -121,6 +122,7 @@ describe('ManagePrintersComponent', () => {
       jobId: 'a',
       status: 'printing',
       activeJobs: 1,
+      failedJobs: 0,
     });
     await fixture.whenStable();
     const summary = element.querySelector('summary')!;
@@ -136,6 +138,7 @@ describe('ManagePrintersComponent', () => {
       jobId: 'a',
       status: 'printed',
       activeJobs: 0,
+      failedJobs: 0,
     });
     await fixture.whenStable();
     expect(
@@ -147,6 +150,7 @@ describe('ManagePrintersComponent', () => {
       printerId: 1,
       count: 3,
       activeJobs: 0,
+      failedJobs: 0,
     });
     await fixture.whenStable();
     expect(
@@ -205,6 +209,34 @@ describe('ManagePrintersComponent', () => {
     button('Done').click();
     await fixture.whenStable();
     expect(element.textContent).not.toContain('new-secret');
+  });
+
+  it('retries failed jobs, offering the action only when some failed', async () => {
+    const retryFailedJobs = vi.fn(() =>
+      of({
+        retried: 1,
+        printer: { ...frontOffice, activeJobs: 3, failedJobs: 0 },
+      }),
+    );
+    const { fixture, element, button } = await setup({
+      listAdminPrinters: () =>
+        of([{ ...frontOffice, failedJobs: 1 }]),
+      retryFailedJobs,
+    });
+    expect(element.querySelector('summary')?.textContent).toContain(
+      '1 failed',
+    );
+
+    button('Retry failed jobs').click();
+    await fixture.whenStable();
+    expect(retryFailedJobs).toHaveBeenCalledWith('front-office');
+    expect(
+      element.querySelector('[role="status"]')?.textContent,
+    ).toContain('Retried 1 job for Front Office.');
+    expect(element.querySelector('summary')?.textContent).toContain(
+      '3 active jobs',
+    );
+    expect(element.textContent).not.toContain('Retry failed jobs');
   });
 
   it('deletes all jobs and removes the printer after confirmation', async () => {

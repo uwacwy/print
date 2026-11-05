@@ -12,6 +12,8 @@ function ghostscript(
   maximumBytes: number,
 ): Promise<Buffer> {
   return new Promise((resolve, reject) => {
+    let timedOut = false;
+
     const child = spawn(
       'gs',
       [
@@ -25,54 +27,67 @@ function ghostscript(
       ],
       { stdio: ['pipe', 'pipe', 'pipe'] },
     );
-    const chunks: Buffer[] = [];
-    let outputBytes = 0;
-    let stderr = '';
-    let outputTooLarge = false;
-    let timedOut = false;
-    child.stdout.on('data', (chunk: Buffer) => {
-      outputBytes += chunk.length;
-      if (outputBytes > maximumBytes) {
-        outputTooLarge = true;
-        child.kill('SIGKILL');
-        return;
-      }
-      chunks.push(chunk);
-    });
-    child.stderr.setEncoding('utf8');
-    child.stderr.on('data', (chunk: string) => {
-      stderr = (stderr + chunk).slice(-2000);
-    });
+
     const timeout = setTimeout(() => {
       timedOut = true;
       child.kill('SIGKILL');
     }, GHOSTSCRIPT_TIMEOUT_MS);
-    child.once('error', (error: NodeJS.ErrnoException) => {
-      clearTimeout(timeout);
-      reject(
-        error.code === 'ENOENT'
-          ? new GhostscriptMissingError(
-              'Ghostscript (gs) is not installed on the agent.',
-            )
-          : error,
-      );
+
+    const chunks: Buffer[] = [];
+    // let outputBytes = 0;
+    let stderr = '';
+    // let outputTooLarge = false;
+
+    child.stdout.on('data', (chunk: Buffer) => {
+      // outputBytes += chunk.length;
+      // if (outputBytes > maximumBytes) {
+      //   // outputTooLarge = true;
+      //   child.kill('SIGKILL');
+      //   return;
+      // }
+      chunks.push(chunk);
     });
+
+    child.stderr
+      .setEncoding('utf8')
+      .on('data', (chunk: string) => {
+        stderr = (stderr + chunk).slice(-2000);
+      })
+      .once('error', (error: NodeJS.ErrnoException) => {
+        clearTimeout(timeout);
+        reject(
+          error.code === 'ENOENT'
+            ? new GhostscriptMissingError(
+                'Ghostscript (gs) is not installed on the agent.',
+              )
+            : error,
+        );
+      });
+
+    child.stdin
+      .once('error', (error: NodeJS.ErrnoException) => {
+        if (error.code !== 'EPIPE') {
+          reject(error);
+        }
+      })
+      .end(pdf);
+
     child.once('close', (code, signal) => {
       clearTimeout(timeout);
-      if (outputTooLarge) {
-        return reject(
-          new Error(
-            'Converted document exceeds maxBytes; raise ?maxBytes= on PRINTER_URI.',
-          ),
-        );
-      }
+      // if (outputTooLarge) {
+      //   return reject(
+      //     new Error(
+      //       'Converted document exceeds maxBytes; raise ?maxBytes= on PRINTER_URI.',
+      //     ),
+      //   );
+      // }
       if (timedOut) {
         return reject(
           new Error('Ghostscript PDF conversion timed out.'),
         );
       }
       if (code === 0) {
-        return resolve(Buffer.concat(chunks, outputBytes));
+        return resolve(Buffer.concat(chunks));
       }
       reject(
         new Error(
@@ -80,12 +95,6 @@ function ghostscript(
         ),
       );
     });
-    child.stdin.once('error', (error: NodeJS.ErrnoException) => {
-      if (error.code !== 'EPIPE') {
-        reject(error);
-      }
-    });
-    child.stdin.end(pdf);
   });
 }
 
@@ -115,7 +124,6 @@ export function simplifyPdf(
   pdf: Buffer,
   { dpi, maximumBytes }: { dpi: number; maximumBytes: number },
 ): Promise<Buffer> {
-  log(`Simplifying PDF to ${dpi} dpi`);
   const downsample = (
     kind: string,
     resolution: number,

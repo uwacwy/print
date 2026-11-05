@@ -4,7 +4,10 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   bumpQrEpoch,
+  countFailedJobs,
+  expireFailedJobs,
   expireStaleJobs,
+  getFailedJobIds,
   getPrinterById,
   getJobForPrinter,
   getPrinterByToken,
@@ -14,6 +17,7 @@ import {
   openDatabase,
   purgeFinishedJobs,
   reportJob,
+  requeueFailedJobs,
   setPrinterPin,
   tokenHash,
   type PrintDatabase,
@@ -145,5 +149,54 @@ describe('print queue persistence', () => {
     expect(
       getJobForPrinter(db, printerId, 'job-stale'),
     ).toBeUndefined();
+  });
+
+  it('requeues failed jobs and expires ones that can no longer print', () => {
+    addJob('job-a');
+    addJob('job-b');
+    addJob('job-c');
+    markJobsPrinting(db, printerId, getQueuedJobs(db, printerId));
+    reportJob(db, printerId, 'job-a', 'failed', 'jammed');
+    reportJob(db, printerId, 'job-b', 'failed', 'offline');
+    reportJob(db, printerId, 'job-c', 'printed');
+    expect(countFailedJobs(db).get(printerId)).toBe(2);
+    expect(getFailedJobIds(db, printerId)).toEqual([
+      'job-a',
+      'job-b',
+    ]);
+
+    expect(requeueFailedJobs(db, printerId + 1, ['job-a'])).toEqual(
+      [],
+    );
+    expect(
+      requeueFailedJobs(db, printerId, ['job-a', 'job-c']),
+    ).toEqual(['job-a']);
+    expect(getJobForPrinter(db, printerId, 'job-a')).toMatchObject({
+      status: 'queued',
+      error: null,
+      finished_at: null,
+    });
+
+    expireFailedJobs(db, printerId, ['job-b']);
+    expect(getJobForPrinter(db, printerId, 'job-b')).toMatchObject({
+      status: 'expired',
+      error: 'offline',
+    });
+    expect(countFailedJobs(db).get(printerId)).toBeUndefined();
+  });
+
+  it('expires failed jobs after the TTL but keeps their error', () => {
+    addJob('job-failed');
+    markJobsPrinting(db, printerId, getQueuedJobs(db, printerId));
+    reportJob(db, printerId, 'job-failed', 'failed', 'jammed');
+    db.prepare(
+      "UPDATE jobs SET created_at = '2000-01-01T00:00:00.000Z' WHERE id = 'job-failed'",
+    ).run();
+    expect(expireStaleJobs(db, '2020-01-01T00:00:00.000Z')).toEqual([
+      'job-failed',
+    ]);
+    expect(
+      getJobForPrinter(db, printerId, 'job-failed'),
+    ).toMatchObject({ status: 'expired', error: 'jammed' });
   });
 });

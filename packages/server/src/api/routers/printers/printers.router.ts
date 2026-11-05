@@ -3,19 +3,23 @@ import express, {
   type RequestHandler,
   type Response,
 } from 'express';
-import { rm } from 'node:fs/promises';
+import { access as fileAccess, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { z } from 'zod';
 import { addCoverPage } from '../../helpers/pdf/cover-page/cover-page';
 import {
   bumpQrEpoch,
   countActiveJobs,
+  countFailedJobs,
   createPrinter,
   deletePrinter,
   deletePrinterJobs,
+  expireFailedJobs,
+  getFailedJobIds,
   getPrinterById,
   getPrinterBySlug,
   listPrinters,
+  requeueFailedJobs,
   rotatePrinterToken,
   setPrinterPin,
   updatePrinter,
@@ -106,10 +110,12 @@ export default function printersRouter({
   const summary = (
     printer: PrinterRow,
     activeJobs = countActiveJobs(db).get(printer.id) ?? 0,
+    failedJobs = countFailedJobs(db).get(printer.id) ?? 0,
   ) =>
     managedPrinter(
       printer,
       activeJobs,
+      failedJobs,
       getHub().isOnline(printer.id),
     );
   const reloaded = (response: Response) =>
@@ -331,9 +337,14 @@ export default function printersRouter({
 
       .get('/', admin, (_request, response) => {
         const activeJobs = countActiveJobs(db);
+        const failedJobs = countFailedJobs(db);
         response.json(
           listPrinters(db).map((printer) =>
-            summary(printer, activeJobs.get(printer.id) ?? 0),
+            summary(
+              printer,
+              activeJobs.get(printer.id) ?? 0,
+              failedJobs.get(printer.id) ?? 0,
+            ),
           ),
         );
       })
@@ -473,6 +484,43 @@ export default function printersRouter({
           printer: summary(printer, 0),
         });
       })
+
+      // Requeues failed jobs whose document is still on disk.
+      .post(
+        '/:slug/jobs/retry',
+        admin,
+        async (_request, response) => {
+          const printer = printerOf(response);
+          const failed = getFailedJobIds(db, printer.id);
+          const hasFile = await Promise.all(
+            failed.map((jobId) =>
+              fileAccess(join(jobsDir, `${jobId}.pdf`)).then(
+                () => true,
+                () => false,
+              ),
+            ),
+          );
+          expireFailedJobs(
+            db,
+            printer.id,
+            failed.filter((_, index) => !hasFile[index]),
+          );
+          const retried = requeueFailedJobs(
+            db,
+            printer.id,
+            failed.filter((_, index) => hasFile[index]),
+          );
+          const hub = getHub();
+          retried.forEach((jobId) =>
+            hub.publishJob(printer.id, jobId, 'queued'),
+          );
+          hub.dispatch(printer.id);
+          response.json({
+            retried: retried.length,
+            printer: reloaded(response),
+          });
+        },
+      )
 
       .get('/:slug/qr.pdf', admin, sendPoster)
       .post('/:slug/qr.pdf', admin, sendPoster)

@@ -12,6 +12,8 @@ export interface PrinterSummary extends PrinterInput {
   id: number;
   lastSeenAt: string | null;
   activeJobs: number;
+  /** Failed jobs that still have their document and can be retried. */
+  failedJobs: number;
   online: boolean;
   /** Formatted as ###-###-###, or null when PIN uploads are disabled. */
   pin: string | null;
@@ -81,6 +83,11 @@ export interface CreatedPrinter {
 export interface QueuedQrSheet {
   jobId: string;
   agentOnline: boolean;
+}
+
+export interface RetriedJobs {
+  retried: number;
+  printer: PrinterSummary;
 }
 
 export interface DeletedJobs {
@@ -191,6 +198,13 @@ export class PrinterService {
   rotateAgentToken(slug: string) {
     return this.#http.post<CreatedPrinter>(
       `${printerUrl(slug)}/agent-token`,
+      {},
+    );
+  }
+
+  retryFailedJobs(slug: string) {
+    return this.#http.post<RetriedJobs>(
+      `${printerUrl(slug)}/jobs/retry`,
       {},
     );
   }

@@ -32,6 +32,7 @@ describe('ManagePrinterComponent', () => {
                 coverPage: true,
                 lastSeenAt: null,
                 activeJobs: 0,
+                failedJobs: 0,
                 online: false,
               }),
           },
@@ -70,6 +71,7 @@ describe('ManagePrinterComponent', () => {
       jobId: 'job',
       status: 'queued',
       activeJobs: 3,
+      failedJobs: 0,
     });
     events.next({
       type: 'agent',

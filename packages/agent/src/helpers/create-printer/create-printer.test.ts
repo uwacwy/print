@@ -7,7 +7,7 @@ import { CupsPrinter } from '../../printer/cups-printer/cups-printer';
 import { IppPrinter } from '../../printer/ipp-printer/ipp-printer';
 import { createPrinter } from './create-printer';
 
-vi.mock('../helpers/ipp/ipp', () => ({
+vi.mock('../ipp/ipp', () => ({
   validateIppPrinterUri: (value: string) => new URL(value),
   getSupportedDocumentFormats: vi.fn(),
 }));

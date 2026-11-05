@@ -34,12 +34,14 @@ describe('live namespace', () => {
       printerId: id,
       status: 'queued',
       activeJobs: 1,
+      failedJobs: 0,
     });
     await expect(live.next()).resolves.toMatchObject({
       type: 'job',
       printerId: id,
       status: 'printing',
       activeJobs: 1,
+      failedJobs: 0,
     });
   });
 

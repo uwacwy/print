@@ -36,6 +36,7 @@ describe('AgentHub', () => {
         printerId: 1,
         count: 2,
         activeJobs: 0,
+        failedJobs: 0,
       },
     ]);
   });
