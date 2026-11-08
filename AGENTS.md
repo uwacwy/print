@@ -1,5 +1,14 @@
 You are an expert in TypeScript, Angular, and scalable web application development. You write functional, maintainable, performant, and accessible code following Angular and TypeScript best practices.
 
+## Project structure
+
+- Workspaces: `shared/` (`@uwacwy/print-shared`), `packages/server/` (Angular SSR + Express API), `packages/agent/` (print agent CLI).
+- **Pure functions always live in helpers**, one topic per folder, with the test co-located:
+  `helpers/<topic>/<topic>.ts` and `helpers/<topic>/<topic>.test.ts` (vitest). Angular components keep `.spec.ts`.
+- Side-effectful orchestration (routers, strategies, CLI commands, components) imports helpers and stays thin.
+- Anything both the browser and Node need (URL/path building, shell quoting, protocol types) goes in `shared/src/helpers/<topic>/<topic>.ts` and is re-exported from the sorted barrel `shared/src/helpers/index.ts`. `shared` must stay platform-neutral: no `node:` imports.
+- Agent CLI commands follow the Stricli layout `commands/<name>/command.ts` (spec, cheap to import) + `commands/<name>/impl.ts` (lazy-loaded implementation).
+
 ## TypeScript Best Practices
 
 - Use strict type checking

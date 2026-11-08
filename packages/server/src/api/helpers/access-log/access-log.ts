@@ -1,7 +1,7 @@
 import type { RequestHandler } from 'express';
 import winston from 'winston';
 import { DailyLogFile } from '../daily-log-file/daily-log-file';
-
+import { keyof } from 'zod';
 export interface AccessLogEntry {
   timestamp?: string;
   ip: string | undefined;
@@ -41,38 +41,145 @@ const SECRET_PARAMS = new Set([
 /** Paths polled by health checks; logging them buries real traffic. */
 const UNLOGGED_PATHS = new Set(['/api/healthz']);
 
-/** Replaces credential query values (such as `?token=` on print links) with `REDACTED`. */
-export function redactUrl(url: string): string {
-  const queryStart = url.indexOf('?');
-  if (queryStart < 0) {
-    return url;
-  }
-  const hashStart = url.indexOf('#', queryStart);
-  const query = url.slice(
-    queryStart + 1,
-    hashStart < 0 ? undefined : hashStart,
-  );
-  const redacted = query
-    .split('&')
-    .map((pair) => {
-      const separator = pair.indexOf('=');
-      const name = separator < 0 ? pair : pair.slice(0, separator);
-      return separator >= 0 && isSecretParam(name)
-        ? `${name}=REDACTED`
-        : pair;
-    })
-    .join('&');
-  return `${url.slice(0, queryStart)}?${redacted}${hashStart < 0 ? '' : url.slice(hashStart)}`;
-}
+type ParamSegmentSpec = { type: 'param'; name: string };
+type StaticSegmentSpec = { type: 'static'; value: string };
+const isParamSegmentSpec = (s: any): s is ParamSegmentSpec =>
+  s.type === 'param';
+const isStaticSegmentSpec = (s: any): s is StaticSegmentSpec =>
+  s.type === 'static';
 
-function isSecretParam(name: string): boolean {
-  try {
-    return SECRET_PARAMS.has(
-      decodeURIComponent(name.replace(/\+/g, ' ')).toLowerCase(),
+type RouteCodec = {
+  parse(url: string | URL): Record<string, string> | null;
+  build(params: Record<string, string>): URL;
+};
+/**
+ * @example
+ * const parseWidgetDetail = matchUrl('/widgets/:widgetId');
+ * parseWidgetDetail('/widgets/123') => { widgetId: 123 }
+ */
+const route = (urlSpec: string): RouteCodec => {
+  const segments = urlSpec.split('/');
+
+  const segmentSpecs = segments.map((s, idx) => {
+    if (s.startsWith(':')) {
+      return { type: 'param', name: s.slice(1) };
+    }
+    return { type: 'static', value: s };
+  });
+
+  const parse = (url: string | URL) => {
+    url = new URL(url, 'null://');
+    const pathSegments = url.pathname.split('/');
+    if (pathSegments.length !== segmentSpecs.length) {
+      return null;
+    }
+
+    return segmentSpecs.reduce(
+      (acc, s, i) => {
+        if (isParamSegmentSpec(s)) {
+          acc[s.name] = pathSegments[i];
+        }
+        return acc;
+      },
+      {} as Record<string, string>,
     );
-  } catch {
-    return true;
+  };
+
+  const build = (params: Record<string, string>) => {
+    const url = new URL('null://');
+
+    url.pathname = segmentSpecs
+      .map((s) => (isParamSegmentSpec(s) ? params[s.name] : s.value))
+      .join('/');
+
+    return url;
+  };
+
+  return {
+    parse,
+    build,
+  };
+};
+
+const printerInstallUrl = route('/printer/:token/install');
+
+const omitOrigin = (u: URL) =>
+  u
+    .toString()
+    .slice(
+      u.protocol.length +
+        '//'.length +
+        u.host.length +
+        (u.port ? 1 + u.port.length : 0),
+    );
+
+type UrlArgs = Parameters<typeof URL.canParse>;
+
+/**
+ * Replaces credentials with `REDACTED`: query values (such as `?token=` on print links) and the
+ * enrollment token segment of `/printer/<token>/install`.
+ */
+export const redactUrl = (
+  url: string | URL,
+  includeOrigin: boolean,
+): string => {
+  const forms: (() => UrlArgs)[] = [
+    () => [url],
+    () => [url, 'null://'],
+  ];
+  const args = forms.find((getArgs) => URL.canParse(...getArgs()));
+  if (!args) {
+    throw new Error('Invalid URL');
   }
+  const u = new URL(...args());
+  const redacted = redactQuery(u);
+
+  const routes = [printerInstallUrl];
+
+  for (const r of routes) {
+    const parsed = r.parse(u);
+    if (parsed) {
+      const built = r.build({
+        ...parsed,
+        ...[...SECRET_PARAMS].reduce(
+          (acc, k) => ({
+            ...acc,
+            [k]: 'REDACTED',
+          }),
+          {},
+        ),
+      });
+
+      // at the time, routes STRIP query and hash, so restore from u
+      built.search = u.search;
+      built.hash = u.hash;
+
+      const redacted = redactQuery(built);
+
+      return includeOrigin
+        ? redacted.toString()
+        : omitOrigin(redacted);
+    }
+  }
+
+  return includeOrigin ? redacted.toString() : omitOrigin(redacted);
+
+  // return redactQuery(url.toString().slice(u.origin.length));
+};
+
+function redactQuery(u: URL): URL {
+  u.search = [...u.searchParams.entries()]
+    .reduce((params, [key, value]) => {
+      params.append(
+        key,
+        SECRET_PARAMS.has(key.toLowerCase()) ? 'REDACTED' : value,
+      );
+      return params;
+    }, new URLSearchParams())
+    .toString();
+
+  // return u.origin;
+  return u;
 }
 
 /** Logs one entry per request once the response finishes or the client disconnects. */
@@ -96,7 +203,7 @@ export function accessLogMiddleware(
       sink.info({
         ip: request.ip,
         method: request.method,
-        url: redactUrl(request.originalUrl),
+        url: redactUrl(request.originalUrl, false),
         httpVersion: request.httpVersion,
         status: response.statusCode,
         bytes: Number.isFinite(length) ? length : undefined,
@@ -104,7 +211,7 @@ export function accessLogMiddleware(
           Math.round(
             Number(process.hrtime.bigint() - started) / 10_000,
           ) / 100,
-        referrer: referrer ? redactUrl(referrer) : undefined,
+        referrer: referrer ? redactUrl(referrer, true) : undefined,
         userAgent: request.get('user-agent'),
         ...(aborted ? { aborted: true as const } : {}),
       });

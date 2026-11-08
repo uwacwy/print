@@ -2,7 +2,9 @@ import type { NextFunction, Request, Response } from 'express';
 import { Passport } from 'passport';
 import type { PrintDatabase } from '../../../helpers/database/database';
 import type { UploadTokenKey } from '../upload-token/upload-token';
+import type { EnrollTokenKey } from '../../../helpers/enroll-token/enroll-token';
 import { AgentTokenStrategy } from '../agent-token/agent-token.strategy';
+import { EnrollTokenStrategy } from '../enroll-token/enroll-token.strategy';
 import {
   createEntraUserStrategy,
   type EntraUserOptions,
@@ -19,7 +21,8 @@ export type StrategyName =
   | 'entraUser'
   | 'uploadToken'
   | 'pin'
-  | 'agentToken';
+  | 'agentToken'
+  | 'enrollToken';
 
 export interface AuthOptions {
   db: PrintDatabase;
@@ -27,6 +30,8 @@ export interface AuthOptions {
   entra?: EntraUserOptions;
   /** Registers `uploadToken`. */
   uploadToken?: UploadTokenKey;
+  /** Registers `enrollToken`. */
+  enrollToken?: EnrollTokenKey;
 }
 
 /** Generic over route params so it never widens Express 5's typed `request.params`. */
@@ -72,6 +77,7 @@ export function createAuthenticate({
   db,
   entra,
   uploadToken,
+  enrollToken,
 }: AuthOptions): Authenticate {
   const passport = new Passport();
   passport.use('agentToken', new AgentTokenStrategy(db));
@@ -83,6 +89,13 @@ export function createAuthenticate({
     passport.use(
       'uploadToken',
       new UploadTokenStrategy(uploadToken),
+    );
+  }
+
+  if (enrollToken) {
+    passport.use(
+      'enrollToken',
+      new EnrollTokenStrategy(enrollToken),
     );
   }
 

@@ -9,7 +9,9 @@
   "editor.formatOnSave": false,
   "editor.codeActionsOnSave": {
     "source.fixAll.oxc": "always",
-    "source.format.oxc": "always"
+    "source.format.oxc": "always",
+    "source.organizeImports": "always",
+    "source.removeUnusedImports": "always"
   },
   "editor.defaultFormatter": "oxc.oxc-vscode",
 
@@ -32,5 +34,8 @@
 
   // This repo has no ESLint or Prettier config; keep those extensions from competing.
   "eslint.enable": false,
-  "prettier.enable": false
+  "prettier.enable": false,
+  "js/ts.preferences.organizeImports": {
+    "unicodeCollation": "unicode"
+  }
 }

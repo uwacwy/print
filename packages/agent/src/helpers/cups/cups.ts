@@ -189,6 +189,44 @@ export function parseRequestId(output: string): string | undefined {
   return /request id is (\S+)/.exec(output)?.[1];
 }
 
+/** `lpstat -e`: one destination per line, including driverless printers CUPS can create on demand. */
+export const parseQueueList = (output: string): string[] =>
+  output
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => CUPS_QUEUE.test(line));
+
+/** Queue → `Description:` from `lpstat -l -p`; queues without one are omitted. */
+export function parseQueueDescriptions(
+  output: string,
+): Map<string, string> {
+  const descriptions = new Map<string, string>();
+  let queue: string | undefined;
+  for (const line of output.split('\n')) {
+    const printer = /^printer (\S+) /.exec(line);
+    if (printer) {
+      queue = printer[1];
+      continue;
+    }
+    const description = /^\s+Description:\s*(.*)$/
+      .exec(line)?.[1]
+      ?.trim();
+    if (queue && description) {
+      descriptions.set(queue, description);
+    }
+  }
+  return descriptions;
+}
+
+/** A person-friendly name: the CUPS description unless it merely repeats the queue name. */
+export const humanQueueName = (
+  queue: string,
+  description?: string,
+): string =>
+  description && description !== queue
+    ? description
+    : queue.replace(/[_]+/g, ' ').trim();
+
 export class CupsClient {
   constructor(
     readonly queue: string,

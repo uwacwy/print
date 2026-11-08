@@ -13,7 +13,8 @@ export type Principal =
       expiresAt: Date;
     }
   | { kind: 'pin'; printer: PrinterRow }
-  | { kind: 'agent'; printer: PrinterRow };
+  | { kind: 'agent'; printer: PrinterRow }
+  | { kind: 'enroll'; expiresAt: Date };
 
 /**
  * Why a strategy declined. `presented` is true when the request carried this strategy's kind
@@ -67,5 +68,7 @@ export function submittedBy(who: Principal): string {
       return 'pin';
     case 'agent':
       return 'agent';
+    case 'enroll':
+      return 'enroll';
   }
 }

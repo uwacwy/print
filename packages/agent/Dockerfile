@@ -33,3 +33,4 @@ RUN npm install --global --omit=dev --no-audit --no-fund /tmp/uwacwy-print-agent
 ENV NODE_ENV=production
 USER node
 ENTRYPOINT ["uwacwy-print-agent"]
+CMD ["run"]

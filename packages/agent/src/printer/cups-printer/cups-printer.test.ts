@@ -81,7 +81,7 @@ describe('CupsPrinter', () => {
         '%PDF-test-simplified',
       ),
     );
-    await printer.print(pdf, { title: 'W-2' });
+    await printer.print(pdf, { id: 'job-1', title: 'W-2' });
     expect(simplifyPdf).toHaveBeenCalledWith(pdf, {
       dpi: 150,
       maximumBytes: 100 * 1024 * 1024,
@@ -110,7 +110,10 @@ describe('CupsPrinter', () => {
       dpi: 0,
     });
     fakeLp();
-    await printer.print(Buffer.from('%PDF-test'), { title: 'W-2' });
+    await printer.print(Buffer.from('%PDF-test'), {
+      id: 'job-1',
+      title: 'W-2',
+    });
     expect(simplifyPdf).not.toHaveBeenCalled();
     expect(spawn).toHaveBeenCalledWith(
       'lp',

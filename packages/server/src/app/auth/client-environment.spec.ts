@@ -18,23 +18,30 @@ const respond = (response: Response) =>
 describe('client environment', () => {
   it('uses the server settings with a callback on the current origin', () => {
     expect(
-      toClientEnvironment({ msal }, 'https://print.example.org'),
+      toClientEnvironment(
+        { msal, enrollment: true },
+        'https://print.example.org',
+      ),
     ).toEqual({
       msal: {
         ...msal,
         redirectUri: 'https://print.example.org/auth/callback',
       },
+      enrollment: true,
     });
   });
 
-  it('falls back to the build-time environment when the server has no sign-in', () => {
+  it('falls back to the build-time sign-in when the server has none', () => {
     expect(
-      toClientEnvironment({}, 'https://print.example.org'),
-    ).toBe(environment);
+      toClientEnvironment(
+        { enrollment: false },
+        'https://print.example.org',
+      ),
+    ).toEqual({ ...environment, enrollment: false });
   });
 
   it('loads /api/client-config and falls back when it fails', async () => {
-    const ok = respond(Response.json({ msal }));
+    const ok = respond(Response.json({ msal, enrollment: false }));
     await expect(
       loadClientEnvironment(ok, 'http://localhost:4200'),
     ).resolves.toEqual({
@@ -42,6 +49,7 @@ describe('client environment', () => {
         ...msal,
         redirectUri: 'http://localhost:4200/auth/callback',
       },
+      enrollment: false,
     });
     expect(ok).toHaveBeenCalledWith('/api/client-config', {
       cache: 'no-cache',

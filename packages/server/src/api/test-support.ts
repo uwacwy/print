@@ -22,6 +22,7 @@ import {
 } from '../realtime/test-support';
 import type { UploadConfig } from './helpers/server-config/server-config';
 import apiRoot, { type ApiRootOptions } from './index';
+import installRouter from './routers/install/install.router';
 import { Observable } from 'rxjs';
 
 export async function samplePdf(): Promise<Blob> {
@@ -48,6 +49,7 @@ export interface StartOptions {
   upload?: UploadConfig;
   entra?: ApiRootOptions['entra'];
   client?: ApiRootOptions['client'];
+  enrollment?: ApiRootOptions['enrollment'];
 }
 
 /**
@@ -95,7 +97,11 @@ export function useApiServer(defaults: StartOptions = {}) {
     upload: uploadConfig = defaults.upload ?? testUploadConfig,
     entra = defaultEntra,
     client,
+    // `{ enrollment: undefined }` disables enrollment for one test.
+    ...rest
   }: StartOptions = {}) => {
+    const enrollment =
+      'enrollment' in rest ? rest.enrollment : defaults.enrollment;
     await stop();
     upload = uploadConfig;
     const app = express();
@@ -109,7 +115,14 @@ export function useApiServer(defaults: StartOptions = {}) {
         upload,
         entra,
         client,
+        enrollment,
+        publicUrl: new URL(
+          process.env['PUBLIC_URL'] ?? 'http://localhost',
+        ),
       }),
+    );
+    app.use(
+      installRouter({ upload, enrollment, agentVersion: '9.9.9' }),
     );
     server = createServer(app);
     io = attachWebSockets(server, {

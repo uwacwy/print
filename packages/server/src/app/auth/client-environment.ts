@@ -25,8 +25,9 @@ export function toClientEnvironment(
           ...config.msal,
           redirectUri: `${origin}/auth/callback`,
         },
+        enrollment: config.enrollment,
       }
-    : fallback;
+    : { ...fallback, enrollment: config.enrollment };
 }
 
 /** Fetches `GET /api/client-config` before bootstrap so prebuilt bundles work for any tenant. */

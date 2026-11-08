@@ -1,5 +1,9 @@
 import { inject, Service } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
+import {
+  ENROLL_TOKEN_PATH,
+  type EnrollTokenResponse,
+} from '@uwacwy/print-shared';
 
 export interface PrinterInput {
   slug: string;
@@ -78,6 +82,8 @@ export interface SubmittedJob {
 export interface CreatedPrinter {
   printer: PrinterSummary;
   agentToken: string;
+  /** `PUBLIC_URL` origin for setup commands; null when the server has none. */
+  serverUrl: string | null;
 }
 
 export interface QueuedQrSheet {
@@ -140,6 +146,14 @@ export class PrinterService {
 
   createAdminPrinter(input: PrinterInput) {
     return this.#http.post<CreatedPrinter>('/api/printers', input);
+  }
+
+  /** A short-lived token the printer's computer exchanges for a new printer and its agent token. */
+  createEnrollToken() {
+    return this.#http.post<EnrollTokenResponse>(
+      ENROLL_TOKEN_PATH,
+      {},
+    );
   }
 
   updateAdminPrinter(slug: string, input: PrinterInput) {

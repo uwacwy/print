@@ -46,24 +46,37 @@ const appWith = (middleware: express.RequestHandler) => {
 };
 
 describe('redactUrl', () => {
-  it('redacts credential query values and keeps everything else', () => {
-    expect(redactUrl('/print/lobby?token=abc.def&copies=2')).toBe(
-      '/print/lobby?token=REDACTED&copies=2',
+  it('redacts the enrollment token in install script paths', () => {
+    expect(redactUrl('/printer/abc_DEF-1/install', false)).toBe(
+      '/printer/REDACTED/install',
     );
+    expect(redactUrl('/printer/abc/install?token=x', false)).toBe(
+      '/printer/REDACTED/install?token=REDACTED',
+    );
+    expect(redactUrl('/print/lobby', false)).toBe('/print/lobby');
+  });
+
+  it('redacts credential query values and keeps everything else', () => {
+    expect(
+      redactUrl('/print/lobby?token=abc.def&copies=2', false),
+    ).toBe('/print/lobby?token=REDACTED&copies=2');
     expect(
       redactUrl(
         'https://print.example.org/auth/callback?code=x&state=y#frag',
+        true,
       ),
     ).toBe(
       'https://print.example.org/auth/callback?code=REDACTED&state=y#frag',
     );
     expect(
-      redactUrl('/a?TOKEN=1&%74oken=2&Pin=3&access_token=4'),
+      redactUrl('/a?TOKEN=1&%74oken=2&Pin=3&access_token=4', false),
     ).toBe(
-      '/a?TOKEN=REDACTED&%74oken=REDACTED&Pin=REDACTED&access_token=REDACTED',
+      '/a?TOKEN=REDACTED&token=REDACTED&Pin=REDACTED&access_token=REDACTED',
     );
-    expect(redactUrl('/api/status')).toBe('/api/status');
-    expect(redactUrl('/a?flag&tokens=1')).toBe('/a?flag&tokens=1');
+    expect(redactUrl('/api/status', false)).toBe('/api/status');
+    expect(redactUrl('/a?flag&tokens=1', false)).toBe(
+      '/a?flag=&tokens=1',
+    );
   });
 });
 

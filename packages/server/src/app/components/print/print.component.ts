@@ -55,6 +55,7 @@ import {
   type UploadTokenStatus,
 } from '../../services/printer/printer.service';
 import { FileInput } from './file-input.component';
+import { Title } from '@angular/platform-browser';
 
 interface DocumentRow {
   id: number;
@@ -144,9 +145,8 @@ export class PrintComponent {
     return fileList?.[0] ?? null;
   }
 
-  /** Bound from the route by `withComponentInputBinding()`. */
   readonly slug = input.required<string>();
-  /** The `?token=` upload token from a QR code or PIN exchange. */
+
   readonly token = input<string>();
 
   /** Re-fetches whenever the slug or token changes (e.g. after a PIN exchange). */
@@ -179,6 +179,18 @@ export class PrintComponent {
       ? this.printerResource.value()
       : undefined,
   );
+
+  // readonly #title = inject(Title);
+
+  // readonly titleEffect = effect(() => {
+  //   const t = this.printer()?.name;
+  //   if (t) {
+  //     this.#title.setTitle(t);
+  //   } else {
+  //     this.#title.setTitle('Print');
+  //   }
+  // });
+
   readonly notFound = computed(
     () => httpStatus(this.printerResource.error()) === 404,
   );

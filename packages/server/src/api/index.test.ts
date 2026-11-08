@@ -49,7 +49,7 @@ describe('API root', () => {
     expect(await clientConfig()).toEqual({
       status: 200,
       cache: 'no-cache',
-      body: {},
+      body: { enrollment: false },
     });
 
     const msal = {
@@ -58,7 +58,10 @@ describe('API root', () => {
       authority: 'https://login.microsoftonline.com/tenant',
       apiScope: 'api://client/Printers.Manage',
     };
-    await api.start({ client: { msal } });
-    expect((await clientConfig()).body).toEqual({ msal });
+    await api.start({ client: { msal, enrollment: true } });
+    expect((await clientConfig()).body).toEqual({
+      msal,
+      enrollment: true,
+    });
   });
 });

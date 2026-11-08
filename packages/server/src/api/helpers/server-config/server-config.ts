@@ -1,7 +1,10 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parseEnv } from 'node:util';
-import type { ClientConfig } from '@uwacwy/print-shared';
+import {
+  serverOrigin,
+  type ClientConfig,
+} from '@uwacwy/print-shared';
 import { z } from 'zod';
 import type { EntraUserOptions } from '../../middleware/auth/entra-user/entra-user.strategy';
 import {
@@ -13,14 +16,11 @@ const ServerEnvironment = z.object({
   PORT: z.coerce.number().int().positive().default(4000),
   /** Relative paths resolve from the working directory. */
   DATA_DIR: z.string().default('data'),
-  /** Canonical public origin for QR posters; defaults to the request's origin. */
-  PUBLIC_URL: z.preprocess(
-    (value) =>
-      typeof value === 'string' && value.trim() === ''
-        ? undefined
-        : value,
-    z.url().optional(),
-  ),
+  /**
+   * Canonical public origin for QR posters (defaults to the request's origin). Also the server URL
+   * in agent install commands and scripts, which are only offered when it is https (or loopback http).
+   */
+  PUBLIC_URL: z.url(),
   SITE_TITLE: z.string().default('VITA Secure Print'),
   TIME_ZONE: z.string().default('America/Denver'),
   TRUST_PROXY: z.stringbool().default(false),
@@ -48,6 +48,13 @@ const ServerEnvironment = z.object({
     .min(32, 'UPLOAD_TOKEN_SECRET must be at least 32 characters.'),
   /** Longest validity window an admin may give a QR token. */
   UPLOAD_TOKEN_MAX_DAYS: z.coerce.number().positive().default(365),
+  /** Lifetime of enrollment tokens that let a print agent add its own printer. */
+  ENROLL_TOKEN_TTL_MINUTES: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(24 * 60)
+    .default(30),
   /** Lifetime of the token issued in exchange for a printer PIN. */
   PIN_TOKEN_TTL_MINUTES: z.coerce.number().positive().default(10),
   /** Each client (IP) may exchange a PIN for a token at most once per this many minutes. */
@@ -102,18 +109,25 @@ export interface UploadAccessConfig extends UploadTokenKey {
   ipv6Subnet: number;
 }
 
+export interface EnrollmentConfig {
+  /** `PUBLIC_URL` origin agents connect to; undefined disables enrollment and install commands. */
+  serverUrl: string | undefined;
+  tokenTtlMinutes: number;
+}
+
 export interface ServerConfig {
   port: number;
   /** Served to the browser by `GET /api/client-config`. */
   client: ClientConfig;
   dataDir: string;
   trustProxy: boolean;
-  publicUrl: URL | undefined;
+  publicUrl: URL;
   jobTtlMs: number;
   retentionMs: number;
   /** Undefined when ACCESS_LOG_DAYS is 0. */
   accessLog: { dir: string; maxDays: number } | undefined;
   upload: UploadConfig;
+  enrollment: EnrollmentConfig;
   entra: EntraUserOptions;
   socketDevPort: number | undefined;
 }
@@ -181,12 +195,18 @@ export function loadServerConfig(
           apiScope: `${e.ENTRA_API_AUDIENCE ?? `api://${e.ENTRA_CLIENT_ID}`}/${e.ENTRA_ADMIN_SCOPE}`,
         }
       : undefined;
+  const serverUrl = serverOrigin(e.PUBLIC_URL);
+  const publicUrl = new URL(e.PUBLIC_URL);
   return {
     port: e.PORT,
-    client: msal ? { msal } : {},
+    client: {
+      ...(msal && { msal }),
+      enrollment: !!serverUrl,
+      publicUrl,
+    },
     dataDir: resolve(e.DATA_DIR),
     trustProxy: e.TRUST_PROXY,
-    publicUrl: e.PUBLIC_URL ? new URL(e.PUBLIC_URL) : undefined,
+    publicUrl,
     jobTtlMs: e.JOB_TTL_HOURS * 3_600_000,
     retentionMs: e.RETENTION_DAYS * 86_400_000,
     accessLog: e.ACCESS_LOG_DAYS
@@ -215,6 +235,10 @@ export function loadServerConfig(
         ipv6Subnet: e.RATE_LIMIT_IPV6_SUBNET,
       },
     },
+    enrollment: {
+      serverUrl,
+      tokenTtlMinutes: e.ENROLL_TOKEN_TTL_MINUTES,
+    },
     entra: {
       tenantId: e.ENTRA_TENANT_ID,
       audience: apiAudience,
@@ -225,4 +249,22 @@ export function loadServerConfig(
     socketDevPort:
       (e.SOCKET_DEV_PORT ?? (devServer ? 4201 : 0)) || undefined,
   };
+}
+
+/**
+ * The server's own version from its package.json (agents are released in lockstep), or
+ * undefined when the file is not where an installed or built server keeps it.
+ */
+export function readServerVersion(file: string): string | undefined {
+  if (!existsSync(file)) {
+    return undefined;
+  }
+  const manifest = JSON.parse(readFileSync(file, 'utf8')) as {
+    name?: unknown;
+    version?: unknown;
+  };
+  return manifest.name === '@uwacwy/print-server' &&
+    typeof manifest.version === 'string'
+    ? manifest.version
+    : undefined;
 }

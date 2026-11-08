@@ -75,3 +75,35 @@ export const pinIssuanceRateLimit = ({ access }: UploadConfig) =>
         error: `A print code was already issued to this device. Try again in ${plural(minutesUntil(request), 'minute')}.`,
       }),
   });
+
+/** Self-enrollments per client every 15 minutes; enrollment tokens are multi-use until they expire. */
+export const enrollRateLimit = ({ access }: UploadConfig) =>
+  rateLimit({
+    windowMs: 15 * 60_000,
+    limit: 10,
+    ipv6Subnet: access.ipv6Subnet,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    handler: (request, response) =>
+      response.status(429).json({
+        code: 'enroll_rate_limited',
+        error: `Too many enrollment attempts. Try again in ${plural(minutesUntil(request), 'minute')}.`,
+      }),
+  });
+
+/** Install script downloads per client per minute. */
+export const installScriptRateLimit = ({ access }: UploadConfig) =>
+  rateLimit({
+    windowMs: 60_000,
+    limit: 20,
+    ipv6Subnet: access.ipv6Subnet,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    handler: (_request, response) =>
+      response
+        .status(429)
+        .type('text/x-shellscript')
+        .send(
+          'echo "Too many install requests. Wait a minute and try again." >&2\nexit 1\n',
+        ),
+  });

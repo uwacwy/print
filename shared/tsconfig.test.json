@@ -1,0 +1,8 @@
+/* Typechecks the vitest tests co-located with shared helpers. */
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["src"]
+}

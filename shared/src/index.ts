@@ -1,3 +1,5 @@
+export * from './helpers/index.js';
+
 export const JOB_STATUSES = [
   'queued',
   'printing',
@@ -20,16 +22,14 @@ export interface ClientConfig {
     /** Delegated scope the SPA requests for the admin REST API. */
     apiScope: string;
   };
+  /** `PUBLIC_URL` is set, so the server can mint enrollment tokens and install commands. */
+  enrollment: boolean;
+  publicUrl: URL;
 }
 /** Print agents, authenticated with their printer's agent token. */
 export const AGENT_NAMESPACE = '/agent';
 /** Management UI live updates, authenticated with an Entra access token. */
 export const LIVE_NAMESPACE = '/live';
-
-export const agentJobFilePath = (jobId: string): string =>
-  `/api/agent/jobs/${encodeURIComponent(jobId)}/file`;
-export const agentJobStatusPath = (jobId: string): string =>
-  `/api/agent/jobs/${encodeURIComponent(jobId)}/status`;
 
 /** How often agents ask for queued jobs, in case a push was missed. */
 export const SYNC_INTERVAL_MS = 25_000;
@@ -94,22 +94,34 @@ export type JobReport =
   | { status: 'printed' }
   | { status: 'failed'; error: string };
 
-const isRecord = (
-  value: unknown,
-): value is Record<string, unknown> =>
-  typeof value === 'object' &&
-  value !== null &&
-  !Array.isArray(value);
+/** Printer fields an agent submits when it enrolls itself. */
+export interface EnrollRequest {
+  name: string;
+  slug: string;
+  queue: string;
+}
 
-const isAgentJob = (value: unknown): value is AgentJob =>
-  isRecord(value) &&
-  typeof value.id === 'string' &&
-  typeof value.title === 'string';
+export interface EnrollResponse {
+  printer: { slug: string; name: string; queue: string };
+  /** Long-lived agent token; shown only once. */
+  agentToken: string;
+}
 
-/** Validates a pushed job list before the agent acts on it. */
-export const parseAgentJobs = (
-  value: unknown,
-): AgentJob[] | undefined =>
-  Array.isArray(value) && value.every(isAgentJob)
-    ? value
-    : undefined;
+/** `POST /api/printers/enroll-token` (admin). */
+export interface EnrollTokenResponse {
+  token: string;
+  expiresAt: string;
+  /** `PUBLIC_URL` origin agents connect to. */
+  serverUrl: string;
+}
+
+/** `PATCH /api/agent/printer`: the agent reports its local queue on start. */
+export interface AgentPrinterUpdate {
+  queue: string;
+}
+
+/** Error body for API failures that carry a machine-readable code. */
+export interface ApiError {
+  error: string;
+  code?: string;
+}

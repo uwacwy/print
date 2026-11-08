@@ -95,19 +95,19 @@ example with `docker compose config`.
 
 ### npm
 
-Both packages need Node.js 24 (server) or 20.12+ (agent):
+Both packages need Node.js 24 (server) or 20.17+ (agent):
 
 ```bash
 npm install --global @uwacwy/print-server
 uwacwy-print-server /etc/uwacwy-print-server.env   # or set the variables in the environment
 
-npm install --global @uwacwy/print-agent
-uwacwy-print-agent /etc/uwacwy-print-agent.env
+npx @uwacwy/print-agent install --print-server-url https://print.example.org --print-enroll-token <token>
 ```
 
-Each command takes an optional env file. Existing environment variables win over the file, and both
-commands accept `--help` and `--version`. The server's `.env.example` and the agent's `.env.example`
-ship in each package and list every setting.
+The server takes an optional env file; existing environment variables win over it. The agent's
+`install` enrolls the printer, writes `uwacwy-print-agent.env`, and starts a systemd service (see
+[Raspberry Pi print agent](#raspberry-pi-print-agent)). Both commands accept `--help` and `--version`,
+and each package's `.env.example` lists every setting.
 
 ### Server settings worth knowing
 
@@ -119,8 +119,10 @@ ship in each package and list every setting.
   follows it across rotations. Upload tokens and other query credentials are redacted, `/api/healthz` is
   skipped, and agent socket traffic on `/ws` is not logged. Logs hold client IP addresses, so keep the
   retention short.
-- `PUBLIC_URL` is the address people use. It is printed in QR codes, and its host name is allowed
-  for server-side rendering.
+- `PUBLIC_URL` is the address people use. It is printed in QR codes and agent setup commands, and its
+  host name is allowed for server-side rendering. When it is `https://` (or localhost), **Add printer**
+  can enroll printers from their own computers with `curl … | bash` or `npx` setup commands, which
+  work for `ENROLL_TOKEN_TTL_MINUTES` (default 30).
 - `NG_ALLOWED_HOSTS` lists other comma-separated host names the app may be reached by, for example a
   LAN IP. Pages requested with any other `Host` header get `400 Bad Request` (the API is unaffected).
 - `ENTRA_TENANT_ID` and `ENTRA_CLIENT_ID` enable Microsoft Entra sign-in and `/manage`. The browser
@@ -249,133 +251,57 @@ connections, so the Pi only needs outbound access to the server.
 1. Flash Raspberry Pi OS (Debian 13 "trixie", 64-bit). Enable SSH, create a user (for example `print`),
    and add your public key. In `~/.ssh/config`, add a `Host print-agent` entry with the Pi's address.
 2. Add the printer to CUPS on the Pi (CUPS web UI at `http://<pi>:631`, or `lpadmin`). Network printers
-   usually appear on their own through `dnssd://`. Find the queue name and check that it accepts jobs:
+   usually appear on their own through `dnssd://`. `install` lists CUPS queues (`lpstat`) and IPP
+   printers on the network (mDNS), so this step is optional for IPP printers.
 
-   ```bash
-   lpstat -v                    # device for <Queue-Name>: ...
-   lpstat -a                    # <Queue-Name> accepting requests ...
-   lp -d <Queue-Name> /usr/share/cups/data/testprint   # optional test page
-   ```
+### 2. Enroll from the Pi
 
-3. In the server's `/manage` page, add the printer and copy its agent token. The token is shown only
-   once; `POST /api/printers/:slug/agent-token` rotates it. The server stores only its SHA-256 hash.
-
-### 2. Build the bundle (on a development machine)
-
-The Pi can also run the agent from npm (`npm install --global @uwacwy/print-agent`, then point a
-service at `uwacwy-print-agent <env-file>`) or from the `ghcr.io/uwacwy/print-agent` image (see
-[Docker Compose](#docker-compose)). The steps below use the self-contained bundle, which needs neither
-npm nor Docker.
+In `/manage`, choose **Add printer → Set up on the printer's computer → Create setup command**, then run
+the one-liner on the Pi:
 
 ```bash
-npm run package -w packages/agent
-# packages/agent/dist/uwacwy-print-agent.tar.gz contains:
-#   print-agent.cjs, install.sh, uwacwy-print-agent.service, node_modules/ipp
-scp packages/agent/dist/uwacwy-print-agent.tar.gz print-agent:/tmp/
+curl -sSL https://print.example.org/printer/<enroll-token>/install | bash          # user service
+curl -sSL https://print.example.org/printer/<enroll-token>/install | sudo bash     # system service
 ```
 
-The bundle is one CommonJS file plus `ipp`; the Pi needs only Node.js 20 or newer, with no `npm install`.
+The script installs Node.js (into `~/.local`, or `/usr/local` as root) if there is no Node.js 20.17 or
+newer, installs `@uwacwy/print-agent`, and runs `uwacwy-print-agent install`, which:
 
-### 3a. Production install (system service, needs sudo)
+- asks whether the printer is a CUPS queue or a network (IPP) printer and lists the ones it finds
+- suggests the printer's own name and a slug from it, and re-asks if the slug is taken
+- trades the short-lived enrollment token for the printer's agent token
+- writes the settings: `~/.config/uwacwy-print-agent.env` (mode 0600), or as root
+  `/etc/uwacwy-print-agent.env` (`root:uwacwy-print`, mode 0640)
+- installs and starts `uwacwy-print-agent.service`: a user service, or as root a hardened system
+  service running as the `uwacwy-print` system user
 
-```bash
-ssh print-agent
-sudo apt install -y nodejs            # trixie ships Node.js 20
-tar -xzf /tmp/uwacwy-print-agent.tar.gz -C /tmp
-sudo /tmp/uwacwy-print-agent/install.sh
-```
+Without a terminal, pass the answers as flags (`--printer-uri`, `--name`, `--slug`); missing ones are
+reported with the printers the Pi can see. A user service runs without a login session only with
+lingering enabled (`sudo loginctl enable-linger "$USER"`); `install` says so when it is off.
 
-`install.sh` asks for:
+To set up a printer created on the server instead ("Enter the printer's details here"), use the
+commands shown after creating it, which pass `--print-agent-token` and `--printer-uri`. Run `install`
+again with `--force` to replace the settings, for example after rotating the agent token.
 
-- the server URL: HTTPS only, for example `https://print.example.org`
-- `PRINTER_URI`, for example `cups://<Queue-Name>`
-- the agent token
+Logs: `journalctl --user-unit uwacwy-print-agent -f` (user service) or
+`journalctl -u uwacwy-print-agent -f` (system service).
 
-It then:
-
-- creates the `uwacwy-print` system user
-- installs the bundle to `/opt/uwacwy-print-agent`
-- writes `/etc/uwacwy-print-agent.env` (`root:uwacwy-print`, mode 0640)
-- installs and starts the hardened `uwacwy-print-agent.service`
-
-Run it again to upgrade; it offers to keep the existing configuration. View logs with
-`journalctl -u uwacwy-print-agent -f`.
-
-### 3b. Install without root (user service)
-
-Use this when the login user has no passwordless sudo, or when the agent should connect to a development
-server over plain `http://`, which `install.sh` refuses. Everything lives in the login user's home
-directory, and systemd lingering keeps the service running without anyone logged in.
-
-```bash
-ssh print-agent
-
-# Node.js 24 LTS in ~/.local, checked against nodejs.org's published SHA-256 sums
-v=v24.22.2; f=node-$v-linux-arm64.tar.xz
-cd "$(mktemp -d)"
-curl -fsSLO https://nodejs.org/dist/$v/$f
-curl -fsSL https://nodejs.org/dist/$v/SHASUMS256.txt | grep " $f\$" | sha256sum -c -
-mkdir -p ~/.local/opt ~/.local/bin
-tar -xJf $f -C ~/.local/opt
-ln -sfn ~/.local/opt/node-$v-linux-arm64 ~/.local/opt/node
-ln -sfn ~/.local/opt/node/bin/node ~/.local/bin/node
-
-# Agent bundle, which unpacks to ~/.local/share/uwacwy-print-agent
-mkdir -p ~/.local/share ~/.config/systemd/user
-rm -rf ~/.local/share/uwacwy-print-agent
-tar -xzf /tmp/uwacwy-print-agent.tar.gz -C ~/.local/share
-
-# Settings, readable only by this user (see packages/agent/.env.example)
-(umask 077; cat > ~/.config/uwacwy-print-agent.env) <<'EOF'
-PRINT_SERVER_URL=https://print.example.org
-PRINT_AGENT_TOKEN=<agent token>
-PRINTER_URI=cups://<Queue-Name>
-EOF
-
-cat > ~/.config/systemd/user/uwacwy-print-agent.service <<'EOF'
-[Unit]
-Description=United Way Quick Print agent (user service)
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-Type=simple
-EnvironmentFile=%h/.config/uwacwy-print-agent.env
-ExecStart=%h/.local/bin/node %h/.local/share/uwacwy-print-agent/print-agent.cjs
-Restart=always
-RestartSec=5
-NoNewPrivileges=true
-PrivateTmp=true
-
-[Install]
-WantedBy=default.target
-EOF
-
-loginctl enable-linger "$USER"        # start at boot without a login session
-systemctl --user daemon-reload
-systemctl --user enable --now uwacwy-print-agent.service
-journalctl --user-unit uwacwy-print-agent -f
-```
-
-To upgrade, copy a new bundle, repeat the "Agent bundle" step, and run
-`systemctl --user restart uwacwy-print-agent`. To apply settings changes, edit
-`~/.config/uwacwy-print-agent.env` and restart the service.
-
-### 4. Verify
+### 3. Verify
 
 A healthy start logs:
 
 ```
-Agent 0.1.0 using CupsPrinter (max 100.0 MB, application/pdf).
-Connecting to https://print.example.org/ws
-Connected to print server.
-Registered for <printer name>.
+[config] Using /home/print/.config/uwacwy-print-agent.env
+[agent] uwacwy-print-agent 0.1.0
+[printer] Connected: cups://<Queue-Name>
+[server] Reported printer queue.
+[ws] Connected: https://print.example.org/ws
+[ws] Listening to queue: 'https://print.example.org/print/<slug>' => '<printer name>'
 ```
 
-`GET /api/status` on the server counts the agent in `printersOnline`, and `/manage` shows the printer
-online. A token typo logs `Unable to connect to <server>/ws (Unauthorized); retrying in N seconds.` and keeps retrying; an unreachable server logs the same line without the reason. A malformed `PRINTER_URI`
-or an unsupported option stops the agent at startup. The agent does not check that the CUPS queue exists
-(only `install.sh` does), so a wrong queue name shows up as failed jobs. Check it with `lpstat -a`.
+`/manage` shows the printer online, with the queue the agent reported. `uwacwy-print-agent run` exits
+with status 2 when settings are missing or invalid, or the CUPS queue does not exist, listing the
+printers it can see; a token typo logs an Unauthorized connection error and keeps retrying.
 
 ### Pointing a Pi at a development server
 
@@ -391,30 +317,28 @@ the built server instead; it listens on every interface:
    npm run start:server        # packages/server/dist, port PORT (4200)
    ```
 
-3. On the Pi, set `PRINT_SERVER_URL=http://<workstation-ip>:4200` and restart the agent.
+3. On the Pi, run `install` with `--print-server-url http://<workstation-ip>:4200 --insecure`
+   (plain `http://` is otherwise allowed only on localhost).
 
 This exposes the server to your network. Rebuild after code changes; the agent reconnects by itself
 when the server restarts.
 
-To keep `ng serve` on loopback instead, set `PRINT_SERVER_URL=http://localhost:4200` on the Pi and
-forward the Pi's port 4200 back to the workstation over SSH:
+To keep the server on loopback instead, use `http://localhost:4200` on the Pi (no `--insecure`
+needed) and forward the Pi's port 4200 back to the workstation over SSH:
 
 ```bash
 ssh -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 \
   -R 127.0.0.1:4200:127.0.0.1:4200 print-agent
 ```
 
-### Current pilot install
-
-- `print-agent` (`print@10.1.10.149`) uses the user-service install (3b) with Node.js v24.22.2.
-- `PRINTER_URI=cups://HP-LaserJet-MFP-M129-M134`, the HP LaserJet MFP M130fw found through `dnssd://`.
-- It is registered as the dev printer `raspberry-pi` ("HP LaserJet M130 / via pi") and connects directly
-  to the built server on the workstation at `http://10.1.10.138:4200`.
+To test an unreleased agent, `./redeploy-agent.sh [ssh-host]` packs the workspace agent and reinstalls
+it on a Pi set up as a user service. For a first install, copy a `npm pack` tarball to the Pi and pass
+`--agent-package /tmp/uwacwy-print-agent-<version>.tgz` to the one-liner (`… | bash -s -- --agent-package …`).
 
 ## Building and testing
 
 ```bash
-npm run build            # server (packages/server/dist) and agent (packages/agent/dist/print-agent.cjs)
+npm run build            # server (packages/server/dist) and agent (packages/agent/dist/cli.mjs)
 npm test                 # Angular unit tests, then API and agent tests
 npm run typecheck:api
 npm run lint && npm run fmt:check

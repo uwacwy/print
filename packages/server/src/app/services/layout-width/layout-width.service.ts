@@ -1,25 +1,17 @@
 import { computed, inject, Service, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { NavigationEnd, Router } from '@angular/router';
-import { filter, map } from 'rxjs';
-import z from 'zod';
+import {
+  takeUntilDestroyed,
+  toSignal,
+} from '@angular/core/rxjs-interop';
+import {
+  ActivatedRoute,
+  NavigationEnd,
+  Router,
+} from '@angular/router';
+import { catchError, filter, map, of } from 'rxjs';
+import { ColWidths } from '../../../api/helpers/zod';
 
-// type ColWidths = {
-//   xs: number | null;
-//   sm: number | null;
-//   md: number | null;
-//   lg: number | null;
-//   xl: number | null;
-// };
-const ColWidths = z.object({
-  xs: z.number().nullable(),
-  sm: z.number().nullable(),
-  md: z.number().nullable(),
-  lg: z.number().nullable(),
-  xl: z.number().nullable(),
-});
 
-type ColWidths = z.infer<typeof ColWidths>;
 
 @Service()
 export class LayoutWidthService {
@@ -30,13 +22,16 @@ export class LayoutWidthService {
     lg: null,
     xl: null,
   });
+  readonly #route = inject(ActivatedRoute);
   readonly #router = inject(Router);
 
   readonly width = this.#widths.asReadonly();
 
   readonly class = computed(() => {
-    const classesToApply = [];
     const widths = this.#widths();
+
+    const classesToApply = [];
+
     if (widths.xs) {
       classesToApply.push(`col-${widths.xs}`);
     }
@@ -52,38 +47,48 @@ export class LayoutWidthService {
     if (widths.xl) {
       classesToApply.push(`col-xl-${widths.xl}`);
     }
+
     return classesToApply.join(' ') || 'col';
   });
 
-  // A root service's injected ActivatedRoute is the root route (data is always {}),
-  // so read the deepest activated route's data after each navigation instead.
-  readonly routeSub = this.#router.events
+  readonly paramMap = toSignal(this.#route.paramMap, {
+    requireSync: true,
+  });
+
+  readonly #leafRoute$ = this.#router.events.pipe(
+    filter((e) => e instanceof NavigationEnd),
+    map(() => {
+      let route = this.#router.routerState.snapshot.root;
+      while (route.firstChild) {
+        route = route.firstChild;
+      }
+      return route;
+    }),
+    takeUntilDestroyed(),
+  );
+
+  readonly widthSub = this.#leafRoute$
     .pipe(
-      filter((e) => e instanceof NavigationEnd),
-      map(() => {
-        let route = this.#router.routerState.snapshot.root;
-        while (route.firstChild) {
-          route = route.firstChild;
-        }
-        return route.data;
-      }),
-      takeUntilDestroyed(),
+      map((route) => route.data),
+      map((data) => ColWidths.parse(data['width'])),
+      catchError(() =>
+        of({
+          xs: null,
+          sm: null,
+          md: null,
+          lg: null,
+          xl: null,
+        }),
+      ),
     )
-    .subscribe((data) => {
-      const width = data['width'];
-      this.setWidth(typeof width === 'number' ? width : null);
+    .subscribe({
+      next: (width) => this.patchWidth(width),
     });
 
   // null => 'col'
   // 1-12 => 'col-{width}'
   // else => do nothing
-  setWidth(
-    xs: number | null = null,
-    sm: number | null = null,
-    md: number | null = null,
-    lg: number | null = null,
-    xl: number | null = null,
-  ) {
-    this.#widths.set({ xs, sm, md, lg, xl });
+  patchWidth(patch: Partial<ColWidths>) {
+    this.#widths.update((w) => ({ ...w, ...patch }));
   }
 }

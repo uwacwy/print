@@ -7,7 +7,7 @@ import {
   loadClientEnvironment,
 } from './app/auth/client-environment';
 
-loadClientEnvironment()
+loadClientEnvironment(undefined)
   .then((clientEnvironment) =>
     bootstrapApplication(
       App,

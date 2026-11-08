@@ -1,0 +1,107 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  enroll,
+  queueForReport,
+  reportQueue,
+  ServerError,
+  serverError,
+} from './enroll-client';
+
+describe('enroll-client', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('strips driver options and credentials from the reported queue', () => {
+    expect(
+      queueForReport('cups://Front_Desk?option_sides=one-sided'),
+    ).toBe('cups://Front_Desk');
+    expect(
+      queueForReport(
+        'ipps://u:p@printer.local/ipp/print?quality=high#x',
+      ),
+    ).toBe('ipps://printer.local/ipp/print');
+  });
+
+  it('builds errors from API bodies', () => {
+    expect(
+      serverError(409, { error: 'Taken.', code: 'slug_taken' }),
+    ).toEqual(
+      expect.objectContaining({
+        message: 'Taken.',
+        status: 409,
+        code: 'slug_taken',
+      }),
+    );
+    expect(serverError(502, '<html>').message).toBe(
+      'The print server answered 502.',
+    );
+  });
+
+  it('posts enrollment with the token and cleaned queue', async () => {
+    const fetchMock = vi.fn(async () =>
+      Response.json(
+        {
+          printer: { slug: 's', name: 'n', queue: 'cups://Q' },
+          agentToken: 't',
+        },
+        { status: 201 },
+      ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(
+      enroll('https://print.example.org/', 'enroll-token', {
+        name: 'n',
+        slug: 's',
+        queue: 'cups://Q?option_x=1',
+      }),
+    ).resolves.toMatchObject({ agentToken: 't' });
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [
+      URL,
+      RequestInit,
+    ];
+    expect(url.href).toBe(
+      'https://print.example.org/api/agent/enroll',
+    );
+    expect(init.method).toBe('POST');
+    expect(
+      (init.headers as Record<string, string>)['authorization'],
+    ).toBe('Bearer enroll-token');
+    expect(JSON.parse(String(init.body))).toEqual({
+      name: 'n',
+      slug: 's',
+      queue: 'cups://Q',
+    });
+  });
+
+  it('rejects with ServerError or a reachability message', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        Response.json(
+          { error: 'Bad token.', code: 'agent_token_invalid' },
+          { status: 401 },
+        ),
+      ),
+    );
+    const rejected = reportQueue(
+      'https://p.example.org',
+      't',
+      'cups://Q',
+    );
+    await expect(rejected).rejects.toBeInstanceOf(ServerError);
+    await expect(rejected).rejects.toMatchObject({ status: 401 });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new TypeError('fetch failed', {
+          cause: new Error('getaddrinfo ENOTFOUND p.example.org'),
+        });
+      }),
+    );
+    await expect(
+      reportQueue('https://p.example.org', 't', 'cups://Q'),
+    ).rejects.toThrow(
+      'Could not reach https://p.example.org: getaddrinfo ENOTFOUND p.example.org',
+    );
+  });
+});

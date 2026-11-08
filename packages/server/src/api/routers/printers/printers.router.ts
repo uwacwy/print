@@ -1,3 +1,4 @@
+import type { EnrollTokenResponse } from '@uwacwy/print-shared';
 import express, {
   type Request,
   type RequestHandler,
@@ -6,7 +7,6 @@ import express, {
 import { access as fileAccess, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { z } from 'zod';
-import { addCoverPage } from '../../helpers/pdf/cover-page/cover-page';
 import {
   bumpQrEpoch,
   countActiveJobs,
@@ -26,9 +26,37 @@ import {
   type PrintDatabase,
   type PrinterRow,
 } from '../../helpers/database/database';
-import { combineDocuments } from '../../helpers/pdf/document/document';
 import { enqueueJob } from '../../helpers/database/jobs';
+import { signEnrollToken } from '../../helpers/enroll-token/enroll-token';
+import { UploadError } from '../../helpers/errors';
+import { copiesValid, jobTitle } from '../../helpers/jobs';
+import {
+  readMultipartSubmission,
+  type JobSubmission,
+} from '../../helpers/multipart';
+import { addCoverPage } from '../../helpers/pdf/cover-page/cover-page';
+import { combineDocuments } from '../../helpers/pdf/document/document';
 import { buildQrPoster } from '../../helpers/pdf/qr-poster/qr-poster';
+import {
+  managedPrinter,
+  printPath,
+  publicPrinter,
+  validatePrinterInput,
+} from '../../helpers/printers';
+import type {
+  EnrollmentConfig,
+  UploadConfig,
+} from '../../helpers/server-config/server-config';
+import type { Authenticate } from '../../middleware/auth/passport/passport';
+import {
+  formatPin,
+  generatePin,
+} from '../../middleware/auth/pin/pin';
+import {
+  optionalPrincipal,
+  principal,
+  submittedBy,
+} from '../../middleware/auth/principal';
 import {
   inspectUploadToken,
   signUploadToken,
@@ -36,30 +64,6 @@ import {
   verifyUploadToken,
   type UploadToken,
 } from '../../middleware/auth/upload-token/upload-token';
-import {
-  formatPin,
-  generatePin,
-} from '../../middleware/auth/pin/pin';
-import type { AgentHub } from '../../sockets/agent-hub/agent-hub';
-import type { UploadConfig } from '../../helpers/server-config/server-config';
-import { UploadError } from '../../helpers/errors';
-import { copiesValid, jobTitle } from '../../helpers/jobs';
-import {
-  readMultipartSubmission,
-  type JobSubmission,
-} from '../../helpers/multipart';
-import {
-  managedPrinter,
-  printPath,
-  publicPrinter,
-  validatePrinterInput,
-} from '../../helpers/printers';
-import type { Authenticate } from '../../middleware/auth/passport/passport';
-import {
-  optionalPrincipal,
-  principal,
-  submittedBy,
-} from '../../middleware/auth/principal';
 import { uploadTokenStatus } from '../../middleware/auth/upload-token/upload-token.strategy';
 import {
   pinFailureRateLimit,
@@ -67,6 +71,7 @@ import {
   uploadRateLimit,
 } from '../../middleware/rate-limits/rate-limits';
 import { requireSameOrigin } from '../../middleware/same-origin/same-origin';
+import type { AgentHub } from '../../sockets/agent-hub/agent-hub';
 
 export interface PrintersRouterOptions {
   db: PrintDatabase;
@@ -76,7 +81,10 @@ export interface PrintersRouterOptions {
   authenticate: Authenticate;
   /** Canonical origin for upload links on QR posters; falls back to the request origin. */
   publicUrl?: URL;
+  enrollment?: EnrollmentConfig;
 }
+
+const DEFAULT_ENROLL_TOKEN_TTL_MINUTES = 30;
 
 const DEFAULT_QR_LIFETIME_MS = 24 * 3_600_000;
 
@@ -102,7 +110,9 @@ export default function printersRouter({
   upload,
   authenticate,
   publicUrl,
+  enrollment,
 }: PrintersRouterOptions) {
+  const serverUrl = enrollment?.serverUrl ?? null;
   const { access } = upload;
   const admin = authenticate('entraUser');
   const pinFailures = pinFailureRateLimit(upload);
@@ -118,8 +128,10 @@ export default function printersRouter({
       failedJobs,
       getHub().isOnline(printer.id),
     );
+
   const reloaded = (response: Response) =>
     summary(getPrinterById(db, printerOf(response).id)!);
+
   const absolute = (request: Request, path: string) =>
     new URL(
       path,
@@ -362,7 +374,32 @@ export default function printersRouter({
         response.status(201).json({
           printer: summary(getPrinterById(db, created.id)!),
           agentToken: created.token,
+          serverUrl,
         });
+      })
+      // A short-lived token an agent exchanges for its own printer; see POST /api/agent/enroll.
+      .post('/enroll-token', admin, (_request, response) => {
+        if (!serverUrl) {
+          response.status(503).json({
+            code: 'public_url_required',
+            error:
+              'Set PUBLIC_URL (https) on the server to enroll printers from their computers.',
+          });
+          return;
+        }
+        const { token, expiresAt } = signEnrollToken(
+          access,
+          enrollment?.tokenTtlMinutes ??
+            DEFAULT_ENROLL_TOKEN_TTL_MINUTES,
+        );
+        response
+          .set('Cache-Control', 'no-store')
+          .status(201)
+          .json({
+            token,
+            expiresAt: expiresAt.toISOString(),
+            serverUrl,
+          } satisfies EnrollTokenResponse);
       })
 
       // Public details plus the caller's upload access; administrators also get management fields.
@@ -579,7 +616,11 @@ export default function printersRouter({
         const printer = printerOf(response);
         const agentToken = rotatePrinterToken(db, printer.id)!;
         getHub().disconnect(printer.id);
-        response.json({ printer: summary(printer), agentToken });
+        response.json({
+          printer: summary(printer),
+          agentToken,
+          serverUrl,
+        });
       })
   );
 }

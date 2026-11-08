@@ -1,13 +1,16 @@
 import type { ClientConfig } from '@uwacwy/print-shared';
 import express from 'express';
 import type { PrintDatabase } from './helpers/database/database';
-import type { AgentHub } from './sockets/agent-hub/agent-hub';
-import type { UploadConfig } from './helpers/server-config/server-config';
+import type {
+  EnrollmentConfig,
+  UploadConfig,
+} from './helpers/server-config/server-config';
 import type { EntraUserOptions } from './middleware/auth/entra-user/entra-user.strategy';
 import { createAuthenticate } from './middleware/auth/passport/passport';
+import agentRouter from './routers/agent/agent.router';
 import printersRouter from './routers/printers/printers.router';
 import sessionRouter from './routers/session/session.router';
-import agentRouter from './routers/agent/agent.router';
+import type { AgentHub } from './sockets/agent-hub/agent-hub';
 
 export interface ApiRootOptions {
   entra: EntraUserOptions;
@@ -15,7 +18,9 @@ export interface ApiRootOptions {
   jobsDir: string;
   getHub: () => AgentHub;
   upload: UploadConfig;
-  publicUrl?: URL;
+  publicUrl: URL;
+  /** Enrollment and install commands; disabled when absent. */
+  enrollment?: EnrollmentConfig;
   client?: ClientConfig;
 }
 
@@ -37,9 +42,13 @@ export default (options: ApiRootOptions) => {
       });
     })
     .get('/client-config', (_request, response) => {
-      response
-        .set('cache-control', 'no-cache')
-        .json(options.client ?? ({} satisfies ClientConfig));
+      response.set('cache-control', 'no-cache').json(
+        options.client ??
+          ({
+            enrollment: !!options.enrollment?.serverUrl,
+            publicUrl: options.publicUrl,
+          } satisfies ClientConfig),
+      );
     })
     .use('/agent', agentRouter(options))
     .use('/session', sessionRouter({ authenticate }))

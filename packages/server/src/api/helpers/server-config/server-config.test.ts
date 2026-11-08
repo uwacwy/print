@@ -68,7 +68,9 @@ describe('server config', () => {
   });
 
   it('derives browser sign-in settings only when Entra is configured', () => {
-    expect(loadServerConfig(secret, false).client).toEqual({});
+    expect(loadServerConfig(secret, false).client).toEqual({
+      enrollment: false,
+    });
     expect(
       loadServerConfig(
         {
@@ -79,6 +81,7 @@ describe('server config', () => {
         false,
       ).client,
     ).toEqual({
+      enrollment: false,
       msal: {
         tenantId: tenant,
         clientId: client,
@@ -98,6 +101,33 @@ describe('server config', () => {
         false,
       ).client.msal?.apiScope,
     ).toBe('api://print.example.org/Print.Admin');
+  });
+
+  it('enables enrollment only for an https (or loopback http) PUBLIC_URL', () => {
+    const enrollment = (PUBLIC_URL?: string) =>
+      loadServerConfig({ ...secret, PUBLIC_URL }, false);
+    expect(enrollment().enrollment).toEqual({
+      serverUrl: undefined,
+      tokenTtlMinutes: 30,
+    });
+    expect(
+      enrollment('https://print.example.org/x').enrollment.serverUrl,
+    ).toBe('https://print.example.org');
+    expect(
+      enrollment('https://print.example.org').client.enrollment,
+    ).toBe(true);
+    expect(
+      enrollment('http://localhost:4200').client.enrollment,
+    ).toBe(true);
+    expect(
+      enrollment('http://print.example.org').client.enrollment,
+    ).toBe(false);
+    expect(
+      loadServerConfig(
+        { ...secret, ENROLL_TOKEN_TTL_MINUTES: '5' },
+        false,
+      ).enrollment.tokenTtlMinutes,
+    ).toBe(5);
   });
 
   it('resolves DATA_DIR from the working directory', () => {

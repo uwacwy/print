@@ -6,34 +6,36 @@ import {
   writeResponseToNodeResponse,
 } from '@angular/ssr/node';
 import express from 'express';
-import { join } from 'node:path';
-import http from 'node:http';
 import { randomBytes } from 'node:crypto';
+import http from 'node:http';
+import { AddressInfo } from 'node:net';
+import { join } from 'node:path';
 import { isMainThread, workerData } from 'node:worker_threads';
+import { Subject } from 'rxjs';
 import apiRoot from './api';
-import { createAuthenticate } from './api/middleware/auth/passport/passport';
-import {
-  attachWebSockets,
-  type WebSocketOptions,
-} from './api/sockets/sockets';
-import {
-  getPrintRuntime,
-  shutdownPrintRuntime,
-  startJobCleanup,
-} from './realtime/runtime';
 import { openAccessLog } from './api/helpers/access-log/access-log';
 import {
   loadLocalEnvFile,
   loadServerConfig,
+  readServerVersion,
 } from './api/helpers/server-config/server-config';
-import { Subject } from 'rxjs';
-import { AddressInfo } from 'node:net';
+import { createAuthenticate } from './api/middleware/auth/passport/passport';
+import installRouter from './api/routers/install/install.router';
+import {
+  attachWebSockets,
+  type WebSocketOptions,
+} from './api/sockets/sockets';
 import type {
   DevSockets,
   PrintServerEvent,
   PrintServerEvents,
   ServerGlobals,
 } from './api/types';
+import {
+  getPrintRuntime,
+  shutdownPrintRuntime,
+  startJobCleanup,
+} from './realtime/runtime';
 
 const browserDistFolder = join(import.meta.dirname, '../browser');
 
@@ -53,6 +55,11 @@ const config = loadServerConfig(
       }
     : process.env,
 );
+if (config.publicUrl && !config.enrollment.serverUrl) {
+  console.warn(
+    `PUBLIC_URL ${config.publicUrl.origin} is not https, so printer enrollment and agent install commands are disabled.`,
+  );
+}
 // Survives `ng serve` re-evaluations of this module; see realtime/runtime.ts.
 const runtime = getPrintRuntime(config);
 const getHub = () => runtime.hub;
@@ -118,6 +125,8 @@ app.use(
 
 app.use(express.json({ limit: '32kb' }));
 
+type Prettify<T> = { [K in keyof T]: T[K] } & {};
+
 app.use(
   '/api',
   apiRoot({
@@ -126,8 +135,19 @@ app.use(
     getHub,
     upload: config.upload,
     publicUrl: config.publicUrl,
+    enrollment: config.enrollment,
     entra: config.entra,
     client: config.client,
+  }),
+);
+
+app.use(
+  installRouter({
+    upload: config.upload,
+    enrollment: config.enrollment,
+    agentVersion: readServerVersion(
+      join(import.meta.dirname, '../../package.json'),
+    ),
   }),
 );
 
@@ -235,13 +255,28 @@ function startDevServer(port: number): Promise<void> {
   return devSockets.ready;
 }
 
+function formatAddressInfo(address: AddressInfo | string | null) {
+  if (!address) {
+    return '';
+  }
+  if (typeof address === 'string') {
+    return address;
+  }
+  if (address.family === 'IPv6') {
+    return `[${address.address}]:${address.port}`;
+  }
+  return `${address.address}:${address.port}`;
+}
+
+import pkg from '../package.json';
+
 /** Production: pages, the REST API, and socket.io share one HTTP server and port. */
 async function startServer(): Promise<void> {
   const server = http.createServer(app);
   const io = attachWebSockets(server, socketOptions);
   await listen(server, config.port);
   console.log(
-    `Node Express server listening on http://${server.address()?.toString()}:${config.port}`,
+    `${pkg.name} v${pkg.version} server listening on http://${formatAddressInfo(server.address())}`,
   );
 
   const shutdown = () => {

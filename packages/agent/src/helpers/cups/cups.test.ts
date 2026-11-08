@@ -3,6 +3,9 @@ import { spawn } from 'node:child_process';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   CupsClient,
+  humanQueueName,
+  parseQueueDescriptions,
+  parseQueueList,
   parseJobOutcome,
   parseQueueState,
   parseCupsQueue,
@@ -315,5 +318,53 @@ describe('CupsClient', () => {
       'CUPS job Queue-9 did not finish within 0 seconds and was canceled.',
     );
     expect(commands()).toContain('cancel Queue-9');
+  });
+});
+
+describe('queue discovery parsing', () => {
+  it('lists destinations from lpstat -e', () => {
+    expect(
+      parseQueueList(
+        'fake_null_printer\nHP-LaserJet-MFP-M129-M134\nHP_LaserJet_MFP_M130fw_D8F5EC\n\nlpstat: odd line\n',
+      ),
+    ).toEqual([
+      'fake_null_printer',
+      'HP-LaserJet-MFP-M129-M134',
+      'HP_LaserJet_MFP_M130fw_D8F5EC',
+    ]);
+  });
+
+  it('reads descriptions from lpstat -l -p', () => {
+    const output = [
+      'printer fake_null_printer is idle.  enabled since Wed 04 Nov 2026 07:15:14 PM MST',
+      '\tForm mounted:',
+      '\tDescription: fake_null_printer',
+      '\tLocation: ',
+      'printer HP-LaserJet-MFP-M129-M134 disabled since Wed 04 Nov 2026 -',
+      '\treason unknown',
+      '\tDescription: HP LaserJet MFP M130fw (D8F5EC)',
+      '\tAlerts: wifi-not-configured-report',
+      'printer Blank is idle.  enabled since Wed 04 Nov 2026',
+      '\tDescription: ',
+    ].join('\n');
+    expect(parseQueueDescriptions(output)).toEqual(
+      new Map([
+        ['fake_null_printer', 'fake_null_printer'],
+        [
+          'HP-LaserJet-MFP-M129-M134',
+          'HP LaserJet MFP M130fw (D8F5EC)',
+        ],
+      ]),
+    );
+  });
+
+  it('prefers a real description for the human name', () => {
+    expect(humanQueueName('Q', 'Front Desk')).toBe('Front Desk');
+    expect(
+      humanQueueName('fake_null_printer', 'fake_null_printer'),
+    ).toBe('fake null printer');
+    expect(humanQueueName('HP_LaserJet_M130')).toBe(
+      'HP LaserJet M130',
+    );
   });
 });

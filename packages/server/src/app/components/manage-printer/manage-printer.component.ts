@@ -1,4 +1,5 @@
-import { Component, inject, signal } from '@angular/core';
+import { DatePipe, NgTemplateOutlet } from '@angular/common';
+import { Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   FormControl,
@@ -7,17 +8,32 @@ import {
   Validators,
 } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import {
+  agentSetupCommands,
+  enrollSetupCommands,
+  type EnrollTokenResponse,
+  type SetupCommand,
+} from '@uwacwy/print-shared';
 import { filter } from 'rxjs';
+import { CLIENT_ENVIRONMENT } from '../../auth/client-environment';
 import { LiveEventsService } from '../../services/live-events/live-events.service';
 import {
   PrinterService,
+  type CreatedPrinter,
   type PrinterInput,
   type PrinterSummary,
 } from '../../services/printer/printer.service';
+import { SetupCommandsComponent } from '../setup-commands/setup-commands.component';
 
 @Component({
   selector: 'app-manage-printer',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [
+    DatePipe,
+    NgTemplateOutlet,
+    ReactiveFormsModule,
+    RouterLink,
+    SetupCommandsComponent,
+  ],
   template: `
     <main class="container py-4">
       <a routerLink="/manage" class="link-secondary"
@@ -47,33 +63,81 @@ import {
       }
       @if (loading()) {
         <p role="status">Loading printer...</p>
-      } @else if (agentToken()) {
+      } @else if (created(); as created) {
         <section
           class="border rounded p-3 mb-4"
           aria-labelledby="agent-token-heading"
         >
           <h2 class="h5" id="agent-token-heading">
-            Agent token (shown once)
+            Set up the agent (token shown once)
           </h2>
-          <p class="mb-2">
-            Copy this token into the printer agent configuration now.
+          <p>
+            Run one of these on the computer next to
+            {{ created.printer.name }}, or copy the agent token into
+            its configuration now. The token is not shown again.
           </p>
-          <code class="d-block text-break user-select-all">{{
-            agentToken()
-          }}</code>
-          <button
-            type="button"
-            class="btn btn-outline-secondary btn-sm mt-3"
-            (click)="copyToken()"
-          >
-            Copy token
-          </button>
-          @if (copied()) {
-            <span class="ms-2" role="status">Copied</span>
+          @if (!created.serverUrl) {
+            <p class="text-body-secondary">
+              Set <code>PUBLIC_URL</code> on the server to get
+              ready-made setup commands.
+            </p>
           }
+          <app-setup-commands [commands]="createdCommands()" />
         </section>
         <a class="btn btn-primary" routerLink="/manage">Done</a>
+      } @else if (isNew && mode() === 'enroll') {
+        <ng-container *ngTemplateOutlet="modeChoice" />
+        <section aria-labelledby="enroll-heading">
+          <h2 class="h5" id="enroll-heading">
+            Set up on the printer's computer
+          </h2>
+          @if (enrollToken(); as enroll) {
+            <p>
+              Run one of these on the computer next to the printer,
+              such as a Raspberry Pi with CUPS. It asks whether the
+              printer is a CUPS queue or a network (IPP) printer,
+              lists the printers it finds, and suggests a name and
+              slug. The printer appears in the list when setup
+              finishes.
+            </p>
+            <p>
+              Works until {{ enroll.expiresAt | date: 'shortTime' }}.
+              Anyone with the command can add a printer until then.
+            </p>
+            <app-setup-commands [commands]="enrollCommands()" />
+            <div class="d-flex gap-2 mt-3">
+              <a class="btn btn-primary" routerLink="/manage"
+                >Done</a
+              >
+              <button
+                type="button"
+                class="btn btn-outline-secondary"
+                [disabled]="saving()"
+                (click)="createEnrollToken()"
+              >
+                New command
+              </button>
+            </div>
+          } @else {
+            <p>
+              Get a command to run on the computer connected to the
+              printer. It finds the printer, asks for its name, and
+              starts the print agent.
+            </p>
+            <button
+              type="button"
+              class="btn btn-primary"
+              [disabled]="saving()"
+              (click)="createEnrollToken()"
+            >
+              {{ saving() ? 'Creating...' : 'Create setup command' }}
+            </button>
+          }
+        </section>
       } @else {
+        @if (isNew) {
+          <ng-container *ngTemplateOutlet="modeChoice" />
+        }
         <form
           [formGroup]="form"
           (ngSubmit)="save()"
@@ -109,7 +173,7 @@ import {
               autocomplete="off"
             />
             <div class="form-text">
-              Public upload URL: /printer/{{
+              Public upload URL: /print/{{
                 form.controls.slug.value || 'slug'
               }}
             </div>
@@ -202,6 +266,58 @@ import {
         }
       }
     </main>
+
+    <ng-template #modeChoice>
+      <fieldset class="mb-4">
+        <legend class="h6">
+          How do you want to add the printer?
+        </legend>
+        <div class="form-check">
+          <input
+            class="form-check-input"
+            type="radio"
+            name="add-mode"
+            id="add-mode-enroll"
+            value="enroll"
+            aria-describedby="add-mode-enroll-help"
+            [checked]="mode() === 'enroll'"
+            [disabled]="!enrollment"
+            (change)="mode.set('enroll')"
+          />
+          <label class="form-check-label" for="add-mode-enroll"
+            >Set up on the printer's computer</label
+          >
+          <div class="form-text" id="add-mode-enroll-help">
+            @if (enrollment) {
+              Recommended. Run one command there; it finds the
+              printer for you.
+            } @else {
+              Unavailable: set <code>PUBLIC_URL</code> on the server
+              to enable it.
+            }
+          </div>
+        </div>
+        <div class="form-check">
+          <input
+            class="form-check-input"
+            type="radio"
+            name="add-mode"
+            id="add-mode-manual"
+            value="manual"
+            aria-describedby="add-mode-manual-help"
+            [checked]="mode() === 'manual'"
+            (change)="mode.set('manual')"
+          />
+          <label class="form-check-label" for="add-mode-manual"
+            >Enter the printer's details here</label
+          >
+          <div class="form-text" id="add-mode-manual-help">
+            Then copy the agent's settings to its computer or a
+            Docker Compose file.
+          </div>
+        </div>
+      </fieldset>
+    </ng-template>
   `,
 })
 export class ManagePrinterComponent {
@@ -215,8 +331,38 @@ export class ManagePrinterComponent {
   readonly loading = signal(!this.isNew);
   readonly saving = signal(false);
   readonly error = signal('');
-  readonly agentToken = signal('');
-  readonly copied = signal(false);
+  /** The server has `PUBLIC_URL`, so printers can enroll from their own computers. */
+  readonly enrollment =
+    inject(CLIENT_ENVIRONMENT).enrollment ?? false;
+  readonly mode = signal<'enroll' | 'manual'>(
+    this.enrollment ? 'enroll' : 'manual',
+  );
+  readonly enrollToken = signal<EnrollTokenResponse | null>(null);
+  readonly enrollCommands = computed(() => {
+    const enroll = this.enrollToken();
+    return enroll
+      ? enrollSetupCommands(enroll.serverUrl, enroll.token)
+      : [];
+  });
+  readonly created = signal<CreatedPrinter | null>(null);
+  readonly createdCommands = computed((): SetupCommand[] => {
+    const created = this.created();
+    if (!created) {
+      return [];
+    }
+    const { printer, agentToken, serverUrl } = created;
+    return [
+      { id: 'token', label: 'Agent token', command: agentToken },
+      ...(serverUrl
+        ? agentSetupCommands({
+            serverUrl,
+            agentToken,
+            printerUri: printer.queue,
+            slug: printer.slug,
+          })
+        : []),
+    ];
+  });
   readonly confirmDelete = signal(false);
   readonly online = signal(false);
   readonly activeJobs = signal(0);
@@ -278,8 +424,8 @@ export class ManagePrinterComponent {
 
     if (this.isNew) {
       this.#printersApi.createAdminPrinter(input).subscribe({
-        next: ({ agentToken }) => {
-          this.agentToken.set(agentToken);
+        next: (created) => {
+          this.created.set(created);
           this.saving.set(false);
         },
         error: (error: unknown) => this.fail(error),
@@ -305,9 +451,16 @@ export class ManagePrinterComponent {
     });
   }
 
-  async copyToken(): Promise<void> {
-    await navigator.clipboard.writeText(this.agentToken());
-    this.copied.set(true);
+  createEnrollToken(): void {
+    this.saving.set(true);
+    this.error.set('');
+    this.#printersApi.createEnrollToken().subscribe({
+      next: (enroll) => {
+        this.enrollToken.set(enroll);
+        this.saving.set(false);
+      },
+      error: (error: unknown) => this.fail(error),
+    });
   }
 
   private loadPrinter(): void {
