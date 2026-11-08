@@ -9,12 +9,13 @@ import {
 import { MsalService } from '@azure/msal-angular';
 import {
   LIVE_NAMESPACE,
-  SOCKET_PATH,
   type LiveEvent,
-  type LiveServerEvents,
+  type LiveServerEvents
 } from '@uwacwy/print-shared';
 import { firstValueFrom, Observable, share } from 'rxjs';
 import { io, type Socket } from 'socket.io-client';
+import { createRouting } from 'ts-routes';
+import { root } from '../../../shared/routes/routes';
 import { CLIENT_ENVIRONMENT } from '../../auth/client-environment';
 import { getApiScope } from '../../auth/msal.config';
 
@@ -27,6 +28,8 @@ export const SOCKET_IO = new InjectionToken<typeof io>('SOCKET_IO', {
 
 const MIN_RETRY_MS = 1000;
 const MAX_RETRY_MS = 30_000;
+
+const $ = createRouting(root);
 
 /**
  * Admin live updates over the socket.io `/live` namespace, authenticated with the MSAL token.
@@ -54,7 +57,7 @@ export class LiveEventsService {
       const socket: Socket<LiveServerEvents> = this.#io(
         LIVE_NAMESPACE,
         {
-          path: SOCKET_PATH,
+          path: $.ws(),
           // Called on every attempt, so reconnects pick up refreshed tokens.
           auth: (send) =>
             this.#accessToken().then(

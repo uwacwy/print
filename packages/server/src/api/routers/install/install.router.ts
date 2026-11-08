@@ -1,4 +1,5 @@
 import express, { type Request, type Response } from 'express';
+import { createRouting } from 'ts-routes';
 import {
   INSTALL_SCRIPT_CONTENT_TYPE,
   renderErrorScript,
@@ -10,6 +11,7 @@ import type {
 } from '../../helpers/server-config/server-config';
 import { enrollTokenParam } from '../../middleware/auth/enroll-token/enroll-token.param';
 import { installScriptRateLimit } from '../../middleware/rate-limits/rate-limits';
+import { installRoutes } from './install.routes';
 
 export interface InstallRouterOptions {
   upload: UploadConfig;
@@ -30,6 +32,8 @@ const sendScript = (
       'Cache-Control': 'no-store',
     })
     .send(script);
+
+const routes = createRouting(installRoutes);
 
 /**
  * `curl -sSL <PUBLIC_URL>/printer/<enroll token>/install | bash` and the token-free
@@ -68,14 +72,16 @@ export default ({
   return express
     .Router()
     .get(
-      '/install.sh',
+      // '/install.sh',
+      routes.installScript.pattern,
       limit,
       script((serverUrl) =>
         renderInstallScript({ serverUrl, agentVersion }),
       ),
     )
     .get(
-      '/printer/:token/install',
+      // '/printer/:token/install',
+      routes.printerInstall.pattern,
       limit,
       enrollTokenParam(
         upload.access,

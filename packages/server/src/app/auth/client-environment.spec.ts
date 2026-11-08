@@ -16,10 +16,15 @@ const respond = (response: Response) =>
   vi.fn<typeof fetch>().mockResolvedValue(response);
 
 describe('client environment', () => {
+  const publicUrl = new URL('https://print.example.org');
   it('uses the server settings with a callback on the current origin', () => {
     expect(
       toClientEnvironment(
-        { msal, enrollment: true },
+        {
+          msal,
+          enrollment: true,
+          publicUrl,
+        },
         'https://print.example.org',
       ),
     ).toEqual({
@@ -34,14 +39,19 @@ describe('client environment', () => {
   it('falls back to the build-time sign-in when the server has none', () => {
     expect(
       toClientEnvironment(
-        { enrollment: false },
+        {
+          enrollment: false,
+          publicUrl,
+        },
         'https://print.example.org',
       ),
     ).toEqual({ ...environment, enrollment: false });
   });
 
   it('loads /api/client-config and falls back when it fails', async () => {
-    const ok = respond(Response.json({ msal, enrollment: false }));
+    const ok = respond(
+      Response.json({ msal, enrollment: false, publicUrl }),
+    );
     await expect(
       loadClientEnvironment(ok, 'http://localhost:4200'),
     ).resolves.toEqual({

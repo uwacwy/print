@@ -1,5 +1,7 @@
 import type { ClientConfig } from '@uwacwy/print-shared';
 import express from 'express';
+import { createRouting } from 'ts-routes';
+import { api } from '../shared/routes/api.routes';
 import type { PrintDatabase } from './helpers/database/database';
 import type {
   EnrollmentConfig,
@@ -23,7 +25,9 @@ export interface ApiRootOptions {
   enrollment?: EnrollmentConfig;
   client?: ClientConfig;
 }
+const routes = createRouting(api);
 
+routes.printers.$slug({ slug: 'test' });
 /** `/api`: each segment's router declares the credentials every endpoint accepts. */
 export default (options: ApiRootOptions) => {
   const authenticate = createAuthenticate({
@@ -33,15 +37,15 @@ export default (options: ApiRootOptions) => {
   });
   return express
     .Router()
-    .get('/healthz', (_request, response) =>
+    .get(routes.healthz.pattern, (_request, response) =>
       response.status(200).json({ status: 'ok' }),
     )
-    .get('/status', (_request, response) => {
+    .get(routes.status.pattern, (_request, response) => {
       response.set('cache-control', 'no-store').json({
         printersOnline: options.getHub().onlinePrinterIds().length,
       });
     })
-    .get('/client-config', (_request, response) => {
+    .get(routes.clientConfig.pattern, (_request, response) => {
       response.set('cache-control', 'no-cache').json(
         options.client ??
           ({
@@ -50,7 +54,10 @@ export default (options: ApiRootOptions) => {
           } satisfies ClientConfig),
       );
     })
-    .use('/agent', agentRouter(options))
-    .use('/session', sessionRouter({ authenticate }))
-    .use('/printers', printersRouter({ ...options, authenticate }));
+    .use(routes.agent.pattern, agentRouter(options))
+    .use(routes.session.pattern, sessionRouter({ authenticate }))
+    .use(
+      routes.printers.pattern,
+      printersRouter({ ...options, authenticate }),
+    );
 };

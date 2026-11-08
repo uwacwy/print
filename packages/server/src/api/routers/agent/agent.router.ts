@@ -1,12 +1,14 @@
-import express from 'express';
-import { createReadStream } from 'node:fs';
-import { rm, stat } from 'node:fs/promises';
-import { join } from 'node:path';
 import {
   MAX_ERROR_LENGTH,
   type EnrollResponse,
 } from '@uwacwy/print-shared';
+import express from 'express';
+import { createReadStream } from 'node:fs';
+import { rm, stat } from 'node:fs/promises';
+import { join } from 'node:path';
+import { createRouting } from 'ts-routes';
 import { z } from 'zod';
+import { agents } from '../../../shared/routes/api.agents.routes';
 import {
   createPrinter,
   getJobForPrinter,
@@ -19,10 +21,10 @@ import {
 } from '../../helpers/database/database';
 import { validatePrinterInput } from '../../helpers/printers';
 import type { UploadConfig } from '../../helpers/server-config/server-config';
-import type { AgentHub } from '../../sockets/agent-hub/agent-hub';
 import { createAuthenticate } from '../../middleware/auth/passport/passport';
 import { principal } from '../../middleware/auth/principal';
 import { enrollRateLimit } from '../../middleware/rate-limits/rate-limits';
+import type { AgentHub } from '../../sockets/agent-hub/agent-hub';
 
 export interface AgentApiOptions {
   db: PrintDatabase;
@@ -51,6 +53,8 @@ const agentPrinter = (request: express.Request) => {
   return who.printer;
 };
 
+const $ = createRouting(agents);
+
 /** HTTP side of the agent protocol; mounted at `/api/agent` to match the shared path helpers. */
 export default ({
   db,
@@ -69,7 +73,7 @@ export default ({
 
       // An agent holding an enrollment token creates its own printer and receives its agent token.
       .post(
-        '/enroll',
+        $.enroll.pattern,
         enrollRateLimit(upload),
         authenticate('enrollToken'),
         (request, response) => {
@@ -93,7 +97,7 @@ export default ({
       )
 
       // Agents report the queue they actually print to, so the admin list reflects the host.
-      .patch('/printer', agent, (request, response) => {
+      .patch($.printer.pattern, agent, (request, response) => {
         const printer = agentPrinter(request);
         const body = queueUpdate.safeParse(request.body);
         const fields = body.success
@@ -111,9 +115,16 @@ export default ({
         updatePrinter(db, printer.id, fields);
         response.json(agentView(getPrinterById(db, printer.id)!));
       })
-
+      .param('id', (req, res, next, id) => {
+        if (!JOB_ID_PATTERN.test(id)) {
+          res.status(400).json({ error: 'Invalid job ID' });
+          return;
+        }
+        next();
+      })
       .get(
-        '/jobs/:id/file',
+        // '/jobs/:id/file',
+        $.jobs.$id.file.pattern as ':id',
         agent,
         async (request, response, next) => {
           const printer = agentPrinter(request);
@@ -144,44 +155,49 @@ export default ({
         },
       )
 
-      .post('/jobs/:id/status', agent, async (request, response) => {
-        const printer = agentPrinter(request);
-        const body: unknown = request.body;
-        const status =
-          typeof body === 'object' &&
-          body !== null &&
-          'status' in body
-            ? body.status
-            : undefined;
-        if (status !== 'printed' && status !== 'failed') {
-          response
-            .status(400)
-            .json({ error: 'Invalid status report' });
-          return;
-        }
-        const errorText =
-          status === 'failed' &&
-          typeof body === 'object' &&
-          body !== null &&
-          'error' in body
-            ? String(body.error).slice(0, MAX_ERROR_LENGTH)
-            : undefined;
-        const jobId = request.params.id;
-        if (
-          !JOB_ID_PATTERN.test(jobId) ||
-          !reportJob(db, printer.id, jobId, status, errorText)
-        ) {
-          response
-            .status(404)
-            .json({ error: 'Job not found or already completed' });
-          return;
-        }
-        // A failed job keeps its PDF so an admin can retry it until it expires.
-        if (status === 'printed') {
-          await rm(join(jobsDir, `${jobId}.pdf`), { force: true });
-        }
-        getHub().publishJob(printer.id, jobId, status);
-        response.json({ accepted: true });
-      })
+      .post(
+        // '/jobs/:id/status',
+        $.jobs.$id.status.pattern as ':id',
+        agent,
+        async (request, response) => {
+          const printer = agentPrinter(request);
+          const body: unknown = request.body;
+          const status =
+            typeof body === 'object' &&
+            body !== null &&
+            'status' in body
+              ? body.status
+              : undefined;
+          if (status !== 'printed' && status !== 'failed') {
+            response
+              .status(400)
+              .json({ error: 'Invalid status report' });
+            return;
+          }
+          const errorText =
+            status === 'failed' &&
+            typeof body === 'object' &&
+            body !== null &&
+            'error' in body
+              ? String(body.error).slice(0, MAX_ERROR_LENGTH)
+              : undefined;
+          const jobId = request.params.id;
+          if (
+            !JOB_ID_PATTERN.test(jobId) ||
+            !reportJob(db, printer.id, jobId, status, errorText)
+          ) {
+            response
+              .status(404)
+              .json({ error: 'Job not found or already completed' });
+            return;
+          }
+          // A failed job keeps its PDF so an admin can retry it until it expires.
+          if (status === 'printed') {
+            await rm(join(jobsDir, `${jobId}.pdf`), { force: true });
+          }
+          getHub().publishJob(printer.id, jobId, status);
+          response.json({ accepted: true });
+        },
+      )
   );
 };

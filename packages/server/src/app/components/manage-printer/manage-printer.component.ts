@@ -1,12 +1,22 @@
 import { DatePipe, NgTemplateOutlet } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import {
+  Component,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
+import {
+  takeUntilDestroyed,
+  toSignal,
+} from '@angular/core/rxjs-interop';
 import {
   FormControl,
   FormGroup,
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
+import { Title } from '@angular/platform-browser';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   agentSetupCommands,
@@ -385,7 +395,22 @@ export class ManagePrinterComponent {
     coverPage: new FormControl(false, { nonNullable: true }),
   });
 
+  readonly #title = inject(Title);
+
+  readonly printerName = toSignal(
+    this.form.controls.name.valueChanges,
+  );
+
+  readonly pageTitle = computed(() => {
+    const name = this.printerName();
+    return name ? `Manage ${name}` : 'Manage Printer';
+  }, {});
+
   constructor() {
+    effect(() => {
+      this.#title.setTitle(this.pageTitle());
+    });
+
     if (this.isNew) {
       return;
     }

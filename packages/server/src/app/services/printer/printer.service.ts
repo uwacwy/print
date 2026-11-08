@@ -1,9 +1,11 @@
-import { inject, Service } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { inject, Service } from '@angular/core';
 import {
   ENROLL_TOKEN_PATH,
   type EnrollTokenResponse,
 } from '@uwacwy/print-shared';
+import { createRouting } from 'ts-routes';
+import { root } from '../../../shared/routes/routes';
 
 export interface PrinterInput {
   slug: string;
@@ -101,20 +103,25 @@ export interface DeletedJobs {
   printer: PrinterSummary;
 }
 
+const $ = createRouting(root);
+
 @Service()
 export class PrinterService {
   readonly #http = inject(HttpClient);
 
   getPrinter(slug: string, token?: string | null) {
-    return this.#http.get<PublicPrinter>(printerUrl(slug), {
-      headers: token ? bearer(token) : undefined,
-    });
+    return this.#http.get<PublicPrinter>(
+      $.api.printers.$slug({ slug }),
+      {
+        headers: token ? bearer(token) : undefined,
+      },
+    );
   }
 
   /** Trades the printer PIN for a short-lived upload token. */
   exchangePin(slug: string, pin: string) {
     return this.#http.post<IssuedUploadToken>(
-      `${printerUrl(slug)}/token`,
+      $.api.printers.$slug.token({ slug }),
       null,
       {
         headers: new HttpHeaders({
@@ -130,22 +137,24 @@ export class PrinterService {
   submitJob(slug: string, form: FormData, token?: string | null) {
     const headers = token ? bearer(token) : new HttpHeaders();
     return this.#http.post<SubmittedJob>(
-      `${printerUrl(slug)}/jobs`,
+      $.api.printers.$slug.jobs({ slug }),
       form,
       { headers: headers.set('x-print-upload', '1') },
     );
   }
 
   listAdminPrinters() {
-    return this.#http.get<PrinterSummary[]>('/api/printers');
+    return this.#http.get<PrinterSummary[]>($.api.printers());
   }
 
   getAdminPrinter(slug: string) {
-    return this.#http.get<PrinterSummary>(`${printerUrl(slug)}`);
+    return this.#http.get<PrinterSummary>(
+      $.api.printers.$slug({ slug }),
+    );
   }
 
   createAdminPrinter(input: PrinterInput) {
-    return this.#http.post<CreatedPrinter>('/api/printers', input);
+    return this.#http.post<CreatedPrinter>($.api.printers(), input);
   }
 
   /** A short-lived token the printer's computer exchanges for a new printer and its agent token. */
@@ -158,32 +167,36 @@ export class PrinterService {
 
   updateAdminPrinter(slug: string, input: PrinterInput) {
     return this.#http.patch<PrinterSummary>(
-      `${printerUrl(slug)}`,
+      $.api.printers.$slug({ slug }),
       input,
     );
   }
 
   deleteAdminPrinter(slug: string) {
-    return this.#http.delete<void>(`${printerUrl(slug)}`);
+    return this.#http.delete<void>($.api.printers.$slug({ slug }));
   }
 
   /** Fetched as a blob because management routes need the MSAL bearer token, which a plain link cannot send. */
   getQrPoster(slug: string, request: QrPosterRequest = {}) {
-    return this.#http.post(`${printerUrl(slug)}/qr.pdf`, request, {
-      responseType: 'blob',
-    });
+    return this.#http.post(
+      $.api.printers.$slug.qrPdf({ slug }),
+      request,
+      {
+        responseType: 'blob',
+      },
+    );
   }
 
   printQrPoster(slug: string, request: QrPosterRequest = {}) {
     return this.#http.post<QueuedQrSheet>(
-      `${printerUrl(slug)}/qr-print`,
+      $.api.printers.$slug.qrPrint({ slug }),
       request,
     );
   }
 
   issueQrToken(slug: string, window: UploadTokenWindow = {}) {
     return this.#http.post<IssuedQrToken>(
-      `${printerUrl(slug)}/qr-token`,
+      $.api.printers.$slug.qrToken({ slug }),
       window,
     );
   }
@@ -191,47 +204,44 @@ export class PrinterService {
   /** Invalidates every QR (and PIN) upload token issued so far for this printer. */
   revokeQrCodes(slug: string) {
     return this.#http.post<PrinterSummary>(
-      `${printerUrl(slug)}/qr-epoch`,
+      $.api.printers.$slug.qrEpoch({ slug }),
       {},
     );
   }
 
   refreshPin(slug: string) {
     return this.#http.post<PrinterSummary>(
-      `${printerUrl(slug)}/pin`,
+      $.api.printers.$slug.pin({ slug }),
       {},
     );
   }
 
   disablePin(slug: string) {
     return this.#http.delete<PrinterSummary>(
-      `${printerUrl(slug)}/pin`,
+      $.api.printers.$slug.pin({ slug }),
     );
   }
 
   rotateAgentToken(slug: string) {
     return this.#http.post<CreatedPrinter>(
-      `${printerUrl(slug)}/agent-token`,
+      $.api.printers.$slug.agentToken({ slug }),
       {},
     );
   }
 
   retryFailedJobs(slug: string) {
     return this.#http.post<RetriedJobs>(
-      `${printerUrl(slug)}/jobs/retry`,
+      $.api.printers.$slug.jobs.retry({ slug }),
       {},
     );
   }
 
   deleteAllJobs(slug: string) {
     return this.#http.delete<DeletedJobs>(
-      `${printerUrl(slug)}/jobs`,
+      $.api.printers.$slug.jobs({ slug }),
     );
   }
 }
-
-const printerUrl = (slug: string) =>
-  `/api/printers/${encodeURIComponent(slug)}`;
 
 const bearer = (token: string) =>
   new HttpHeaders({ authorization: `Bearer ${token}` });

@@ -2,60 +2,38 @@ import { DatePipe, isPlatformBrowser } from '@angular/common';
 import {
   Component,
   computed,
-  DestroyRef,
-  Directive,
   effect,
-  ElementRef,
   inject,
   input,
-  InputSignal,
-  InputSignalWithTransform,
-  model,
-  ModelSignal,
-  output,
-  OutputRef,
   PLATFORM_ID,
   signal,
-  viewChild,
 } from '@angular/core';
 import { rxResource, toSignal } from '@angular/core/rxjs-interop';
 import {
   applyEach,
-  DisabledReason,
   form,
   FormField,
   FormRoot,
-  FormValueControl,
   maxLength,
-  MaybeFieldTree,
   pattern,
   required,
   validate,
-  ValidationError,
-  WithOptionalFieldTree,
   type FieldTree,
   type TreeValidationResult,
 } from '@angular/forms/signals';
+import { Title } from '@angular/platform-browser';
 import { Router } from '@angular/router';
 import {
   MsalBroadcastService,
   MsalService,
 } from '@azure/msal-angular';
 import { InteractionStatus } from '@azure/msal-browser';
-import {
-  filter,
-  firstValueFrom,
-  fromEvent,
-  map,
-  of,
-  startWith,
-} from 'rxjs';
+import { filter, firstValueFrom, map, of, startWith } from 'rxjs';
 import {
   PrinterService,
   type UploadTokenStatus,
 } from '../../services/printer/printer.service';
 import { FileInput } from './file-input.component';
-import { Title } from '@angular/platform-browser';
 
 interface DocumentRow {
   id: number;
@@ -180,16 +158,16 @@ export class PrintComponent {
       : undefined,
   );
 
-  // readonly #title = inject(Title);
+  readonly #title = inject(Title);
 
-  // readonly titleEffect = effect(() => {
-  //   const t = this.printer()?.name;
-  //   if (t) {
-  //     this.#title.setTitle(t);
-  //   } else {
-  //     this.#title.setTitle('Print');
-  //   }
-  // });
+  constructor() {
+    effect(() => {
+      const printer = this.printer();
+      if (printer) {
+        this.#title.setTitle(`${printer.name}`);
+      }
+    });
+  }
 
   readonly notFound = computed(
     () => httpStatus(this.printerResource.error()) === 404,

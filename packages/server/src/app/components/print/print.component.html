@@ -66,8 +66,6 @@
               let index = $index
             ) {
               @let id = document.id().value();
-              @let fileState = document.file();
-              @let file = fileState.value();
               @let fileError = errorOf(document.file);
               <div class="row g-2 align-items-end mb-3">
                 <div class="col-sm-7">
@@ -131,11 +129,6 @@
                   </div>
                 }
               </div>
-              <div class="row">
-                <p class="text-muted">
-                  {{ file?.name }} - {{ file?.size }} bytes
-                </p>
-              </div>
             }
             <button
               type="button"
@@ -152,7 +145,7 @@
 
           <div>
             <button
-              class="btn btn-primary"
+              class="btn btn-primary btn-lg"
               type="submit"
               [disabled]="uploadForm().submitting()"
             >

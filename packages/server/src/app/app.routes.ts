@@ -1,20 +1,20 @@
 import { Routes } from '@angular/router';
 import { MsalGuard } from '@azure/msal-angular';
 
-import { WelcomeComponent } from './components/welcome/welcome.component';
-import { PrintComponent } from './components/print/print.component';
+import { AuthenticatedComponent } from './components/authenticated/authenticated.component';
 import { ManagePrinterComponent } from './components/manage-printer/manage-printer.component';
 import { ManagePrintersComponent } from './components/manage-printers/manage-printers.component';
-import { PrinterQrComponent } from './components/printer-qr/printer-qr.component';
 import { NotFound } from './components/not-found/not-found';
-import { AuthenticatedComponent } from './components/authenticated/authenticated.component';
-import { computed } from '@angular/core';
+import { PrintComponent } from './components/print/print.component';
+import { PrinterQrComponent } from './components/printer-qr/printer-qr.component';
+import { WelcomeComponent } from './components/welcome/welcome.component';
 
 export const routes: Routes = [
   { path: 'auth/callback', pathMatch: 'full', redirectTo: '' },
   {
     path: '',
     component: WelcomeComponent,
+    title: 'Welcome',
     data: {
       width: {
         xs: 12,
@@ -28,21 +28,14 @@ export const routes: Routes = [
   {
     path: 'print/:slug',
     component: PrintComponent,
+    title: 'Print Documents',
     data: {
       width: {
         xs: 12,
         sm: 12,
         md: 12,
-        lg: 6,
+        lg: 8,
         xl: 6,
-      },
-      title: {
-        label: 'Print to {0}',
-        placeholders: [
-          (inst: PrintComponent) =>
-            computed(() => inst.printer()?.name ?? inst.slug()),
-          // ':slug',
-        ],
       },
     },
   },
@@ -61,17 +54,13 @@ export const routes: Routes = [
       {
         path: ':slug/qr',
         component: PrinterQrComponent,
-        title: '{0} QR Codes',
-        data: {
-          title: {
-            label: '{0} QR Codes',
-            placeholders: [
-              (inst: PrinterQrComponent) => inst.printer()?.name,
-            ],
-          },
-        },
+        title: 'Printer QR Codes',
       },
-      { path: ':slug', component: ManagePrinterComponent },
+      {
+        path: ':slug',
+        component: ManagePrinterComponent,
+        title: 'Manage Printer',
+      },
     ],
   },
   { path: '**', component: NotFound },

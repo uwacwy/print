@@ -6,7 +6,9 @@ import express, {
 } from 'express';
 import { access as fileAccess, rm } from 'node:fs/promises';
 import { join } from 'node:path';
+import { createRouting } from 'ts-routes';
 import { z } from 'zod';
+import { printers } from '../../../shared/routes/api.printers.routes';
 import {
   bumpQrEpoch,
   countActiveJobs,
@@ -72,6 +74,8 @@ import {
 } from '../../middleware/rate-limits/rate-limits';
 import { requireSameOrigin } from '../../middleware/same-origin/same-origin';
 import type { AgentHub } from '../../sockets/agent-hub/agent-hub';
+
+const routes = createRouting(printers);
 
 export interface PrintersRouterOptions {
   db: PrintDatabase;
@@ -378,33 +382,37 @@ export default function printersRouter({
         });
       })
       // A short-lived token an agent exchanges for its own printer; see POST /api/agent/enroll.
-      .post('/enroll-token', admin, (_request, response) => {
-        if (!serverUrl) {
-          response.status(503).json({
-            code: 'public_url_required',
-            error:
-              'Set PUBLIC_URL (https) on the server to enroll printers from their computers.',
-          });
-          return;
-        }
-        const { token, expiresAt } = signEnrollToken(
-          access,
-          enrollment?.tokenTtlMinutes ??
-            DEFAULT_ENROLL_TOKEN_TTL_MINUTES,
-        );
-        response
-          .set('Cache-Control', 'no-store')
-          .status(201)
-          .json({
-            token,
-            expiresAt: expiresAt.toISOString(),
-            serverUrl,
-          } satisfies EnrollTokenResponse);
-      })
+      .post(
+        routes.enrollToken.pattern,
+        admin,
+        (_request, response) => {
+          if (!serverUrl) {
+            response.status(503).json({
+              code: 'public_url_required',
+              error:
+                'Set PUBLIC_URL (https) on the server to enroll printers from their computers.',
+            });
+            return;
+          }
+          const { token, expiresAt } = signEnrollToken(
+            access,
+            enrollment?.tokenTtlMinutes ??
+              DEFAULT_ENROLL_TOKEN_TTL_MINUTES,
+          );
+          response
+            .set('Cache-Control', 'no-store')
+            .status(201)
+            .json({
+              token,
+              expiresAt: expiresAt.toISOString(),
+              serverUrl,
+            } satisfies EnrollTokenResponse);
+        },
+      )
 
       // Public details plus the caller's upload access; administrators also get management fields.
       .get(
-        '/:slug',
+        routes.$slug.pattern,
         authenticate.optional('entraUser'),
         async (request, response) => {
           const printer = printerOf(response);
@@ -436,38 +444,46 @@ export default function printersRouter({
           });
         },
       )
-      .patch('/:slug', admin, (request, response) => {
-        const parsed = validatePrinterInput(request.body);
-        if ('error' in parsed) {
-          response.status(400).json(parsed);
-          return;
-        }
-        const updated = updatePrinter(
-          db,
-          printerOf(response).id,
-          parsed.fields,
-        );
-        if (typeof updated === 'string') {
-          response.status(409).json({ error: updated });
-          return;
-        }
-        response.json(reloaded(response));
-      })
-      .delete('/:slug', admin, async (_request, response) => {
-        const { id } = printerOf(response);
-        const jobIds = deletePrinter(db, id) ?? [];
-        getHub().disconnect(id);
-        await Promise.all(
-          jobIds.map((jobId) =>
-            rm(join(jobsDir, `${jobId}.pdf`), { force: true }),
-          ),
-        );
-        response.status(204).end();
-      })
+      .patch(
+        routes.$slug.pattern,
+        admin,
+        (request, response) => {
+          const parsed = validatePrinterInput(request.body);
+          if ('error' in parsed) {
+            response.status(400).json(parsed);
+            return;
+          }
+          const updated = updatePrinter(
+            db,
+            printerOf(response).id,
+            parsed.fields,
+          );
+          if (typeof updated === 'string') {
+            response.status(409).json({ error: updated });
+            return;
+          }
+          response.json(reloaded(response));
+        },
+      )
+      .delete(
+        routes.$slug.pattern,
+        admin,
+        async (_request, response) => {
+          const { id } = printerOf(response);
+          const jobIds = deletePrinter(db, id) ?? [];
+          getHub().disconnect(id);
+          await Promise.all(
+            jobIds.map((jobId) =>
+              rm(join(jobsDir, `${jobId}.pdf`), { force: true }),
+            ),
+          );
+          response.status(204).end();
+        },
+      )
 
       // Exchanges `Authorization: Pin` for a short-lived upload token.
       .post(
-        '/:slug/token',
+        routes.$slug.token.pattern,
         requireSameOrigin,
         pinFailures,
         pinIssuanceRateLimit(upload),
@@ -500,31 +516,37 @@ export default function printersRouter({
       // Credentials are checked before the multipart body is read, so anonymous clients cannot
       // make the server buffer large files.
       .post(
-        '/:slug/jobs',
+        // '/:slug/jobs',
+        routes.$slug.jobs.pattern,
         uploadRateLimit(upload),
         requireSameOrigin,
         pinFailures,
         authenticate('uploadToken', 'pin', 'entraUser'),
         submitJob,
       )
-      .delete('/:slug/jobs', admin, async (_request, response) => {
-        const printer = printerOf(response);
-        const jobIds = deletePrinterJobs(db, printer.id);
-        await Promise.all(
-          jobIds.map((jobId) =>
-            rm(join(jobsDir, `${jobId}.pdf`), { force: true }),
-          ),
-        );
-        getHub().publishJobsDeleted(printer.id, jobIds.length);
-        response.json({
-          deleted: jobIds.length,
-          printer: summary(printer, 0),
-        });
-      })
+      .delete(
+        routes.$slug.jobs.pattern,
+        admin,
+        async (_request, response) => {
+          const printer = printerOf(response);
+          const jobIds = deletePrinterJobs(db, printer.id);
+          await Promise.all(
+            jobIds.map((jobId) =>
+              rm(join(jobsDir, `${jobId}.pdf`), { force: true }),
+            ),
+          );
+          getHub().publishJobsDeleted(printer.id, jobIds.length);
+          response.json({
+            deleted: jobIds.length,
+            printer: summary(printer, 0),
+          });
+        },
+      )
 
       // Requeues failed jobs whose document is still on disk.
       .post(
-        '/:slug/jobs/retry',
+        // '/:slug/jobs/retry',
+        routes.$slug.jobs.retry.pattern,
         admin,
         async (_request, response) => {
           const printer = printerOf(response);
@@ -559,68 +581,92 @@ export default function printersRouter({
         },
       )
 
-      .get('/:slug/qr.pdf', admin, sendPoster)
-      .post('/:slug/qr.pdf', admin, sendPoster)
-      .post('/:slug/qr-token', admin, async (request, response) => {
-        const issued = await resolveQrToken(request, response);
-        if (!issued) {
-          return;
-        }
-        const path = printPath(printerOf(response), issued.token);
-        response
-          .set('Cache-Control', 'no-store')
-          .status(201)
-          .json({
-            token: issued.token,
-            path,
-            url: absolute(request, path),
-            notBefore: issued.notBefore.toISOString(),
-            expiresAt: issued.expiresAt.toISOString(),
+      .get(routes.$slug.qrPdf.pattern, admin, sendPoster)
+      .post(routes.$slug.qrPdf.pattern, admin, sendPoster)
+      .post(
+        routes.$slug.qrToken.pattern,
+        admin,
+        async (request, response) => {
+          const issued = await resolveQrToken(request, response);
+          if (!issued) {
+            return;
+          }
+          const path = printPath(printerOf(response), issued.token);
+          response
+            .set('Cache-Control', 'no-store')
+            .status(201)
+            .json({
+              token: issued.token,
+              path,
+              url: absolute(request, path),
+              notBefore: issued.notBefore.toISOString(),
+              expiresAt: issued.expiresAt.toISOString(),
+            });
+        },
+      )
+      .post(
+        routes.$slug.qrPrint.pattern,
+        admin,
+        async (request, response) => {
+          const printer = printerOf(response);
+          const issued = await resolveQrToken(request, response);
+          if (!issued) {
+            return;
+          }
+          const queued = await queue(
+            printer,
+            {
+              printerId: printer.id,
+              title: `QR info sheet - ${printer.name}`,
+              copies: 1,
+              originalName: `print-${printer.slug}-qr.pdf`,
+              submittedBy: submittedBy(principal(request)),
+              uploaderIp: request.ip ?? '',
+            },
+            await qrPoster(request, printer, issued),
+          );
+          response.status(202).json(queued);
+        },
+      )
+      .post(
+        routes.$slug.qrEpoch.pattern,
+        admin,
+        (_request, response) => {
+          bumpQrEpoch(db, printerOf(response).id);
+          response.json(reloaded(response));
+        },
+      )
+
+      .post(
+        routes.$slug.pin.pattern,
+        admin,
+        (_request, response) => {
+          setPrinterPin(db, printerOf(response).id, generatePin());
+          response.json(reloaded(response));
+        },
+      )
+      .delete(
+        routes.$slug.pin.pattern,
+        admin,
+        (_request, response) => {
+          setPrinterPin(db, printerOf(response).id, null);
+          response.json(reloaded(response));
+        },
+      )
+
+      .post(
+        routes.$slug.agentToken.pattern,
+        admin,
+        (_request, response) => {
+          const printer = printerOf(response);
+          const agentToken = rotatePrinterToken(db, printer.id)!;
+          getHub().disconnect(printer.id);
+          response.json({
+            printer: summary(printer),
+            agentToken,
+            serverUrl,
           });
-      })
-      .post('/:slug/qr-print', admin, async (request, response) => {
-        const printer = printerOf(response);
-        const issued = await resolveQrToken(request, response);
-        if (!issued) {
-          return;
-        }
-        const queued = await queue(
-          printer,
-          {
-            printerId: printer.id,
-            title: `QR info sheet - ${printer.name}`,
-            copies: 1,
-            originalName: `print-${printer.slug}-qr.pdf`,
-            submittedBy: submittedBy(principal(request)),
-            uploaderIp: request.ip ?? '',
-          },
-          await qrPoster(request, printer, issued),
-        );
-        response.status(202).json(queued);
-      })
-      .post('/:slug/qr-epoch', admin, (_request, response) => {
-        bumpQrEpoch(db, printerOf(response).id);
-        response.json(reloaded(response));
-      })
-
-      .post('/:slug/pin', admin, (_request, response) => {
-        setPrinterPin(db, printerOf(response).id, generatePin());
-        response.json(reloaded(response));
-      })
-      .delete('/:slug/pin', admin, (_request, response) => {
-        setPrinterPin(db, printerOf(response).id, null);
-        response.json(reloaded(response));
-      })
-
-      .post('/:slug/agent-token', admin, (_request, response) => {
-        const printer = printerOf(response);
-        const agentToken = rotatePrinterToken(db, printer.id)!;
-        getHub().disconnect(printer.id);
-        response.json({
-          printer: summary(printer),
-          agentToken,
-          serverUrl,
-        });
-      })
+        },
+      )
   );
 }

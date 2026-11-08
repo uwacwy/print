@@ -1,7 +1,11 @@
 import { InjectionToken } from '@angular/core';
 import type { ClientConfig } from '@uwacwy/print-shared';
+import { createRouting } from 'ts-routes';
 import { environment } from '../../environments/environment';
 import type { PrintServerClientEnvironment } from '../../environments/environment.interface';
+import { root } from '../../shared/routes/routes';
+
+const $ = createRouting(root);
 
 /** Sign-in settings for this deployment; `main.ts` provides the server's runtime values. */
 export const CLIENT_ENVIRONMENT =
@@ -35,7 +39,7 @@ export function loadClientEnvironment(
   fetchConfig: typeof fetch = fetch,
   origin = globalThis.location.origin,
 ): Promise<PrintServerClientEnvironment> {
-  return fetchConfig('/api/client-config', { cache: 'no-cache' })
+  return fetchConfig($.api.clientConfig(), { cache: 'no-cache' })
     .then((response) =>
       response.ok
         ? (response.json() as Promise<ClientConfig>)

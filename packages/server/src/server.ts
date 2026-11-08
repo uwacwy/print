@@ -127,6 +127,8 @@ app.use(express.json({ limit: '32kb' }));
 
 type Prettify<T> = { [K in keyof T]: T[K] } & {};
 
+const routes = createRouting(root);
+
 app.use(
   '/api',
   apiRoot({
@@ -268,7 +270,9 @@ function formatAddressInfo(address: AddressInfo | string | null) {
   return `${address.address}:${address.port}`;
 }
 
+import { createRouting } from 'ts-routes';
 import pkg from '../package.json';
+import { root } from './shared/routes/routes';
 
 /** Production: pages, the REST API, and socket.io share one HTTP server and port. */
 async function startServer(): Promise<void> {
