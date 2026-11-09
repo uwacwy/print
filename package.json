@@ -20,7 +20,7 @@
     "watch:server": "ng build print-server --watch --configuration development",
     "build:server": "tsc -b shared && ng build print-server",
     "test": "ng test print-server --watch=false && npm run test:api",
-    "test:api": "vitest run shared/src/ packages/agent/src/ packages/server/src/app/helpers/ packages/server/src/app/components/manage-printer/helpers/ packages/server/src/app/components/manage-printers/helpers/ packages/server/src/*.test.ts packages/server/src/api/ packages/server/src/app/auth/msal.config.spec.ts",
+    "test:api": "vitest run shared/src/ packages/agent/src/ packages/server/src/app/helpers/ packages/server/src/app/components/manage-printer/helpers/ packages/server/src/app/components/manage-printers/helpers/ packages/server/src/app/components/printer-qr/helpers/ packages/server/src/*.test.ts packages/server/src/api/ packages/server/src/app/auth/msal.config.spec.ts",
     "dev:agent": "npm run start -w @uwacwy/print-agent",
     "build:agent": "tsc -b shared && npm run build -w @uwacwy/print-agent",
     "typecheck:api": "tsc -b shared && tsc -p packages/server/tsconfig.app.json --noEmit && tsc -p packages/agent --noEmit && npm run typecheck:api:tests",

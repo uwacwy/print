@@ -4,18 +4,15 @@ import {
   convertToParamMap,
   provideRouter,
 } from '@angular/router';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   PrinterService,
   type IssuedQrToken,
   type PrinterSummary,
 } from '../../services/printer/printer.service';
-import {
-  PrinterQrComponent,
-  toLocalInput,
-  untilPresets,
-} from './printer-qr.component';
+import { toLocalInput } from './helpers/qr-window/qr-window';
+import { PrinterQrComponent } from './printer-qr.component';
 
 const frontOffice: PrinterSummary = {
   id: 1,
@@ -82,44 +79,6 @@ async function setup(
   };
   return { fixture, element, button, generate, issueQrToken };
 }
-
-describe('toLocalInput', () => {
-  it('formats local wall-clock time for datetime-local inputs', () => {
-    expect(toLocalInput(new Date(2030, 0, 2, 3, 4, 59))).toBe(
-      '2030-01-02T03:04',
-    );
-  });
-});
-
-describe('untilPresets', () => {
-  it('starts at the next whole local hour and marks hours on later days', () => {
-    const presets = untilPresets(new Date(2030, 0, 2, 21, 5), 4);
-    expect(presets.map(({ value }) => value)).toEqual([
-      '2030-01-02T22:00',
-      '2030-01-02T23:00',
-      '2030-01-03T00:00',
-      '2030-01-03T01:00',
-    ]);
-    const time = new Intl.DateTimeFormat(undefined, {
-      hour: 'numeric',
-    });
-    expect(presets[0].label).toBe(
-      time.format(new Date(2030, 0, 2, 22)),
-    );
-    expect(presets[2].label).not.toBe(
-      time.format(new Date(2030, 0, 3, 0)),
-    );
-    expect(presets[2].label).toContain(
-      time.format(new Date(2030, 0, 3, 0)),
-    );
-  });
-
-  it('skips to the following hour when already on the hour', () => {
-    expect(
-      untilPresets(new Date(2030, 0, 2, 13, 0), 1)[0].value,
-    ).toBe('2030-01-02T14:00');
-  });
-});
 
 describe('PrinterQrComponent', () => {
   afterEach(() => vi.restoreAllMocks());
@@ -317,5 +276,38 @@ describe('PrinterQrComponent', () => {
     expect(
       element.querySelector('[role=status]')?.textContent,
     ).toContain('revoked');
+  });
+
+  it('shows an error and no QR when issuing fails', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { element, generate } = await setup({
+      issueQrToken: () => throwError(() => new Error('boom')),
+    });
+    await generate();
+    expect(element.querySelector('[role=alert]')?.textContent).toContain(
+      'Failed to generate QR',
+    );
+    expect(element.querySelector('a.print-link')).toBeNull();
+  });
+
+  it('shows an error when a PIN request fails', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const { fixture, element, button } = await setup({
+      refreshPin: () => throwError(() => new Error('nope')),
+    });
+    button('Turn on PIN').click();
+    await fixture.whenStable();
+    expect(element.querySelector('[role=alert]')?.textContent).toContain(
+      'Request failed. Please try again.',
+    );
+  });
+
+  it('reports a missing printer', async () => {
+    const { element } = await setup({
+      getAdminPrinter: () => throwError(() => new Error('404')),
+    });
+    expect(element.querySelector('h1')?.textContent).toContain(
+      'Printer not found',
+    );
   });
 });
