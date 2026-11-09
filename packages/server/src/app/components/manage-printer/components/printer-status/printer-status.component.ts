@@ -1,16 +1,15 @@
 import { Component, input } from '@angular/core';
 
+import { AgentBadgeComponent } from '../../../agent-badge/agent-badge.component';
+
 /** Whether the printer's agent is connected, and how many jobs are waiting. */
 @Component({
   selector: 'app-printer-status',
+  imports: [AgentBadgeComponent],
   template: `
     <p role="status">
       Agent:
-      @if (online()) {
-        <span class="badge text-bg-success">Online</span>
-      } @else {
-        <span class="badge text-bg-secondary">Offline</span>
-      }
+      <app-agent-badge [online]="online()" />
       <span class="text-muted ms-2"
         >{{ activeJobs() }} active job(s)</span
       >

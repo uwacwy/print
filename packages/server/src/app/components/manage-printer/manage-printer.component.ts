@@ -24,6 +24,7 @@ import {
   PrinterService,
   type CreatedPrinter,
 } from '../../services/printer/printer.service';
+import { AlertComponent } from '../alert/alert.component';
 import {
   AddModeChoiceComponent,
   type AddMode,
@@ -42,12 +43,13 @@ import {
 import {
   applyLiveEvent,
   type PrinterLiveStatus,
-} from './helpers/printer-live-status/printer-live-status';
+} from '../../helpers/printer-live-status/printer-live-status';
 
 @Component({
   selector: 'app-manage-printer',
   imports: [
     RouterLink,
+    AlertComponent,
     AddModeChoiceComponent,
     CreatedPrinterComponent,
     EnrollSetupComponent,
@@ -64,9 +66,7 @@ import {
       </h1>
 
       @if (error()) {
-        <div class="alert alert-danger" role="alert">
-          {{ error() }}
-        </div>
+        <app-alert variant="danger">{{ error() }}</app-alert>
       }
       @if (printer()) {
         <app-printer-status
@@ -136,6 +136,8 @@ export class ManagePrinterComponent {
     return {
       online: printer?.online ?? false,
       activeJobs: printer?.activeJobs ?? 0,
+      failedJobs: printer?.failedJobs ?? 0,
+      lastSeenAt: printer?.lastSeenAt ?? null,
     };
   });
 

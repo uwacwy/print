@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of, Subject } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   LiveEventsService,
@@ -202,7 +202,7 @@ describe('ManagePrintersComponent', () => {
 
     expect(confirm).toHaveBeenCalledTimes(2);
     expect(
-      element.querySelector('details code.user-select-all')
+      element.querySelector('details pre code')
         ?.textContent,
     ).toBe('new-secret');
 
@@ -264,5 +264,31 @@ describe('ManagePrintersComponent', () => {
     expect(deleteAdminPrinter).toHaveBeenCalledWith('front-office');
     expect(element.querySelector('li.printer')).toBeNull();
     expect(element.textContent).toContain('No printers configured.');
+  });
+
+  it('shows a load failure and a dismissible action failure', async () => {
+    const { fixture, element } = await setup({
+      listAdminPrinters: () => throwError(() => new Error('down')),
+    });
+    expect(element.querySelector('[role="alert"]')?.textContent).toContain(
+      'Unable to load printers.',
+    );
+    element
+      .querySelector<HTMLButtonElement>('[aria-label="Dismiss error"]')!
+      .click();
+    await fixture.whenStable();
+    expect(element.querySelector('[role="alert"]')).toBeNull();
+  });
+
+  it('reports the server message when an action fails', async () => {
+    const { fixture, element, button } = await setup({
+      printQrPoster: () =>
+        throwError(() => ({ error: { error: 'Agent unreachable' } })),
+    });
+    button('Print QR sheet').click();
+    await fixture.whenStable();
+    expect(element.querySelector('[role="alert"]')?.textContent).toContain(
+      'Agent unreachable',
+    );
   });
 });
