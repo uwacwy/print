@@ -10,7 +10,11 @@ import {
   testEntra,
   testUploadConfig,
 } from '../../../realtime/test-support';
-import { uploadForm, useApiServer } from '../../test-support';
+import {
+  testPublicUrl,
+  uploadForm,
+  useApiServer,
+} from '../../test-support';
 import { getPrinterByToken } from '../../helpers/database/database';
 import { enqueueJob } from '../../helpers/database/jobs';
 
@@ -249,7 +253,7 @@ describe('printers router', () => {
       expect(body.path).toBe(
         `/print/front-office?token=${body.token}`,
       );
-      expect(body.url).toBe(`${api.baseUrl}${body.path}`);
+      expect(body.url).toBe(`${testPublicUrl.origin}${body.path}`);
       expect(body.token).toMatch(/^[A-Za-z0-9_-]{42}$/);
       expect(
         inspectUploadToken(testUploadConfig.access, body.token),

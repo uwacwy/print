@@ -10,7 +10,10 @@ import {
 
 const tenant = '11111111-1111-4111-8111-111111111111';
 const client = '22222222-2222-4222-8222-222222222222';
-const secret = { UPLOAD_TOKEN_SECRET: 'x'.repeat(32) };
+const secret = {
+  UPLOAD_TOKEN_SECRET: 'x'.repeat(32),
+  PUBLIC_URL: 'http://print.example.org',
+};
 
 describe('server config', () => {
   const dirs: string[] = [];
@@ -55,6 +58,7 @@ describe('server config', () => {
   it('derives browser sign-in settings only when Entra is configured', () => {
     expect(loadServerConfig(secret, false).client).toEqual({
       enrollment: false,
+      publicUrl: new URL(secret.PUBLIC_URL),
     });
     expect(
       loadServerConfig(
@@ -67,6 +71,7 @@ describe('server config', () => {
       ).client,
     ).toEqual({
       enrollment: false,
+      publicUrl: new URL(secret.PUBLIC_URL),
       msal: {
         tenantId: tenant,
         clientId: client,
@@ -89,9 +94,9 @@ describe('server config', () => {
   });
 
   it('enables enrollment only for an https (or loopback http) PUBLIC_URL', () => {
-    const enrollment = (PUBLIC_URL?: string) =>
+    const enrollment = (PUBLIC_URL: string) =>
       loadServerConfig({ ...secret, PUBLIC_URL }, false);
-    expect(enrollment().enrollment).toEqual({
+    expect(enrollment('http://print.example.org').enrollment).toEqual({
       serverUrl: undefined,
       tokenTtlMinutes: 30,
     });
@@ -113,6 +118,22 @@ describe('server config', () => {
         false,
       ).enrollment.tokenTtlMinutes,
     ).toBe(5);
+  });
+
+  it('requires a valid PUBLIC_URL', () => {
+    const { UPLOAD_TOKEN_SECRET } = secret;
+    expect(() =>
+      loadServerConfig({ UPLOAD_TOKEN_SECRET }, false),
+    ).toThrow('PUBLIC_URL');
+    expect(() =>
+      loadServerConfig(
+        { UPLOAD_TOKEN_SECRET, PUBLIC_URL: 'not a url' },
+        false,
+      ),
+    ).toThrow('PUBLIC_URL');
+    expect(loadServerConfig(secret, false).publicUrl.href).toBe(
+      'http://print.example.org/',
+    );
   });
 
   it('resolves DATA_DIR from the working directory', () => {
@@ -144,11 +165,14 @@ describe('server config', () => {
   });
 
   it('requires a long upload token secret and derives access limits', () => {
-    expect(() => loadServerConfig({}, false)).toThrow(
-      'UPLOAD_TOKEN_SECRET is required',
-    );
     expect(() =>
-      loadServerConfig({ UPLOAD_TOKEN_SECRET: 'short' }, false),
+      loadServerConfig({ PUBLIC_URL: secret.PUBLIC_URL }, false),
+    ).toThrow('UPLOAD_TOKEN_SECRET is required');
+    expect(() =>
+      loadServerConfig(
+        { ...secret, UPLOAD_TOKEN_SECRET: 'short' },
+        false,
+      ),
     ).toThrow('at least 32');
     expect(
       loadServerConfig(

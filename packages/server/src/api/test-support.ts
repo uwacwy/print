@@ -45,6 +45,9 @@ export async function uploadForm(
   return form;
 }
 
+/** The origin the test API reports as its public URL. */
+export const testPublicUrl = new URL('http://print.test');
+
 export interface StartOptions {
   upload?: UploadConfig;
   entra?: ApiRootOptions['entra'];
@@ -116,9 +119,7 @@ export function useApiServer(defaults: StartOptions = {}) {
         entra,
         client,
         enrollment,
-        publicUrl: new URL(
-          process.env['PUBLIC_URL'] ?? 'http://localhost',
-        ),
+        publicUrl: testPublicUrl,
       }),
     );
     app.use(

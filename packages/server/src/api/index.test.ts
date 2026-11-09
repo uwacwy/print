@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { useApiServer } from './test-support';
+import { testPublicUrl, useApiServer } from './test-support';
 import { addPrinter } from '../realtime/test-support';
 
 describe('API root', () => {
@@ -49,7 +49,7 @@ describe('API root', () => {
     expect(await clientConfig()).toEqual({
       status: 200,
       cache: 'no-cache',
-      body: { enrollment: false },
+      body: { enrollment: false, publicUrl: testPublicUrl.href },
     });
 
     const msal = {
@@ -58,10 +58,13 @@ describe('API root', () => {
       authority: 'https://login.microsoftonline.com/tenant',
       apiScope: 'api://client/Printers.Manage',
     };
-    await api.start({ client: { msal, enrollment: true } });
+    await api.start({
+      client: { msal, enrollment: true, publicUrl: testPublicUrl },
+    });
     expect((await clientConfig()).body).toEqual({
       msal,
       enrollment: true,
+      publicUrl: testPublicUrl.href,
     });
   });
 });

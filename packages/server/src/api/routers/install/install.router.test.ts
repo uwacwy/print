@@ -12,7 +12,7 @@ import {
   testEntra,
   testUploadConfig,
 } from '../../../realtime/test-support';
-import { useApiServer } from '../../test-support';
+import { testPublicUrl, useApiServer } from '../../test-support';
 import { signEnrollToken } from '../../helpers/enroll-token/enroll-token';
 import { getPrinterBySlug } from '../../helpers/database/database';
 
@@ -94,7 +94,7 @@ describe('agent enrollment', () => {
     });
     expect(
       await (await fetch(`${api.baseUrl}/api/client-config`)).json(),
-    ).toEqual({ enrollment: false });
+    ).toEqual({ enrollment: false, publicUrl: testPublicUrl.href });
   });
 
   it('enrolls a printer, rejects a taken slug, and lets the agent report its queue', async () => {
