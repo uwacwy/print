@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, provideRouter } from '@angular/router';
-import { of, Subject } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 import { describe, expect, it } from 'vitest';
 import {
   LiveEventsService,
@@ -170,17 +170,53 @@ describe('ManagePrinterComponent', () => {
     expect(enroll.disabled).toBe(true);
     expect(page.textContent).toContain('set PUBLIC_URL');
 
-    fixture.componentInstance.form.setValue({
-      name: 'Front',
-      slug: 'front',
-      queue: 'cups://Front',
-      coverPage: false,
-    });
-    fixture.componentInstance.save();
+    const type = (id: string, value: string) => {
+      const input = page.querySelector<HTMLInputElement>(id)!;
+      input.value = value;
+      input.dispatchEvent(new Event('input'));
+    };
+    type('#printer-name', 'Front');
+    type('#printer-slug', 'front');
+    type('#printer-queue', 'cups://Front');
+    page
+      .querySelector<HTMLButtonElement>('button[type=submit]')!
+      .click();
     await fixture.whenStable();
 
     expect(page.textContent).toContain('a'.repeat(43));
     expect(page.textContent).toContain('--print-agent-token');
     expect(page.textContent).toContain('agent-front:');
+  });
+
+  it('shows the server message and stays on the form when saving fails', async () => {
+    const fixture = await addPage(false, {
+      createAdminPrinter: () =>
+        throwError(() => ({ error: { error: 'Slug already used' } })),
+    });
+    const page: HTMLElement = fixture.nativeElement;
+    page
+      .querySelector<HTMLButtonElement>('button[type=submit]')!
+      .click();
+    await fixture.whenStable();
+    expect(page.textContent).not.toContain('Slug already used');
+    expect(page.textContent).toContain('Enter a display name.');
+
+    const type = (id: string, value: string) => {
+      const input = page.querySelector<HTMLInputElement>(id)!;
+      input.value = value;
+      input.dispatchEvent(new Event('input'));
+    };
+    type('#printer-name', 'Front');
+    type('#printer-slug', 'front');
+    type('#printer-queue', 'cups://Front');
+    page
+      .querySelector<HTMLButtonElement>('button[type=submit]')!
+      .click();
+    await fixture.whenStable();
+
+    expect(page.querySelector('[role=alert]')?.textContent).toContain(
+      'Slug already used',
+    );
+    expect(page.querySelector('#printer-name')).not.toBeNull();
   });
 });
