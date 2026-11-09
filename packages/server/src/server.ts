@@ -14,6 +14,7 @@ import { isMainThread, workerData } from 'node:worker_threads';
 import { Subject } from 'rxjs';
 import apiRoot from './api';
 import { openAccessLog } from './api/helpers/access-log/access-log';
+import { findLogo } from './api/helpers/logo/logo';
 import {
   loadLocalEnvFile,
   loadServerConfig,
@@ -125,12 +126,10 @@ app.use(
 
 app.use(express.json({ limit: '32kb' }));
 
-type Prettify<T> = { [K in keyof T]: T[K] } & {};
-
-const routes = createRouting(root);
+const $ = createRouting(root);
 
 app.use(
-  '/api',
+  $.api.pattern,
   apiRoot({
     db: runtime.db,
     jobsDir: runtime.jobsDir,
@@ -139,7 +138,10 @@ app.use(
     publicUrl: config.publicUrl,
     enrollment: config.enrollment,
     entra: config.entra,
-    client: config.client,
+    client: {
+      ...config.client,
+      logo: findLogo(browserDistFolder, config.logoAlt),
+    },
   }),
 );
 
@@ -194,16 +196,18 @@ const listen = (
     });
   });
 
-const printHttpServerAddress = (
-  address: AddressInfo | string | null,
-) => {
-  if (address === null) {
-    return '(null)';
+function formatAddressInfo(address: AddressInfo | string | null) {
+  if (!address) {
+    return '';
   }
-  return typeof address === 'object'
-    ? `${address.address}:${address.port}`
-    : `${address}`;
-};
+  if (typeof address === 'string') {
+    return address;
+  }
+  if (address.family === 'IPv6') {
+    return `[${address.address}]:${address.port}`;
+  }
+  return `${address.address}:${address.port}`;
+}
 
 /**
  * `ng serve` owns the HTTP server and never exposes its `upgrade` event, so socket.io listens on a
@@ -238,7 +242,7 @@ function startDevServer(port: number): Promise<void> {
         server.unref();
 
         console.log(
-          `[WebSockets] Listening on ${printHttpServerAddress(address)}`,
+          `[WebSockets] Listening on ${formatAddressInfo(address)}`,
         );
       },
       (error: unknown) => {
@@ -255,19 +259,6 @@ function startDevServer(port: number): Promise<void> {
   };
   globals.devSockets = devSockets;
   return devSockets.ready;
-}
-
-function formatAddressInfo(address: AddressInfo | string | null) {
-  if (!address) {
-    return '';
-  }
-  if (typeof address === 'string') {
-    return address;
-  }
-  if (address.family === 'IPv6') {
-    return `[${address.address}]:${address.port}`;
-  }
-  return `${address.address}:${address.port}`;
 }
 
 import { createRouting } from 'ts-routes';
@@ -319,8 +310,8 @@ if (
   process.env['pm_id']
 ) {
   await startServer();
-} else if (isMainThread && config.socketDevPort) {
-  await startDevServer(config.socketDevPort);
+} else if (isMainThread) {
+  await startDevServer(config.port + 1);
 }
 
 /**

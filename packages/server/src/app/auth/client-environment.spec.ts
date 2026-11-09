@@ -48,6 +48,22 @@ describe('client environment', () => {
     ).toEqual({ ...environment, enrollment: false });
   });
 
+  it('passes the server logo through', () => {
+    const logo = { src: '/logo.svg?v=1', alt: 'United Way' };
+    expect(
+      toClientEnvironment(
+        { enrollment: false, publicUrl, logo },
+        'https://print.example.org',
+      ).logo,
+    ).toEqual(logo);
+    expect(
+      toClientEnvironment(
+        { msal, enrollment: false, publicUrl, logo },
+        'https://print.example.org',
+      ).logo,
+    ).toEqual(logo);
+  });
+
   it('loads /api/client-config and falls back when it fails', async () => {
     const ok = respond(
       Response.json({ msal, enrollment: false, publicUrl }),

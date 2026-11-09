@@ -1,0 +1,82 @@
+<section class="hero" aria-labelledby="welcome-heading">
+  <h2 id="welcome-heading" class="h3">
+    Print from your phone in seconds
+  </h2>
+  <p class="lead mb-3">
+    No app, no account, no cables. Scan the code at the printer, pick
+    your documents, and pick up your pages.
+  </p>
+
+  <div class="status" [attr.data-state]="state()">
+    <span class="status-dot" aria-hidden="true"></span>
+    <span role="status" aria-live="polite">{{ summary() }}</span>
+  </div>
+  @if (state() === "down" && !statusResource.isLoading()) {
+    <button
+      type="button"
+      class="btn btn-outline-primary btn-sm"
+      (click)="statusResource.reload()"
+    >
+      Try again
+    </button>
+  }
+</section>
+
+<section class="mt-4" aria-labelledby="how-heading">
+  <h2 id="how-heading" class="h4 mb-4">How this works</h2>
+  <ol class="steps list-unstyled">
+    <li>
+      <span
+        class="step-icon bi bi-qr-code-scan"
+        aria-hidden="true"
+      ></span>
+      <div>
+        <strong>Scan the QR code</strong>
+        <p>
+          Point your phone’s camera at the code posted next to the
+          printer and tap the link that appears.
+        </p>
+      </div>
+    </li>
+    <li>
+      <span
+        class="step-icon bi bi-file-earmark-arrow-up"
+        aria-hidden="true"
+      ></span>
+      <div>
+        <strong>Choose your documents</strong>
+        <p>
+          Add PDFs or photos, give the job a name you’ll recognize,
+          and set the number of copies.
+        </p>
+      </div>
+    </li>
+    <li>
+      <span
+        class="step-icon bi bi-printer"
+        aria-hidden="true"
+      ></span>
+      <div>
+        <strong>Collect your pages</strong>
+        <p>
+          Tap <em>Print</em> and your job goes straight to that
+          printer. Pick it up from the tray in a moment.
+        </p>
+      </div>
+    </li>
+  </ol>
+</section>
+
+<section class="mt-4" aria-labelledby="faq-heading">
+  <h2 id="faq-heading" class="h4 mb-4">
+    Frequently asked questions
+  </h2>
+  <div class="faq">
+    @for (faq of faqs; track faq.question) {
+      <details>
+        <summary>{{ faq.question }}</summary>
+        <p>{{ faq.answer }}</p>
+      </details>
+    }
+  </div>
+</section>

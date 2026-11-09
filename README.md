@@ -128,6 +128,9 @@ and each package's `.env.example` lists every setting.
 - `ENTRA_TENANT_ID` and `ENTRA_CLIENT_ID` enable Microsoft Entra sign-in and `/manage`. The browser
   reads them at startup from `GET /api/client-config`, so one prebuilt image or package works for any
   tenant.
+- A `logo.svg`, `logo.png`, or `logo.jpg` in the server's `dist/browser` folder (or `packages/server/public`
+  before building) is shown in the page header. `LOGO_ALT` (default `United Way`) is its text for screen
+  readers. The server looks for the logo at startup, so restart it after adding or replacing the file.
 - `TRUST_PROXY=true` only behind a reverse proxy; otherwise clients could spoof their IP to dodge rate limits.
 
 ## Development server

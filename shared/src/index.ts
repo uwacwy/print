@@ -25,6 +25,16 @@ export interface ClientConfig {
   /** `PUBLIC_URL` is set, so the server can mint enrollment tokens and install commands. */
   enrollment: boolean;
   publicUrl: URL;
+  /** Present when the server's static folder has a `logo.{svg,png,jpg}`. */
+  logo?: SiteLogo;
+}
+
+/** A deployment's logo, shown in the page header. */
+export interface SiteLogo {
+  /** Root-relative URL of the image. */
+  src: string;
+  /** Text alternative, from `LOGO_ALT`. */
+  alt: string;
 }
 /** Print agents, authenticated with their printer's agent token. */
 export const AGENT_NAMESPACE = '/agent';

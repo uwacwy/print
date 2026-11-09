@@ -334,6 +334,7 @@ export class ManagePrinterComponent {
   readonly #route = inject(ActivatedRoute);
   readonly #router = inject(Router);
   readonly #printersApi = inject(PrinterService);
+
   readonly slug = this.#route.snapshot.paramMap.get('slug') ?? '';
   readonly isNew = this.slug === 'new';
   /** Live events identify printers by numeric id, known once the printer loads. */

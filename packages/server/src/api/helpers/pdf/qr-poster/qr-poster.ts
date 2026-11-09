@@ -20,13 +20,13 @@ export interface QrPosterOptions {
   printerName: string;
   /** Encoded in the QR code and linked from the page; may carry an upload token. */
   url: string;
-  /** Short, typeable address printed under the code; defaults to `url`. */
+  /** Short, typeable address printed under the code with the PIN; defaults to `url`. */
   displayUrl?: string;
   date: Date;
   timeZone?: string;
   validFrom?: Date;
   validUntil?: Date;
-  /** Printer PIN (###-###-###) for visitors who type the address instead of scanning. */
+  /** Printer PIN (###-###-###) for visitors who type the address instead of scanning; without one, only the QR code is offered. */
   pin?: string | null;
 }
 
@@ -125,26 +125,26 @@ export async function buildQrPoster(
     18,
     textTop,
   );
-  drawCentered(page, 'or visit', regular, 14, textTop - 30, GRAY);
-  const displaySize = drawCentered(
-    page,
-    options.displayUrl ?? options.url,
-    regular,
-    18,
-    textTop - 56,
-  );
-  addLink(pdf, page, options.url, [
-    MARGIN,
-    textTop - 60,
-    PAGE_WIDTH - MARGIN * 2,
-    displaySize + 8,
-  ]);
-
-  let nextLine = textTop - 86;
+  let nextLine = textTop - 30;
+  // Without a PIN, the typeable address has no way to authorize an upload.
   if (options.pin) {
-    drawCentered(page, 'and enter PIN', regular, 14, nextLine, GRAY);
-    drawCentered(page, options.pin, mono, 26, nextLine - 28);
-    nextLine -= 56;
+    drawCentered(page, 'or visit', regular, 14, nextLine, GRAY);
+    const displaySize = drawCentered(
+      page,
+      options.displayUrl ?? options.url,
+      regular,
+      18,
+      nextLine - 26,
+    );
+    addLink(pdf, page, options.url, [
+      MARGIN,
+      nextLine - 30,
+      PAGE_WIDTH - MARGIN * 2,
+      displaySize + 8,
+    ]);
+    drawCentered(page, 'and enter PIN', regular, 14, nextLine - 56, GRAY);
+    drawCentered(page, options.pin, mono, 26, nextLine - 84);
+    nextLine -= 112;
   }
 
   if (options.validFrom && options.validUntil) {

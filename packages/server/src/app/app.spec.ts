@@ -1,10 +1,14 @@
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { App } from './app';
+import { CLIENT_ENVIRONMENT } from './auth/client-environment';
+import { environment } from '../environments/environment';
 
 describe('App', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [App],
+      providers: [provideRouter([])],
     }).compileComponents();
   });
 
@@ -21,5 +25,20 @@ describe('App', () => {
     expect(compiled.querySelector('h1')?.textContent).toContain(
       'United Way Quick Print',
     );
+  });
+
+  it('shows the deployment logo beside the heading when there is one', async () => {
+    TestBed.overrideProvider(CLIENT_ENVIRONMENT, {
+      useValue: {
+        ...environment,
+        logo: { src: '/logo.png?v=1', alt: 'United Way' },
+      },
+    });
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    const img = (fixture.nativeElement as HTMLElement).querySelector(
+      'header img',
+    );
+    expect(img?.getAttribute('alt')).toBe('United Way');
   });
 });

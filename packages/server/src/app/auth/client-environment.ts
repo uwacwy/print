@@ -30,8 +30,9 @@ export function toClientEnvironment(
           redirectUri: `${origin}/auth/callback`,
         },
         enrollment: config.enrollment,
+        logo: config.logo,
       }
-    : { ...fallback, enrollment: config.enrollment };
+    : { ...fallback, enrollment: config.enrollment, logo: config.logo };
 }
 
 /** Fetches `GET /api/client-config` before bootstrap so prebuilt bundles work for any tenant. */

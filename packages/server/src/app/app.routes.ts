@@ -19,9 +19,9 @@ export const routes: Routes = [
       width: {
         xs: 12,
         sm: 12,
-        md: 6,
-        lg: 4,
-        xl: 3,
+        md: 8,
+        lg: 8,
+        xl: 6,
       },
     },
   },

@@ -1,7 +1,6 @@
 import type { RequestHandler } from 'express';
 import winston from 'winston';
 import { DailyLogFile } from '../daily-log-file/daily-log-file';
-import { keyof } from 'zod';
 export interface AccessLogEntry {
   timestamp?: string;
   ip: string | undefined;
@@ -129,7 +128,7 @@ export const redactUrl = (
   ];
   const args = forms.find((getArgs) => URL.canParse(...getArgs()));
   if (!args) {
-    throw new Error('Invalid URL');
+    throw new Error('Provided URL cannot be parsed: ' + `${url}`);
   }
   const u = new URL(...args());
   const redacted = redactQuery(u);

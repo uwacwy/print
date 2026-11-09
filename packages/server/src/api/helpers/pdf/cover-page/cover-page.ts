@@ -1,3 +1,4 @@
+import { inflect } from '@uwacwy/print-shared';
 import { PDFDocument, StandardFonts } from 'pdf-lib';
 import {
   BLACK,
@@ -18,12 +19,6 @@ export interface CoverPageOptions {
   timeZone?: string;
   documents: { titleOrFilename: string; copies: number }[];
 }
-
-export const inflect = (
-  count: number,
-  singular: string,
-  plural = `${singular}s`,
-) => `${count} ${count === 1 ? singular : plural}`;
 
 /** Returns the document with a confidential cover sheet as its first page. */
 export async function addCoverPage(
@@ -84,7 +79,7 @@ export async function addCoverPage(
   );
   drawCentered(
     cover,
-    inflect(pageCount, 'page'),
+    `${pageCount} ${inflect(pageCount, 'page')}`,
     helveticaRegular,
     16,
     335,
@@ -97,7 +92,7 @@ export async function addCoverPage(
       ['Document', 'Copies'],
       options.documents.map((item) => [
         item.titleOrFilename,
-        inflect(item.copies, 'copy', 'copies'),
+        `${item.copies} ${inflect(item.copies, 'copy', 'copies')}`,
       ]),
       { regular: helveticaRegular, bold: helveticaBold },
       {

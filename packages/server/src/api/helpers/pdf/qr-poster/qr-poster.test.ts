@@ -58,6 +58,7 @@ describe('QR poster', () => {
       validFrom: new Date('2026-10-26T18:00:00Z'),
       validUntil: new Date('2026-10-27T18:00:00Z'),
       timeZone: 'America/Denver',
+      pin: '123-456-789',
     });
     const page = (await PDFDocument.load(bytes)).getPage(0);
     const annots = page.node.lookup(PDFName.of('Annots'), PDFArray);
@@ -72,7 +73,21 @@ describe('QR poster', () => {
     expect(uris.map((uri) => uri.decodeText())).toEqual([url, url]);
   });
 
-  it('prints the PIN only when one is set', async () => {
+  it('only links the QR code when there is no PIN', async () => {
+    const url = 'https://print.example.org/print/main?token=a.b.c';
+    const bytes = await buildQrPoster({
+      siteTitle: 'Print',
+      printerName: 'Main Office',
+      url,
+      displayUrl: 'https://print.example.org/print/main',
+      date: new Date('2026-10-26T18:00:00Z'),
+    });
+    const page = (await PDFDocument.load(bytes)).getPage(0);
+    const annots = page.node.lookup(PDFName.of('Annots'), PDFArray);
+    expect(annots.size()).toBe(1);
+  });
+
+  it('prints the address and PIN only when a PIN is set', async () => {
     const options = {
       siteTitle: 'Print',
       printerName: 'Main Office',
@@ -84,6 +99,8 @@ describe('QR poster', () => {
     const withPin = await pageText(
       await buildQrPoster({ ...options, pin: '123-456-789' }),
     );
+    expect(withPin).toContain('or visit');
+    expect(withPin).toContain('https://print.example.org/print/main');
     expect(withPin).toContain('and enter PIN');
     expect(withPin).toContain('123-456-789');
     expect(withPin).toContain('This code works');
@@ -93,6 +110,8 @@ describe('QR poster', () => {
       await buildQrPoster({ ...options, pin: null }),
     );
     expect(withoutPin).not.toContain('enter PIN');
+    expect(withoutPin).not.toContain('or visit');
+    expect(withoutPin).not.toContain('print.example.org');
     expect(withoutPin).toContain('This code works');
   });
 

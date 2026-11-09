@@ -52,21 +52,6 @@ describe('server config', () => {
     expect(env).toEqual({});
   });
 
-  it('enables the agent dev gateway only under ng serve unless configured', () => {
-    expect(loadServerConfig(secret, true).socketDevPort).toBe(4201);
-    expect(
-      loadServerConfig(secret, false).socketDevPort,
-    ).toBeUndefined();
-    expect(
-      loadServerConfig({ ...secret, SOCKET_DEV_PORT: '0' }, true)
-        .socketDevPort,
-    ).toBeUndefined();
-    expect(
-      loadServerConfig({ ...secret, SOCKET_DEV_PORT: '4300' }, false)
-        .socketDevPort,
-    ).toBe(4300);
-  });
-
   it('derives browser sign-in settings only when Entra is configured', () => {
     expect(loadServerConfig(secret, false).client).toEqual({
       enrollment: false,

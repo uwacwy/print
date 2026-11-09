@@ -1,0 +1,139 @@
+:host {
+  display: block;
+}
+
+section {
+  animation: rise-in 0.5s ease-out both;
+}
+section:nth-of-type(2) {
+  animation-delay: 0.1s;
+}
+section:nth-of-type(3) {
+  animation-delay: 0.2s;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.875rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius-pill);
+  background: var(--bs-body-bg);
+  font-weight: 500;
+}
+
+.status-dot {
+  position: relative;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  background: var(--status-color);
+}
+
+[data-state='checking'] {
+  --status-color: var(--bs-secondary-color);
+  .status-dot {
+    animation: blink 1.2s ease-in-out infinite;
+  }
+}
+[data-state='online'] {
+  --status-color: var(--bs-success);
+  .status-dot {
+    animation: blink 1.6s ease-in-out infinite;
+  }
+  .status-dot::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: var(--status-color);
+    animation: ping 1.6s ease-out infinite;
+  }
+}
+[data-state='idle'] {
+  --status-color: var(--bs-gray-700);
+}
+[data-state='down'] {
+  --status-color: var(--bs-danger);
+}
+
+.steps {
+  display: grid;
+  gap: 1rem;
+  margin: 0;
+
+  li {
+    display: flex;
+    gap: 0.875rem;
+    align-items: flex-start;
+  }
+  p {
+    margin: 0.125rem 0 0;
+    color: var(--bs-secondary-color);
+  }
+}
+
+.step-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: var(--bs-primary-bg-subtle);
+  color: var(--bs-primary-text-emphasis);
+  font-size: 1.25rem;
+}
+
+.faq {
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+
+  details + details {
+    border-top: 1px solid var(--bs-border-color);
+  }
+  summary {
+    padding: 0.75rem 1rem;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  summary:focus-visible {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: -2px;
+  }
+  p {
+    margin: 0;
+    padding: 0 1rem 0.875rem;
+  }
+  details[open] p {
+    animation: rise-in 0.25s ease-out;
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes ping {
+  to {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::after {
+    animation: none !important;
+  }
+}

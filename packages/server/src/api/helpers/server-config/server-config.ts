@@ -1,10 +1,10 @@
-import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-import { parseEnv } from 'node:util';
 import {
   serverOrigin,
   type ClientConfig,
 } from '@uwacwy/print-shared';
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { parseEnv } from 'node:util';
 import { z } from 'zod';
 import type { EntraUserOptions } from '../../middleware/auth/entra-user/entra-user.strategy';
 import {
@@ -22,15 +22,15 @@ const ServerEnvironment = z.object({
    */
   PUBLIC_URL: z.url(),
   SITE_TITLE: z.string().default('VITA Secure Print'),
+  /** Text alternative for the header logo (`logo.{svg,png,jpg}` in the browser folder). */
+  LOGO_ALT: z.string().min(1).default('Contoso'),
   TIME_ZONE: z.string().default('America/Denver'),
-  TRUST_PROXY: z.stringbool().default(false),
+  TRUST_PROXY: z
+    .string()
+    .transform((v) => v.split(','))
+    .default(['loopback', 'linklocal', 'uniquelocal']),
   MAX_UPLOAD_MB: z.coerce.number().positive().max(100).default(20),
-  MAX_DOCUMENTS_PER_JOB: z.coerce
-    .number()
-    .int()
-    .min(1)
-    .max(10)
-    .default(5),
+  MAX_DOCUMENTS_PER_JOB: z.coerce.number().int().min(1).default(5),
   MAX_COPIES: z.coerce.number().int().min(1).max(5).default(5),
   /** Uploaded photos are downsampled to this resolution over a 7.5 × 10 in area. */
   IMAGE_DPI: z.coerce.number().int().min(72).max(600).default(150),
@@ -78,15 +78,15 @@ const ServerEnvironment = z.object({
   ENTRA_ADMIN_GROUP_IDS: z.string().optional(),
   ENTRA_ADMIN_ROLE: z.string().min(1).optional(),
   /** Comma-separated client IDs of service apps (e.g. Windmill) allowed to submit print jobs. */
-  ENTRA_AUTOMATION_CLIENT_IDS: z.string().optional(),
-  ENTRA_AUTOMATION_ROLE: z.string().min(1).default('Jobs.Submit'),
+  // ENTRA_AUTOMATION_CLIENT_IDS: z.string().optional(),
+  // ENTRA_AUTOMATION_ROLE: z.string().min(1).default('Jobs.Submit'),
   /** `ng serve` only: side port for socket.io, reached through proxy.conf.mjs. 0 disables it. */
-  SOCKET_DEV_PORT: z.coerce
-    .number()
-    .int()
-    .min(0)
-    .max(65535)
-    .optional(),
+  // SOCKET_DEV_PORT: z.coerce
+  //   .number()
+  //   .int()
+  //   .min(0)
+  //   .max(65535)
+  //   .optional(),
 });
 
 export interface UploadConfig {
@@ -119,8 +119,9 @@ export interface ServerConfig {
   port: number;
   /** Served to the browser by `GET /api/client-config`. */
   client: ClientConfig;
+  logoAlt: string;
   dataDir: string;
-  trustProxy: boolean;
+  trustProxy: boolean | string[];
   publicUrl: URL;
   jobTtlMs: number;
   retentionMs: number;
@@ -129,7 +130,7 @@ export interface ServerConfig {
   upload: UploadConfig;
   enrollment: EnrollmentConfig;
   entra: EntraUserOptions;
-  socketDevPort: number | undefined;
+  // socketDevPort: number | undefined;
 }
 
 /** Env files tried, relative to the working directory, when `PRINT_ENV_FILE` is unset. */
@@ -204,6 +205,7 @@ export function loadServerConfig(
       enrollment: !!serverUrl,
       publicUrl,
     },
+    logoAlt: e.LOGO_ALT,
     dataDir: resolve(e.DATA_DIR),
     trustProxy: e.TRUST_PROXY,
     publicUrl,
@@ -246,8 +248,8 @@ export function loadServerConfig(
       adminRole: e.ENTRA_ADMIN_ROLE,
       adminGroupIds: splitList(e.ENTRA_ADMIN_GROUP_IDS),
     },
-    socketDevPort:
-      (e.SOCKET_DEV_PORT ?? (devServer ? 4201 : 0)) || undefined,
+    // socketDevPort:
+    //   (e.SOCKET_DEV_PORT ?? (devServer ? 4201 : 0)) || undefined,
   };
 }
 
