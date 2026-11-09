@@ -1,0 +1,83 @@
+import { Component, computed, input, output } from '@angular/core';
+import { FormField, type FieldTree } from '@angular/forms/signals';
+import { FileInput } from '../../../../components/file-input/file-input.component';
+import {
+  ACCEPTED_TYPES,
+  type DocumentRow,
+} from '../../helpers/print-upload/print-upload';
+
+/** One document's file picker, copy count and remove button. */
+@Component({
+  selector: 'app-upload-document-row',
+  imports: [FormField, FileInput],
+  template: `
+    <div class="row g-2 align-items-end mb-3">
+      <div class="col-sm-7">
+        <label class="form-label" [for]="'document-file-' + id()">
+          Document {{ index() + 1 }}
+        </label>
+        <input
+          class="form-control"
+          type="file"
+          [id]="'document-file-' + id()"
+          [accept]="acceptedTypes"
+          [class.is-invalid]="!!fileError()"
+          [attr.aria-invalid]="!!fileError()"
+          [attr.aria-errormessage]="
+            fileError() ? 'document-file-error-' + id() : null
+          "
+          [formField]="document().file"
+        />
+      </div>
+      <div class="col-6 col-sm-3">
+        <label class="form-label" [for]="'document-copies-' + id()"
+          >Copies</label
+        >
+        <select
+          class="form-select"
+          [id]="'document-copies-' + id()"
+          [formField]="document().copies"
+        >
+          @for (count of copyOptions(); track count) {
+            <option [value]="count">{{ count }}</option>
+          }
+        </select>
+      </div>
+      <div class="col-6 col-sm-2">
+        <button
+          type="button"
+          class="btn btn-outline-secondary w-100"
+          [disabled]="!canRemove()"
+          [attr.aria-label]="'Remove document ' + (index() + 1)"
+          (click)="remove.emit(id())"
+        >
+          Remove
+        </button>
+      </div>
+      @if (fileError()) {
+        <div
+          class="col-12 invalid-feedback d-block mt-1"
+          [id]="'document-file-error-' + id()"
+          role="alert"
+        >
+          {{ fileError() }}
+        </div>
+      }
+    </div>
+  `,
+})
+export class UploadDocumentRowComponent {
+  readonly document = input.required<FieldTree<DocumentRow>>();
+  readonly index = input.required<number>();
+  readonly copyOptions = input<readonly string[]>(['1']);
+  readonly canRemove = input(true);
+  /** Emits the row's id. */
+  readonly remove = output<number>();
+
+  protected readonly acceptedTypes = ACCEPTED_TYPES;
+  protected readonly id = computed(() => this.document().id().value());
+  protected readonly fileError = computed(() => {
+    const state = this.document().file();
+    return state.touched() ? (state.errors()[0]?.message ?? '') : '';
+  });
+}

@@ -1,0 +1,66 @@
+<main class="col">
+  @if (printerResource.isLoading()) {
+    <h1 class="h2">Print</h1>
+    <p role="status">Loading printer...</p>
+  } @else if (printerResource.hasValue()) {
+    @let printer = printerResource.value();
+
+    <h1 class="h2 mb-1">Print to {{ printer.name }}</h1>
+
+    @if (notice()) {
+      <app-alert variant="warning">{{ notice() }}</app-alert>
+    }
+
+    @switch (mode()) {
+      @case ("upload") {
+        <p class="text-muted">
+          @if (printingAs(); as username) {
+            Printing as {{ username }}.
+          } @else if (printer.access.tokenExpiresAt; as expiresAt) {
+            This link works until
+            {{ expiresAt | date: "short" }}.
+          }
+        </p>
+
+        <div aria-live="polite" aria-atomic="true">
+          @if (success(); as success) {
+            <app-alert variant="success" role="status">{{
+              success
+            }}</app-alert>
+          }
+        </div>
+        @if (uploadError(); as message) {
+          <app-alert>{{ message }}</app-alert>
+        }
+
+        <app-upload-form
+          [uploadForm]="uploadForm"
+          [maxUploadMb]="maxUploadMb()"
+          [maxDocuments]="printer.upload.maxDocuments"
+          [copyOptions]="copyOptions()"
+          (addDocument)="addDocument()"
+          (removeDocument)="removeDocument($event)"
+        />
+      }
+      @case ("pin") {
+        <app-print-pin-form [pinForm]="pinForm" />
+      }
+      @default {
+        <p>Scan the QR code posted at the printer to print.</p>
+      }
+    }
+  } @else if (notFound()) {
+    <h1 class="h2">Printer not found</h1>
+    <p>Check the link or QR code and try again.</p>
+  } @else {
+    <h1 class="h2">Print</h1>
+    <app-alert>Unable to load this printer.</app-alert>
+    <button
+      type="button"
+      class="btn btn-primary"
+      (click)="printerResource.reload()"
+    >
+      Try again
+    </button>
+  }
+</main>

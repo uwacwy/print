@@ -1,13 +1,13 @@
 import { Routes } from '@angular/router';
 import { MsalGuard } from '@azure/msal-angular';
 
-import { AuthenticatedComponent } from './components/authenticated/authenticated.component';
-import { ManagePrinterComponent } from './components/manage-printer/manage-printer.component';
-import { ManagePrintersComponent } from './components/manage-printers/manage-printers.component';
-import { NotFound } from './components/not-found/not-found';
-import { PrintComponent } from './components/print/print.component';
-import { PrinterQrComponent } from './components/printer-qr/printer-qr.component';
-import { WelcomeComponent } from './components/welcome/welcome.component';
+import { AuthenticatedComponent } from './pages/authenticated/authenticated.component';
+import { ManagePrinterComponent } from './pages/manage-printer/manage-printer.component';
+import { ManagePrintersComponent } from './pages/manage-printers/manage-printers.component';
+import { NotFound } from './pages/not-found/not-found';
+import { PrintComponent } from './pages/print/print.component';
+import { PrinterQrComponent } from './pages/printer-qr/printer-qr.component';
+import { WelcomeComponent } from './pages/welcome/welcome.component';
 
 export const routes: Routes = [
   { path: 'auth/callback', pathMatch: 'full', redirectTo: '' },
