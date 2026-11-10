@@ -19,7 +19,10 @@ import { UploadDocumentRowComponent } from '../upload-document-row/upload-docume
       class="d-flex flex-column gap-3"
     >
       <div>
-        <label class="form-label" for="job-title"
+        <label
+          i18n="@@upload-form.job-title-reference"
+          class="form-label"
+          for="job-title"
           >Job Title/Reference</label
         >
         <input
@@ -30,10 +33,16 @@ import { UploadDocumentRowComponent } from '../upload-document-row/upload-docume
       </div>
 
       <fieldset class="border rounded p-3">
-        <legend class="float-none w-auto px-2 fs-6 mb-0">
+        <legend
+          i18n="@@upload-form.documents"
+          class="float-none w-auto px-2 fs-6 mb-0"
+        >
           Documents
         </legend>
-        <p class="text-muted">
+        <p
+          i18n="@@upload-form.upload-pdf-jpeg-png"
+          class="text-muted"
+        >
           Upload PDF, JPEG, PNG, or HEIC/HEIF documents; up to
           {{ maxUploadMb() }} MB per document.
         </p>
@@ -51,6 +60,7 @@ import { UploadDocumentRowComponent } from '../upload-document-row/upload-docume
           />
         }
         <button
+          i18n="@@upload-form.add-another-document"
           type="button"
           class="btn btn-outline-primary"
           [disabled]="

@@ -57,16 +57,21 @@ import {
   template: `
     <main>
       <p class="mb-2">
-        <a routerLink="/manage"
+        <a
+          i18n="
+            @@printer-qr.printers-if-printerresource-isloading"
+          routerLink="/manage"
           ><i class="bi bi-arrow-left" aria-hidden="true"></i>
           Printers</a
         >
       </p>
 
       @if (printerResource.isLoading()) {
-        <p role="status">Loading printer...</p>
+        <p i18n="@@printer-qr.loading-printer" role="status">
+          Loading printer...
+        </p>
       } @else if (printer(); as printer) {
-        <h1 class="h2 mb-4">
+        <h1 i18n="@@printer-qr.qr-code-pin-for" class="h2 mb-4">
           QR code &amp; PIN for {{ printer.name }}
         </h1>
 
@@ -82,8 +87,17 @@ import {
         </div>
 
         <section class="mb-5" aria-labelledby="qr-heading">
-          <h2 class="h4" id="qr-heading">QR code</h2>
-          <p class="text-muted">
+          <h2
+            i18n="@@printer-qr.qr-code"
+            class="h4"
+            id="qr-heading"
+          >
+            QR code
+          </h2>
+          <p
+            i18n="@@printer-qr.anyone-with-this-qr"
+            class="text-muted"
+          >
             Anyone with this QR code (or its link) can upload to
             {{ printer.name }} during the window below, without a
             PIN.
@@ -124,7 +138,9 @@ import {
           (revoke)="revoke(printer)"
         />
       } @else {
-        <h1 class="h2">Printer not found</h1>
+        <h1 i18n="@@printer-qr.printer-not-found" class="h2">
+          Printer not found
+        </h1>
       }
     </main>
   `,
@@ -156,10 +172,10 @@ export class PrinterQrComponent {
     this.#window,
     (path) => {
       required(path.notBefore, {
-        message: 'Choose when the QR code starts working.',
+        message: $localize`:@@printer-qr.start-required:Choose when the QR code starts working.`,
       });
       required(path.expiresAt, {
-        message: 'Choose when the QR code stops working.',
+        message: $localize`:@@printer-qr.end-required:Choose when the QR code stops working.`,
       });
       validate(path.expiresAt, (field) => {
         const message = windowOrderError(

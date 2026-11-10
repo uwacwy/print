@@ -7,7 +7,10 @@ export type AddMode = 'enroll' | 'manual';
   selector: 'app-add-mode-choice',
   template: `
     <fieldset class="mb-4">
-      <legend class="h6">
+      <legend
+        i18n="@@add-mode-choice.how-do-you-want"
+        class="h6"
+      >
         How do you want to add the printer?
       </legend>
       <div class="form-check">
@@ -22,10 +25,17 @@ export type AddMode = 'enroll' | 'manual';
           [disabled]="!enrollment()"
           (change)="mode.set('enroll')"
         />
-        <label class="form-check-label" for="add-mode-enroll"
+        <label
+          i18n="@@add-mode-choice.set-up-on-the"
+          class="form-check-label"
+          for="add-mode-enroll"
           >Set up on the printer's computer</label
         >
-        <div class="form-text" id="add-mode-enroll-help">
+        <div
+          i18n="@@add-mode-choice.recommended-run-one-command"
+          class="form-text"
+          id="add-mode-enroll-help"
+        >
           @if (enrollment()) {
             Recommended. Run one command there; it finds the
             printer for you.
@@ -46,10 +56,17 @@ export type AddMode = 'enroll' | 'manual';
           [checked]="mode() === 'manual'"
           (change)="mode.set('manual')"
         />
-        <label class="form-check-label" for="add-mode-manual"
+        <label
+          i18n="@@add-mode-choice.enter-the-printer-s"
+          class="form-check-label"
+          for="add-mode-manual"
           >Enter the printer's details here</label
         >
-        <div class="form-text" id="add-mode-manual-help">
+        <div
+          i18n="@@add-mode-choice.then-copy-the-agent"
+          class="form-text"
+          id="add-mode-manual-help"
+        >
           Then copy the agent's settings to its computer or a
           Docker Compose file.
         </div>

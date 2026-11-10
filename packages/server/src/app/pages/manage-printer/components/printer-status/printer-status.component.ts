@@ -7,7 +7,10 @@ import { AgentBadgeComponent } from '../../../../components/agent-badge/agent-ba
   imports: [AgentBadgeComponent],
   selector: 'app-printer-status',
   template: `
-    <p role="status">
+    <p
+      i18n="@@printer-status.agent-span-i18n-printer"
+      role="status"
+    >
       Agent:
       <app-agent-badge [online]="online()" />
       <span class="text-muted ms-2"

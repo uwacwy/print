@@ -3,23 +3,23 @@ export const posterNotice = (
   agentOnline: boolean,
 ) =>
   agentOnline
-    ? `QR poster sent to ${name}.`
-    : `QR poster queued. It prints when the ${name} agent is online.`;
+    ? $localize`:@@qr-messages.poster-sent:QR poster sent to ${name}:name:.`
+    : $localize`:@@qr-messages.poster-queued:QR poster queued. It prints when the ${name}:name: agent is online.`;
 
 export const replacePinPrompt = (name: string) =>
-  `Replace the PIN for ${name}? The old PIN stops working.`;
+  $localize`:@@qr-messages.replace-pin:Replace the PIN for ${name}:name:? The old PIN stops working.`;
 
 export const pinRefreshedNotice = (name: string) =>
-  `New PIN for ${name} is ready.`;
+  $localize`:@@qr-messages.pin-refreshed:New PIN for ${name}:name: is ready.`;
 
 export const disablePinPrompt = (name: string) =>
-  `Turn off PIN uploads for ${name}? Only QR codes will work.`;
+  $localize`:@@qr-messages.disable-pin:Turn off PIN uploads for ${name}:name:? Only QR codes will work.`;
 
 export const pinDisabledNotice = (name: string) =>
-  `PIN uploads turned off for ${name}.`;
+  $localize`:@@qr-messages.pin-disabled:PIN uploads turned off for ${name}:name:.`;
 
 export const revokePrompt = (name: string) =>
-  `Revoke every QR code and PIN link for ${name}? Printed posters stop working and must be replaced.`;
+  $localize`:@@qr-messages.revoke:Revoke every QR code and PIN link for ${name}:name:? Printed posters stop working and must be replaced.`;
 
 export const revokedNotice = (name: string) =>
-  `All QR codes for ${name} were revoked.`;
+  $localize`:@@qr-messages.revoked:All QR codes for ${name}:name: were revoked.`;

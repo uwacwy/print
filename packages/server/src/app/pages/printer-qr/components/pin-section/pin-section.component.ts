@@ -7,9 +7,15 @@ import type { PrinterSummary } from '../../../../services/printer/printer.servic
   selector: 'app-pin-section',
   template: `
     <section aria-labelledby="pin-heading">
-      <h2 class="h4" id="pin-heading">Upload PIN</h2>
+      <h2
+        i18n="@@pin-section.upload-pin"
+        class="h4"
+        id="pin-heading"
+      >
+        Upload PIN
+      </h2>
       @if (printer().pin; as pin) {
-        <p>
+        <p i18n="@@pin-section.visitors-without-the-qr">
           Visitors without the QR code can enter this PIN to get
           a short-lived upload link:
           <strong class="pin font-monospace fs-4 ms-2">{{
@@ -17,7 +23,10 @@ import type { PrinterSummary } from '../../../../services/printer/printer.servic
           }}</strong>
         </p>
       } @else {
-        <p class="text-muted">
+        <p
+          i18n="@@pin-section.pin-uploads-are-off"
+          class="text-muted"
+        >
           PIN uploads are off. Only QR codes work for this
           printer.
         </p>
@@ -30,10 +39,19 @@ import type { PrinterSummary } from '../../../../services/printer/printer.servic
           (click)="refresh.emit()"
         >
           <i class="bi bi-arrow-repeat" aria-hidden="true"></i>
-          {{ printer().pin ? 'Refresh PIN' : 'Turn on PIN' }}
+          @if (printer().pin) {
+            <ng-container i18n="@@pin-section.refresh"
+              >Refresh PIN</ng-container
+            >
+          } @else {
+            <ng-container i18n="@@pin-section.turn-on"
+              >Turn on PIN</ng-container
+            >
+          }
         </button>
         @if (printer().pin) {
           <button
+            i18n="@@pin-section.turn-off-pin"
             type="button"
             class="btn btn-outline-danger"
             [disabled]="busy()"

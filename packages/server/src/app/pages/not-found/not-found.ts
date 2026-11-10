@@ -4,6 +4,8 @@ import { Component } from '@angular/core';
   imports: [],
   selector: 'app-not-found',
   styles: ``,
-  template: ` <p>not-found works!</p> `,
+  template: `
+    <p i18n="@@not-found.not-found-works">not-found works!</p>
+  `,
 })
 export class NotFound {}

@@ -1,11 +1,15 @@
 <main class="col">
   @if (printerResource.isLoading()) {
-    <h1 class="h2">Print</h1>
-    <p role="status">Loading printer...</p>
+    <h1 i18n="@@print.print" class="h2">Print</h1>
+    <p i18n="@@print.loading-printer" role="status">
+      Loading printer...
+    </p>
   } @else if (printerResource.hasValue()) {
     @let printer = printerResource.value();
 
-    <h1 class="h2 mb-1">Print to {{ printer.name }}</h1>
+    <h1 i18n="@@print.print-to" class="h2 mb-1">
+      Print to {{ printer.name }}
+    </h1>
 
     @if (notice()) {
       <app-alert variant="warning">{{ notice() }}</app-alert>
@@ -13,7 +17,10 @@
 
     @switch (mode()) {
       @case ('upload') {
-        <p class="text-muted">
+        <p
+          i18n="@@print.as-username-printing-as"
+          class="text-muted"
+        >
           @if (printingAs(); as username) {
             Printing as {{ username }}.
           } @else if (
@@ -49,16 +56,25 @@
         <app-print-pin-form [pinForm]="pinForm" />
       }
       @default {
-        <p>Scan the QR code posted at the printer to print.</p>
+        <p i18n="@@print.scan-the-qr-code">
+          Scan the QR code posted at the printer to print.
+        </p>
       }
     }
   } @else if (notFound()) {
-    <h1 class="h2">Printer not found</h1>
-    <p>Check the link or QR code and try again.</p>
+    <h1 i18n="@@print.printer-not-found" class="h2">
+      Printer not found
+    </h1>
+    <p i18n="@@print.check-the-link-or">
+      Check the link or QR code and try again.
+    </p>
   } @else {
-    <h1 class="h2">Print</h1>
-    <app-alert>Unable to load this printer.</app-alert>
+    <h1 i18n="@@print.print-2" class="h2">Print</h1>
+    <app-alert i18n="@@print.unable-to-load-this"
+      >Unable to load this printer.</app-alert
+    >
     <button
+      i18n="@@print.try-again"
       type="button"
       class="btn btn-primary"
       (click)="printerResource.reload()"

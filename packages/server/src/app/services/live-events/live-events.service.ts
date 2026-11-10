@@ -122,7 +122,9 @@ export class LiveEventsService {
       instance.getActiveAccount() ??
       instance.getAllAccounts()[0];
     if (!scope || !account) {
-      throw new Error('Sign in to receive live updates.');
+      throw new Error(
+        $localize`:@@live-events.sign-in-required:Sign in to receive live updates.`,
+      );
     }
     const result = await firstValueFrom(
       this.#msal.acquireTokenSilent({

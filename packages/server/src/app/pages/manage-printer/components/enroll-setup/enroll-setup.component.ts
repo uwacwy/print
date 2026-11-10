@@ -19,11 +19,15 @@ import { SetupCommandsComponent } from '../../../../components/setup-commands/se
   selector: 'app-enroll-setup',
   template: `
     <section aria-labelledby="enroll-heading">
-      <h2 class="h5" id="enroll-heading">
+      <h2
+        i18n="@@enroll-setup.set-up-on-the"
+        class="h5"
+        id="enroll-heading"
+      >
         Set up on the printer's computer
       </h2>
       @if (token(); as enroll) {
-        <p>
+        <p i18n="@@enroll-setup.run-one-of-these">
           Run one of these on the computer next to the printer,
           such as a Raspberry Pi with CUPS. It asks whether the
           printer is a CUPS queue or a network (IPP) printer,
@@ -31,16 +35,20 @@ import { SetupCommandsComponent } from '../../../../components/setup-commands/se
           slug. The printer appears in the list when setup
           finishes.
         </p>
-        <p>
+        <p i18n="@@enroll-setup.works-until-anyone-with">
           Works until {{ enroll.expiresAt | date: 'shortTime' }}.
           Anyone with the command can add a printer until then.
         </p>
         <app-setup-commands [commands]="commands()" />
         <div class="d-flex gap-2 mt-3">
-          <a class="btn btn-primary" routerLink="/manage"
+          <a
+            i18n="@@enroll-setup.done"
+            class="btn btn-primary"
+            routerLink="/manage"
             >Done</a
           >
           <button
+            i18n="@@enroll-setup.new-command"
             type="button"
             class="btn btn-outline-secondary"
             [disabled]="busy()"
@@ -50,7 +58,7 @@ import { SetupCommandsComponent } from '../../../../components/setup-commands/se
           </button>
         </div>
       } @else {
-        <p>
+        <p i18n="@@enroll-setup.get-a-command-to">
           Get a command to run on the computer connected to the
           printer. It finds the printer, asks for its name, and
           starts the print agent.
@@ -61,7 +69,15 @@ import { SetupCommandsComponent } from '../../../../components/setup-commands/se
           [disabled]="busy()"
           (click)="create.emit()"
         >
-          {{ busy() ? 'Creating...' : 'Create setup command' }}
+          @if (busy()) {
+            <ng-container i18n="@@enroll-setup.creating"
+              >Creating...</ng-container
+            >
+          } @else {
+            <ng-container i18n="@@enroll-setup.create"
+              >Create setup command</ng-container
+            >
+          }
         </button>
       }
     </section>

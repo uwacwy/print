@@ -101,6 +101,6 @@ export function windowOrderError(
   return Number.isFinite(start) &&
     Number.isFinite(end) &&
     end <= start
-    ? 'Must be after the start time.'
+    ? $localize`:@@qr-window.after-start:Must be after the start time.`
     : undefined;
 }

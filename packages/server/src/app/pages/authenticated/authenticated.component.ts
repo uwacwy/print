@@ -14,7 +14,7 @@ import { filter, map, startWith } from 'rxjs';
   template: `
     <header>
       @if (username(); as name) {
-        <p>
+        <p i18n="@@authenticated.logged-in-as-middot">
           Logged in as {{ name }} &middot;
           <a href="#" (click)="signOut($event)">Sign Out</a>
         </p>

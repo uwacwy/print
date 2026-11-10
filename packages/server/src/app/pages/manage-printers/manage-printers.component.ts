@@ -55,12 +55,21 @@ import {
         class="d-flex align-items-center justify-content-between gap-3 mb-4"
       >
         <div>
-          <p class="text-uppercase text-muted small mb-1">
+          <p
+            i18n="@@manage-printers.administration"
+            class="text-uppercase text-muted small mb-1"
+          >
             Administration
           </p>
-          <h1 class="h2 mb-0">Printers</h1>
+          <h1 i18n="@@manage-printers.printers" class="h2 mb-0">
+            Printers
+          </h1>
         </div>
-        <a class="btn btn-primary" routerLink="new">
+        <a
+          i18n="@@manage-printers.add-printer-if-error"
+          class="btn btn-primary"
+          routerLink="new"
+        >
           <i class="bi bi-plus-lg" aria-hidden="true"></i> Add
           printer
         </a>
@@ -70,6 +79,8 @@ import {
         <app-alert
           variant="danger"
           dismissLabel="Dismiss error"
+          i18n-dismissLabel="
+            @@manage-printers.dismiss-error.dismisslabel"
           (dismissed)="error.set('')"
           >{{ error() }}</app-alert
         >
@@ -80,6 +91,8 @@ import {
             variant="success"
             [role]="null"
             dismissLabel="Dismiss message"
+            i18n-dismissLabel="
+              @@manage-printers.dismiss-message.dismisslabel"
             (dismissed)="notice.set('')"
             >{{ notice() }}</app-alert
           >
@@ -94,9 +107,19 @@ import {
       </p>
 
       @if (printersResource.isLoading()) {
-        <p role="status">Loading printers...</p>
+        <p
+          i18n="@@manage-printers.loading-printers"
+          role="status"
+        >
+          Loading printers...
+        </p>
       } @else if (printers().length === 0) {
-        <p class="text-muted">No printers configured.</p>
+        <p
+          i18n="@@manage-printers.no-printers-configured"
+          class="text-muted"
+        >
+          No printers configured.
+        </p>
       } @else {
         <ul class="list-unstyled d-flex flex-column gap-2 mb-0">
           @for (printer of printers(); track printer.id) {
@@ -126,7 +149,7 @@ export class ManagePrintersComponent {
   });
   readonly error = linkedSignal<string>(() =>
     this.printersResource.error()
-      ? 'Unable to load printers.'
+      ? $localize`:@@manage-printers.load-error:Unable to load printers.`
       : '',
   );
 

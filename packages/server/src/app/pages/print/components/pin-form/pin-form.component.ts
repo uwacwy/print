@@ -16,7 +16,7 @@ export interface PinModel {
   imports: [FormField, FormRoot],
   selector: 'app-print-pin-form',
   template: `
-    <p class="text-muted">
+    <p i18n="@@pin-form.enter-the-pin-posted" class="text-muted">
       Enter the PIN posted at the printer, or scan its QR code.
     </p>
     <form
@@ -24,7 +24,10 @@ export interface PinModel {
       class="d-flex flex-column gap-3"
     >
       <div>
-        <label class="form-label" for="printer-pin"
+        <label
+          i18n="@@pin-form.printer-pin"
+          class="form-label"
+          for="printer-pin"
           >Printer PIN</label
         >
         <input
@@ -42,7 +45,11 @@ export interface PinModel {
           "
           (input)="format()"
         />
-        <div id="printer-pin-help" class="form-text">
+        <div
+          i18n="@@pin-form.9-digits"
+          id="printer-pin-help"
+          class="form-text"
+        >
           9 digits
         </div>
         @if (error()) {

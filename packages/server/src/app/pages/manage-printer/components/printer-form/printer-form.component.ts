@@ -33,6 +33,7 @@ import { DeleteConfirmationComponent } from '../delete-confirmation/delete-confi
         <app-text-field
           inputId="printer-name"
           label="Display name"
+          i18n-label="@@printer-form.display-name.label"
           [field]="printerForm().name"
         />
       </div>
@@ -40,6 +41,7 @@ import { DeleteConfirmationComponent } from '../delete-confirmation/delete-confi
         <app-text-field
           inputId="printer-slug"
           label="Upload slug"
+          i18n-label="@@printer-form.upload-slug.label"
           [field]="printerForm().slug"
           [hint]="
             'Public upload URL: /print/' + (slug() || 'slug')
@@ -50,8 +52,10 @@ import { DeleteConfirmationComponent } from '../delete-confirmation/delete-confi
         <app-text-field
           inputId="printer-queue"
           label="Printer destination"
+          i18n-label="@@printer-form.printer-destination.label"
           [field]="printerForm().queue"
           hint="Use cups://Queue_Name or an ipp:// printer endpoint."
+          i18n-hint="@@printer-form.use-cups-queue.hint"
         />
       </div>
       <label class="form-check">
@@ -61,7 +65,9 @@ import { DeleteConfirmationComponent } from '../delete-confirmation/delete-confi
           type="checkbox"
           [formField]="printerForm().coverPage"
         />
-        <span class="form-check-label"
+        <span
+          i18n="@@printer-form.print-a-privacy-cover"
+          class="form-check-label"
           >Print a privacy cover page</span
         >
       </label>
@@ -71,16 +77,23 @@ import { DeleteConfirmationComponent } from '../delete-confirmation/delete-confi
           type="submit"
           [disabled]="saving()"
         >
-          {{
-            saving()
-              ? 'Saving...'
-              : isNew()
-                ? 'Create printer'
-                : 'Save changes'
-          }}
+          @if (saving()) {
+            <ng-container i18n="@@printer-form.saving"
+              >Saving...</ng-container
+            >
+          } @else if (isNew()) {
+            <ng-container i18n="@@printer-form.create"
+              >Create printer</ng-container
+            >
+          } @else {
+            <ng-container i18n="@@printer-form.save"
+              >Save changes</ng-container
+            >
+          }
         </button>
         @if (!isNew()) {
           <button
+            i18n="@@printer-form.delete-printer"
             class="btn btn-outline-danger"
             type="button"
             (click)="confirmingDelete.set(true)"

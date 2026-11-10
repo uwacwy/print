@@ -5,9 +5,17 @@ import { Component, input } from '@angular/core';
   selector: 'app-agent-badge',
   template: `
     @if (online()) {
-      <span class="badge text-bg-success">Online</span>
+      <span
+        i18n="@@agent-badge.online"
+        class="badge text-bg-success"
+        >Online</span
+      >
     } @else {
-      <span class="badge text-bg-secondary">Offline</span>
+      <span
+        i18n="@@agent-badge.offline"
+        class="badge text-bg-secondary"
+        >Offline</span
+      >
     }
   `,
 })

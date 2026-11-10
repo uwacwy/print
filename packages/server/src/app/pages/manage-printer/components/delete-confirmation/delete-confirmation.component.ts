@@ -5,8 +5,11 @@ import { Component, output } from '@angular/core';
   selector: 'app-delete-confirmation',
   template: `
     <div class="alert alert-warning mt-4" role="alert">
-      <p>Delete this printer and its queued jobs?</p>
+      <p i18n="@@delete-confirmation.delete-this-printer-and">
+        Delete this printer and its queued jobs?
+      </p>
       <button
+        i18n="@@delete-confirmation.confirm-delete"
         class="btn btn-danger btn-sm me-2"
         type="button"
         (click)="confirmed.emit()"
@@ -14,6 +17,7 @@ import { Component, output } from '@angular/core';
         Confirm delete
       </button>
       <button
+        i18n="@@delete-confirmation.cancel"
         class="btn btn-outline-secondary btn-sm"
         type="button"
         (click)="cancelled.emit()"

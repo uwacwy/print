@@ -28,6 +28,7 @@ import { UntilPresetsComponent } from '../until-presets/until-presets.component'
         <app-datetime-nudge-field
           inputId="qr-not-before"
           label="Valid from"
+          i18n-label="@@qr-window-form.valid-from.label"
           context="valid from"
           [field]="windowForm().notBefore"
         />
@@ -36,6 +37,7 @@ import { UntilPresetsComponent } from '../until-presets/until-presets.component'
         <app-datetime-nudge-field
           inputId="qr-expires-at"
           label="Valid until"
+          i18n-label="@@qr-window-form.valid-until.label"
           context="valid until"
           [field]="windowForm().expiresAt"
         />

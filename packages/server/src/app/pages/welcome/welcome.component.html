@@ -1,8 +1,12 @@
 <section class="hero" aria-labelledby="welcome-heading">
-  <h2 id="welcome-heading" class="h3">
+  <h2
+    i18n="@@welcome.print-from-your-phone"
+    id="welcome-heading"
+    class="h3"
+  >
     Print from your phone in seconds
   </h2>
-  <p class="lead mb-3">
+  <p i18n="@@welcome.no-app-no-account" class="lead mb-3">
     No app, no account, no cables. Scan the code at the printer,
     pick your documents, and pick up your pages.
   </p>
@@ -13,6 +17,7 @@
   </div>
   @if (state() === 'down' && !statusResource.isLoading()) {
     <button
+      i18n="@@welcome.try-again"
       type="button"
       class="btn btn-outline-primary btn-sm"
       (click)="statusResource.reload()"
@@ -23,7 +28,13 @@
 </section>
 
 <section class="mt-4" aria-labelledby="how-heading">
-  <h2 id="how-heading" class="h4 mb-4">How this works</h2>
+  <h2
+    i18n="@@welcome.how-this-works"
+    id="how-heading"
+    class="h4 mb-4"
+  >
+    How this works
+  </h2>
   <ol class="steps list-unstyled">
     <li>
       <span
@@ -31,8 +42,10 @@
         aria-hidden="true"
       ></span>
       <div>
-        <strong>Scan the QR code</strong>
-        <p>
+        <strong i18n="@@welcome.scan-the-qr-code"
+          >Scan the QR code</strong
+        >
+        <p i18n="@@welcome.point-your-phone-s">
           Point your phone’s camera at the code posted next to
           the printer and tap the link that appears.
         </p>
@@ -44,8 +57,10 @@
         aria-hidden="true"
       ></span>
       <div>
-        <strong>Choose your documents</strong>
-        <p>
+        <strong i18n="@@welcome.choose-your-documents"
+          >Choose your documents</strong
+        >
+        <p i18n="@@welcome.add-pdfs-or-photos">
           Add PDFs or photos, give the job a name you’ll
           recognize, and set the number of copies.
         </p>
@@ -57,8 +72,13 @@
         aria-hidden="true"
       ></span>
       <div>
-        <strong>Collect your pages</strong>
-        <p>
+        <strong i18n="@@welcome.collect-your-pages"
+          >Collect your pages</strong
+        >
+        <p
+          i18n="@@welcome.and-your-job-goes"
+          i18n="@@welcome.tap-print-and-your"
+        >
           Tap <em>Print</em> and your job goes straight to that
           printer. Pick it up from the tray in a moment.
         </p>
@@ -68,7 +88,11 @@
 </section>
 
 <section class="mt-4" aria-labelledby="faq-heading">
-  <h2 id="faq-heading" class="h4 mb-4">
+  <h2
+    i18n="@@welcome.frequently-asked-questions"
+    id="faq-heading"
+    class="h4 mb-4"
+  >
     Frequently asked questions
   </h2>
   <div class="faq">

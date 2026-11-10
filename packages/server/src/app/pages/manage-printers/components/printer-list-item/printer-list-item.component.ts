@@ -43,12 +43,18 @@ import { PrinterQuickActionsComponent } from '../printer-quick-actions/printer-q
           printer().name
         }}</span>
         <app-agent-badge [online]="printer().online" />
-        <span class="text-muted small ms-1">
+        <span
+          i18n="@@printer-list-item.active"
+          class="text-muted small ms-1"
+        >
           {{ printer().activeJobs }} active
           {{ printer().activeJobs === 1 ? 'job' : 'jobs' }}
         </span>
         @if (printer().failedJobs) {
-          <span class="badge text-bg-danger ms-1">
+          <span
+            i18n="@@printer-list-item.failed"
+            class="badge text-bg-danger ms-1"
+          >
             {{ printer().failedJobs }} failed
           </span>
         }

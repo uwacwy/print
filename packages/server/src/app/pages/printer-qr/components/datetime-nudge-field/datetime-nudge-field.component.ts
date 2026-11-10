@@ -29,6 +29,7 @@ import {
         [formField]="field()"
       />
       <button
+        i18n="@@datetime-nudge-field.15-min-button"
         type="button"
         class="btn btn-outline-secondary"
         (click)="nudge(-minutes)"
@@ -38,6 +39,7 @@ import {
         >
       </button>
       <button
+        i18n="@@datetime-nudge-field.15-min-if-er"
         type="button"
         class="btn btn-outline-secondary"
         (click)="nudge(minutes)"

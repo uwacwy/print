@@ -10,6 +10,7 @@ import type { PrinterSummary } from '../../../../services/printer/printer.servic
   template: `
     <div class="d-flex flex-wrap gap-2">
       <a
+        i18n="@@printer-admin-actions.configure-a-class-btn"
         class="btn btn-sm btn-outline-primary"
         [routerLink]="[printer().slug]"
       >
@@ -17,6 +18,7 @@ import type { PrinterSummary } from '../../../../services/printer/printer.servic
         Configure
       </a>
       <a
+        i18n="@@printer-admin-actions.qr-code-amp-pin"
         class="btn btn-sm btn-outline-primary"
         [routerLink]="[printer().slug, 'qr']"
       >
@@ -24,6 +26,7 @@ import type { PrinterSummary } from '../../../../services/printer/printer.servic
         QR code &amp; PIN
       </a>
       <button
+        i18n="@@printer-admin-actions.rotate-token-if-printer"
         type="button"
         class="btn btn-sm btn-outline-warning"
         [disabled]="busy()"
@@ -34,6 +37,7 @@ import type { PrinterSummary } from '../../../../services/printer/printer.servic
       </button>
       @if (printer().failedJobs) {
         <button
+          i18n="@@printer-admin-actions.retry-failed-jobs-button"
           type="button"
           class="btn btn-sm btn-outline-primary"
           [disabled]="busy()"
@@ -47,6 +51,7 @@ import type { PrinterSummary } from '../../../../services/printer/printer.servic
         </button>
       }
       <button
+        i18n="@@printer-admin-actions.delete-all-jobs-button"
         type="button"
         class="btn btn-sm btn-outline-danger"
         [disabled]="busy()"
@@ -56,6 +61,8 @@ import type { PrinterSummary } from '../../../../services/printer/printer.servic
         Delete all jobs
       </button>
       <button
+        i18n="
+          @@printer-admin-actions.remove-printer-export-class"
         type="button"
         class="btn btn-sm btn-danger"
         [disabled]="busy()"

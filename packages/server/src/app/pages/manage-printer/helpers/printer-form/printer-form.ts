@@ -27,4 +27,6 @@ export const toPrinterModel = (
 
 /** Title of the management page, following the name being edited. */
 export const printerPageTitle = (name: string): string =>
-  name ? `Manage ${name}` : 'Manage Printer';
+  name
+    ? $localize`:@@printer-form.title-named:Manage ${name}:name:`
+    : $localize`:@@printer-form.title:Manage Printer`;

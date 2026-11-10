@@ -16,6 +16,9 @@
       "root": "packages/server",
       "sourceRoot": "packages/server/src",
       "prefix": "app",
+      "i18n": {
+        "sourceLocale": "en-US"
+      },
       "architect": {
         "build": {
           "builder": "@angular/build:application",
@@ -51,7 +54,8 @@
             ],
             "ssr": {
               "entry": "packages/server/src/server.ts"
-            }
+            },
+            "polyfills": ["@angular/localize/init"]
           },
           "configurations": {
             "production": {
@@ -105,6 +109,15 @@
           "builder": "@angular/build:unit-test",
           "options": {
             "include": ["**/*.spec.ts"]
+          }
+        },
+        "extract-i18n": {
+          "builder": "@angular/build:extract-i18n",
+          "options": {
+            "buildTarget": "print-server:build",
+            "format": "xlf2",
+            "outputPath": "packages/server/src/locale",
+            "progress": false
           }
         }
       }

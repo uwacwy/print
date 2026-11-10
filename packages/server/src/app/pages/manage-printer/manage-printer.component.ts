@@ -66,11 +66,22 @@ import {
   selector: 'app-manage-printer',
   template: `
     <main class="container py-4">
-      <a routerLink="/manage" class="link-secondary"
+      <a
+        i18n="@@manage-printer.printers"
+        routerLink="/manage"
+        class="link-secondary"
         >&larr; Printers</a
       >
       <h1 class="h2 mt-3 mb-4">
-        {{ isNew ? 'Add printer' : 'Edit printer' }}
+        @if (isNew) {
+          <ng-container i18n="@@manage-printer.add-heading"
+            >Add printer</ng-container
+          >
+        } @else {
+          <ng-container i18n="@@manage-printer.edit-heading"
+            >Edit printer</ng-container
+          >
+        }
       </h1>
 
       @if (error()) {
@@ -83,7 +94,9 @@ import {
         />
       }
       @if (printerResource.isLoading()) {
-        <p role="status">Loading printer...</p>
+        <p i18n="@@manage-printer.loading-printer" role="status">
+          Loading printer...
+        </p>
       } @else if (created(); as created) {
         <app-created-printer [created]="created" />
       } @else if (isNew && mode() === 'enroll') {
@@ -146,18 +159,20 @@ export class ManagePrinterComponent {
   readonly printerForm = form(
     this.#model,
     (path) => {
-      required(path.name, { message: 'Enter a display name.' });
+      required(path.name, {
+        message: $localize`:@@manage-printer.name-required:Enter a display name.`,
+      });
       maxLength(path.name, NAME_MAX_LENGTH, {
-        message: `Enter a name of at most ${NAME_MAX_LENGTH} characters.`,
+        message: $localize`:@@manage-printer.name-max:Enter a name of at most ${NAME_MAX_LENGTH}:NAME_MAX_LENGTH: characters.`,
       });
       required(path.slug, {
-        message: 'Use lowercase letters, numbers, and hyphens.',
+        message: $localize`:@@manage-printer.slug-format:Use lowercase letters, numbers, and hyphens.`,
       });
       pattern(path.slug, SLUG_PATTERN, {
-        message: 'Use lowercase letters, numbers, and hyphens.',
+        message: $localize`:@@manage-printer.slug-format:Use lowercase letters, numbers, and hyphens.`,
       });
       required(path.queue, {
-        message: 'Enter a CUPS queue or IPP endpoint.',
+        message: $localize`:@@manage-printer.queue-required:Enter a CUPS queue or IPP endpoint.`,
       });
     },
     { submission: { action: () => this.#save() } },

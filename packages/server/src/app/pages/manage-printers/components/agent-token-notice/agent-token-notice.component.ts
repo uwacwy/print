@@ -18,16 +18,25 @@ import { SetupCommandsComponent } from '../../../../components/setup-commands/se
       class="alert alert-warning"
       [attr.aria-labelledby]="'token-heading-' + printerId()"
     >
-      <h2 class="h6" [id]="'token-heading-' + printerId()">
+      <h2
+        i18n="@@agent-token-notice.new-agent-token-shown"
+        class="h6"
+        [id]="'token-heading-' + printerId()"
+      >
         New agent token (shown once)
       </h2>
-      <p class="small mb-2">
+      <p
+        i18n="@@agent-token-notice.and-this-token-button"
+        i18n="@@agent-token-notice.the-previous-token-no"
+        class="small mb-2"
+      >
         The previous token no longer works. Reconfigure the agent
         with server URL <code>{{ serverUrl() }}</code> and this
         token:
       </p>
       <app-setup-commands [commands]="commands()" />
       <button
+        i18n="@@agent-token-notice.done"
         type="button"
         class="btn btn-sm btn-outline-dark mt-2"
         (click)="dismissed.emit()"
@@ -44,6 +53,10 @@ export class AgentTokenNoticeComponent {
   readonly token = input.required<string>();
 
   protected readonly commands = computed((): SetupCommand[] => [
-    { command: this.token(), id: 'token', label: 'Agent token' },
+    {
+      command: this.token(),
+      id: 'token',
+      label: $localize`:@@setup-command.agent-token:Agent token`,
+    },
   ]);
 }

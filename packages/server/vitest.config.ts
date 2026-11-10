@@ -12,6 +12,7 @@ export default mergeConfig(
         'src/app/auth/msal.config.spec.ts',
       ],
       name: 'server',
+      setupFiles: ['@angular/localize/init'],
     },
   }),
 );

@@ -17,7 +17,12 @@ import { LayoutWidthService } from './services/layout-width/layout-width.service
             class="d-flex flex-wrap align-items-center column-gap-3 row-gap-2 mb-3"
           >
             <app-site-logo />
-            <h1 class="mb-0">United Way Quick Print</h1>
+            <h1
+              i18n="@@app.united-way-quick-print-2"
+              class="mb-0"
+            >
+              United Way Quick Print
+            </h1>
           </header>
           <div class="row">
             <div>

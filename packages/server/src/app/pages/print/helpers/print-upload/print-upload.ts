@@ -22,9 +22,9 @@ const TOKEN_MESSAGES: Record<
   Exclude<UploadTokenStatus, 'valid'>,
   string
 > = {
-  expired: 'This print link has expired.',
-  invalid: 'This print link is not valid.',
-  'not-yet-valid': 'This QR code is not active yet.',
+  expired: $localize`:@@print-upload.link-expired:This print link has expired.`,
+  invalid: $localize`:@@print-upload.link-invalid:This print link is not valid.`,
+  'not-yet-valid': $localize`:@@print-upload.qr-not-active:This QR code is not active yet.`,
 };
 
 export const newDocument = (id: number): DocumentRow => ({

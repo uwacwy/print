@@ -8,7 +8,10 @@ import type { UntilPreset } from '../../helpers/qr-window/qr-window';
   template: `
     @if (presets().length) {
       <div class="d-flex flex-wrap align-items-center gap-2">
-        <span id="qr-until-presets" class="fw-semibold"
+        <span
+          i18n="@@until-presets.until"
+          id="qr-until-presets"
+          class="fw-semibold"
           >Until:</span
         >
         <div

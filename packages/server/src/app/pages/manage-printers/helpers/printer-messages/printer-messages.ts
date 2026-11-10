@@ -5,16 +5,16 @@ export const qrSheetNotice = (
   agentOnline: boolean,
 ) =>
   agentOnline
-    ? `QR sheet sent to ${name}.`
-    : `QR sheet queued. It prints when the ${name} agent is online.`;
+    ? $localize`:@@printer-messages.qr-sheet-sent:QR sheet sent to ${name}:name:.`
+    : $localize`:@@printer-messages.qr-sheet-queued:QR sheet queued. It prints when the ${name}:name: agent is online.`;
 
 export const tokenRotatedNotice = (name: string) =>
-  `Agent token rotated for ${name}. Copy the new token below.`;
+  $localize`:@@printer-messages.token-rotated:Agent token rotated for ${name}:name:. Copy the new token below.`;
 
 export const retriedNotice = (name: string, retried: number) =>
   retried
-    ? `Retried ${retried} ${plural(retried)} for ${name}.`
-    : `No failed jobs for ${name} could be retried; their documents have expired.`;
+    ? $localize`:@@printer-messages.retried:Retried ${retried}:retried: ${plural(retried)}:retried2: for ${name}:name:.`
+    : $localize`:@@printer-messages.nothing-retried:No failed jobs for ${name}:name: could be retried; their documents have expired.`;
 
 export const jobsDeletedNotice = (
   name: string,

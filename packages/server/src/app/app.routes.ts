@@ -18,7 +18,7 @@ export const routes: Routes = [
         (m) => m.WelcomeComponent,
       ),
     path: '',
-    title: 'Welcome',
+    title: $localize`:@@route.welcome.title:Welcome`,
   },
   {
     data: {
@@ -35,7 +35,7 @@ export const routes: Routes = [
         (m) => m.PrintComponent,
       ),
     path: 'print/:slug',
-    title: 'Print Documents',
+    title: $localize`:@@route.print.title:Print Documents`,
   },
   {
     canActivate: [MsalGuard],
@@ -48,7 +48,7 @@ export const routes: Routes = [
           ),
         path: '',
         pathMatch: 'full',
-        title: 'Manage Printers',
+        title: $localize`:@@route.manage-printers.title:Manage Printers`,
       },
       {
         loadComponent: () =>
@@ -56,7 +56,7 @@ export const routes: Routes = [
             (m) => m.PrinterQrComponent,
           ),
         path: ':slug/qr',
-        title: 'Printer QR Codes',
+        title: $localize`:@@route.printer-qr.title:Printer QR Codes`,
       },
       {
         loadComponent: () =>
@@ -64,7 +64,7 @@ export const routes: Routes = [
             (m) => m.ManagePrinterComponent,
           ),
         path: ':slug',
-        title: 'Manage Printer',
+        title: $localize`:@@route.manage-printer.title:Manage Printer`,
       },
     ],
     loadComponent: () =>

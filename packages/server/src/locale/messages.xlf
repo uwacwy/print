@@ -1,0 +1,1440 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<xliff version="2.0" xmlns="urn:oasis:names:tc:xliff:document:2.0" srcLang="en-US">
+  <file id="ngi18n" original="ng.template">
+    <unit id="route.welcome.title">
+      <notes>
+        <note category="location">packages/server/src/app/app.routes.ts:21</note>
+      </notes>
+      <segment>
+        <source>Welcome</source>
+      </segment>
+    </unit>
+    <unit id="route.print.title">
+      <notes>
+        <note category="location">packages/server/src/app/app.routes.ts:38</note>
+      </notes>
+      <segment>
+        <source>Print Documents</source>
+      </segment>
+    </unit>
+    <unit id="route.manage-printers.title">
+      <notes>
+        <note category="location">packages/server/src/app/app.routes.ts:51</note>
+      </notes>
+      <segment>
+        <source>Manage Printers</source>
+      </segment>
+    </unit>
+    <unit id="route.printer-qr.title">
+      <notes>
+        <note category="location">packages/server/src/app/app.routes.ts:59</note>
+      </notes>
+      <segment>
+        <source>Printer QR Codes</source>
+      </segment>
+    </unit>
+    <unit id="route.manage-printer.title">
+      <notes>
+        <note category="location">packages/server/src/app/app.routes.ts:67</note>
+      </notes>
+      <segment>
+        <source>Manage Printer</source>
+      </segment>
+    </unit>
+    <unit id="app.united-way-quick-print-2">
+      <notes>
+        <note category="location">packages/server/src/app/app.ts:24,26</note>
+      </notes>
+      <segment>
+        <source> United Way Quick Print </source>
+      </segment>
+    </unit>
+    <unit id="agent-badge.online">
+      <notes>
+        <note category="location">packages/server/src/app/components/agent-badge/agent-badge.component.ts:11,14</note>
+      </notes>
+      <segment>
+        <source>Online</source>
+      </segment>
+    </unit>
+    <unit id="agent-badge.offline">
+      <notes>
+        <note category="location">packages/server/src/app/components/agent-badge/agent-badge.component.ts:17,22</note>
+      </notes>
+      <segment>
+        <source>Offline</source>
+      </segment>
+    </unit>
+    <unit id="authenticated.logged-in-as-middot">
+      <notes>
+        <note category="location">packages/server/src/app/pages/authenticated/authenticated.component.ts:18,21</note>
+      </notes>
+      <segment>
+        <source> Logged in as <ph id="0" equiv="INTERPOLATION" disp="{{ name }}"/> · <pc id="1" equivStart="START_LINK" equivEnd="CLOSE_LINK" type="link" dispStart="&lt;a href=&quot;#&quot; (click)=&quot;signOut($event)&quot;&gt;" dispEnd="&lt;/a&gt;">Sign Out</pc></source>
+      </segment>
+    </unit>
+    <unit id="add-mode-choice.how-do-you-want">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/add-mode-choice/add-mode-choice.component.ts:14,16</note>
+      </notes>
+      <segment>
+        <source> How do you want to add the printer? </source>
+      </segment>
+    </unit>
+    <unit id="add-mode-choice.set-up-on-the">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/add-mode-choice/add-mode-choice.component.ts:32,35</note>
+      </notes>
+      <segment>
+        <source>Set up on the printer&apos;s computer</source>
+      </segment>
+    </unit>
+    <unit id="add-mode-choice.recommended-run-one-command">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/add-mode-choice/add-mode-choice.component.ts:39,47</note>
+      </notes>
+      <segment>
+        <source><pc id="0" equivStart="START_BLOCK_IF" equivEnd="CLOSE_BLOCK_IF" type="other" dispStart="@if (enrollment()) {" dispEnd="}"> Recommended. Run one command there; it finds the printer for you. </pc><pc id="1" equivStart="START_BLOCK_ELSE" equivEnd="CLOSE_BLOCK_ELSE" type="other" dispStart="@else {" dispEnd="}"> Unavailable: set <pc id="2" equivStart="START_TAG_CODE" equivEnd="CLOSE_TAG_CODE" type="other" dispStart="&lt;code&gt;" dispEnd="&lt;/code&gt;">PUBLIC_URL</pc> on the server to enable it. </pc></source>
+      </segment>
+    </unit>
+    <unit id="add-mode-choice.enter-the-printer-s">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/add-mode-choice/add-mode-choice.component.ts:63,66</note>
+      </notes>
+      <segment>
+        <source>Enter the printer&apos;s details here</source>
+      </segment>
+    </unit>
+    <unit id="add-mode-choice.then-copy-the-agent">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/add-mode-choice/add-mode-choice.component.ts:70,74</note>
+      </notes>
+      <segment>
+        <source> Then copy the agent&apos;s settings to its computer or a Docker Compose file. </source>
+      </segment>
+    </unit>
+    <unit id="created-printer.set-up-the-agent">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/created-printer/created-printer.component.ts:23,25</note>
+      </notes>
+      <segment>
+        <source> Set up the agent (token shown once) </source>
+      </segment>
+    </unit>
+    <unit id="created-printer.run-one-of-these">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/created-printer/created-printer.component.ts:26,29</note>
+      </notes>
+      <segment>
+        <source> Run one of these on the computer next to <ph id="0" equiv="INTERPOLATION" disp="{{ created().printer.name }}"/>, or copy the agent token into its configuration now. The token is not shown again. </source>
+      </segment>
+    </unit>
+    <unit id="created-printer.on-the-server-to">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/created-printer/created-printer.component.ts:36,39</note>
+      </notes>
+      <segment>
+        <source> Set <pc id="0" equivStart="START_TAG_CODE" equivEnd="CLOSE_TAG_CODE" type="other" dispStart="&lt;code&gt;" dispEnd="&lt;/code&gt;">PUBLIC_URL</pc> on the server to get ready-made setup commands. </source>
+      </segment>
+    </unit>
+    <unit id="created-printer.done">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/created-printer/created-printer.component.ts:48,51</note>
+      </notes>
+      <segment>
+        <source>Done</source>
+      </segment>
+    </unit>
+    <unit id="delete-confirmation.delete-this-printer-and">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/delete-confirmation/delete-confirmation.component.ts:9,12</note>
+      </notes>
+      <segment>
+        <source> Delete this printer and its queued jobs? </source>
+      </segment>
+    </unit>
+    <unit id="delete-confirmation.confirm-delete">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/delete-confirmation/delete-confirmation.component.ts:17,20</note>
+      </notes>
+      <segment>
+        <source> Confirm delete </source>
+      </segment>
+    </unit>
+    <unit id="delete-confirmation.cancel">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/delete-confirmation/delete-confirmation.component.ts:25,29</note>
+      </notes>
+      <segment>
+        <source> Cancel </source>
+      </segment>
+    </unit>
+    <unit id="enroll-setup.set-up-on-the">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/enroll-setup/enroll-setup.component.ts:27,29</note>
+      </notes>
+      <segment>
+        <source> Set up on the printer&apos;s computer </source>
+      </segment>
+    </unit>
+    <unit id="enroll-setup.run-one-of-these">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/enroll-setup/enroll-setup.component.ts:31,36</note>
+      </notes>
+      <segment>
+        <source> Run one of these on the computer next to the printer, such as a Raspberry Pi with CUPS. It asks whether the printer is a CUPS queue or a network (IPP) printer, lists the printers it finds, and suggests a name and slug. The printer appears in the list when setup finishes. </source>
+      </segment>
+    </unit>
+    <unit id="enroll-setup.works-until-anyone-with">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/enroll-setup/enroll-setup.component.ts:39,41</note>
+      </notes>
+      <segment>
+        <source> Works until <ph id="0" equiv="INTERPOLATION" disp="{{ enroll.expiresAt | date: &apos;shortTime&apos; }}"/>. Anyone with the command can add a printer until then. </source>
+      </segment>
+    </unit>
+    <unit id="enroll-setup.done">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/enroll-setup/enroll-setup.component.ts:49,50</note>
+      </notes>
+      <segment>
+        <source>Done</source>
+      </segment>
+    </unit>
+    <unit id="enroll-setup.new-command">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/enroll-setup/enroll-setup.component.ts:57,59</note>
+      </notes>
+      <segment>
+        <source> New command </source>
+      </segment>
+    </unit>
+    <unit id="enroll-setup.get-a-command-to">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/enroll-setup/enroll-setup.component.ts:62,66</note>
+      </notes>
+      <segment>
+        <source> Get a command to run on the computer connected to the printer. It finds the printer, asks for its name, and starts the print agent. </source>
+      </segment>
+    </unit>
+    <unit id="enroll-setup.creating">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/enroll-setup/enroll-setup.component.ts:74,76</note>
+      </notes>
+      <segment>
+        <source>Creating...</source>
+      </segment>
+    </unit>
+    <unit id="enroll-setup.create">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/enroll-setup/enroll-setup.component.ts:78,80</note>
+      </notes>
+      <segment>
+        <source>Create setup command</source>
+      </segment>
+    </unit>
+    <unit id="printer-form.display-name.label">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/printer-form/printer-form.component.ts:35,36</note>
+      </notes>
+      <segment>
+        <source>Display name</source>
+      </segment>
+    </unit>
+    <unit id="printer-form.upload-slug.label">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/printer-form/printer-form.component.ts:43,44</note>
+      </notes>
+      <segment>
+        <source>Upload slug</source>
+      </segment>
+    </unit>
+    <unit id="printer-form.printer-destination.label">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/printer-form/printer-form.component.ts:54,55</note>
+      </notes>
+      <segment>
+        <source>Printer destination</source>
+      </segment>
+    </unit>
+    <unit id="printer-form.use-cups-queue.hint">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/printer-form/printer-form.component.ts:57,58</note>
+      </notes>
+      <segment>
+        <source>Use cups://Queue_Name or an ipp:// printer endpoint.</source>
+      </segment>
+    </unit>
+    <unit id="printer-form.print-a-privacy-cover">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/printer-form/printer-form.component.ts:71,74</note>
+      </notes>
+      <segment>
+        <source>Print a privacy cover page</source>
+      </segment>
+    </unit>
+    <unit id="printer-form.saving">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/printer-form/printer-form.component.ts:82,84</note>
+      </notes>
+      <segment>
+        <source>Saving...</source>
+      </segment>
+    </unit>
+    <unit id="printer-form.create">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/printer-form/printer-form.component.ts:86,88</note>
+      </notes>
+      <segment>
+        <source>Create printer</source>
+      </segment>
+    </unit>
+    <unit id="printer-form.save">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/printer-form/printer-form.component.ts:90,92</note>
+      </notes>
+      <segment>
+        <source>Save changes</source>
+      </segment>
+    </unit>
+    <unit id="printer-form.delete-printer">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/printer-form/printer-form.component.ts:101,104</note>
+      </notes>
+      <segment>
+        <source> Delete printer </source>
+      </segment>
+    </unit>
+    <unit id="printer-status.agent-span-i18n-printer">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/printer-status/printer-status.component.ts:14,22</note>
+      </notes>
+      <segment>
+        <source> Agent: <pc id="0" equivStart="START_TAG_APP_AGENT_BADGE" equivEnd="CLOSE_TAG_APP_AGENT_BADGE" type="other" dispStart="&lt;app-agent-badge [online]=&quot;online()&quot; /&gt;" dispEnd="&lt;app-agent-badge [online]=&quot;online()&quot; /&gt;"></pc><pc id="1" equivStart="START_TAG_SPAN" equivEnd="CLOSE_TAG_SPAN" type="other" dispStart="&lt;span class=&quot;text-muted ms-2&quot;
+        &gt;" dispEnd="&lt;/span
+      &gt;"><ph id="2" equiv="INTERPOLATION" disp="{{ activeJobs() }}"/> active job(s)</pc></source>
+      </segment>
+    </unit>
+    <unit id="setup-command.agent-token">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/helpers/created-printer-commands/created-printer-commands.ts:18</note>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/agent-token-notice/agent-token-notice.component.ts:59</note>
+      </notes>
+      <segment>
+        <source>Agent token</source>
+      </segment>
+    </unit>
+    <unit id="printer-form.title-named">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/helpers/printer-form/printer-form.ts:31</note>
+      </notes>
+      <segment>
+        <source>Manage <ph id="0" equiv="name" disp="name"/></source>
+      </segment>
+    </unit>
+    <unit id="printer-form.title">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/helpers/printer-form/printer-form.ts:32</note>
+      </notes>
+      <segment>
+        <source>Manage Printer</source>
+      </segment>
+    </unit>
+    <unit id="manage-printer.printers">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/manage-printer.component.ts:73,75</note>
+      </notes>
+      <segment>
+        <source>← Printers</source>
+      </segment>
+    </unit>
+    <unit id="manage-printer.add-heading">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/manage-printer.component.ts:78,80</note>
+      </notes>
+      <segment>
+        <source>Add printer</source>
+      </segment>
+    </unit>
+    <unit id="manage-printer.edit-heading">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/manage-printer.component.ts:82,85</note>
+      </notes>
+      <segment>
+        <source>Edit printer</source>
+      </segment>
+    </unit>
+    <unit id="manage-printer.loading-printer">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/manage-printer.component.ts:98,100</note>
+      </notes>
+      <segment>
+        <source> Loading printer... </source>
+      </segment>
+    </unit>
+    <unit id="manage-printer.name-required">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/manage-printer.component.ts:163</note>
+      </notes>
+      <segment>
+        <source>Enter a display name.</source>
+      </segment>
+    </unit>
+    <unit id="manage-printer.name-max">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/manage-printer.component.ts:166</note>
+      </notes>
+      <segment>
+        <source>Enter a name of at most <ph id="0" equiv="NAME_MAX_LENGTH" disp="NAME_MAX_LENGTH"/> characters.</source>
+      </segment>
+    </unit>
+    <unit id="manage-printer.slug-format">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/manage-printer.component.ts:169</note>
+        <note category="location">packages/server/src/app/pages/manage-printer/manage-printer.component.ts:172</note>
+      </notes>
+      <segment>
+        <source>Use lowercase letters, numbers, and hyphens.</source>
+      </segment>
+    </unit>
+    <unit id="manage-printer.queue-required">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/manage-printer.component.ts:175</note>
+      </notes>
+      <segment>
+        <source>Enter a CUPS queue or IPP endpoint.</source>
+      </segment>
+    </unit>
+    <unit id="agent-token-notice.new-agent-token-shown">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/agent-token-notice/agent-token-notice.component.ts:26,29</note>
+      </notes>
+      <segment>
+        <source> New agent token (shown once) </source>
+      </segment>
+    </unit>
+    <unit id="agent-token-notice.and-this-token-button">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/agent-token-notice/agent-token-notice.component.ts:33,36</note>
+      </notes>
+      <segment>
+        <source> The previous token no longer works. Reconfigure the agent with server URL <pc id="0" equivStart="START_TAG_CODE" equivEnd="CLOSE_TAG_CODE" type="other" dispStart="&lt;code&gt;" dispEnd="&lt;/code&gt;"><ph id="1" equiv="INTERPOLATION" disp="{{ serverUrl() }}"/></pc> and this token: </source>
+      </segment>
+    </unit>
+    <unit id="agent-token-notice.done">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/agent-token-notice/agent-token-notice.component.ts:44,46</note>
+      </notes>
+      <segment>
+        <source> Done </source>
+      </segment>
+    </unit>
+    <unit id="printer-admin-actions.configure-a-class-btn">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-admin-actions/printer-admin-actions.component.ts:17,20</note>
+      </notes>
+      <segment>
+        <source><pc id="0" equivStart="START_ITALIC_TEXT" equivEnd="CLOSE_ITALIC_TEXT" type="fmt" dispStart="&lt;i class=&quot;bi bi-gear&quot; aria-hidden=&quot;true&quot;&gt;" dispEnd="&lt;/i&gt;"></pc> Configure </source>
+      </segment>
+    </unit>
+    <unit id="printer-admin-actions.qr-code-amp-pin">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-admin-actions/printer-admin-actions.component.ts:25,27</note>
+      </notes>
+      <segment>
+        <source><pc id="0" equivStart="START_ITALIC_TEXT" equivEnd="CLOSE_ITALIC_TEXT" type="fmt" dispStart="&lt;i class=&quot;bi bi-qr-code&quot; aria-hidden=&quot;true&quot;&gt;" dispEnd="&lt;/i&gt;"></pc> QR code &amp; PIN </source>
+      </segment>
+    </unit>
+    <unit id="printer-admin-actions.rotate-token-if-printer">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-admin-actions/printer-admin-actions.component.ts:35,37</note>
+      </notes>
+      <segment>
+        <source><pc id="0" equivStart="START_ITALIC_TEXT" equivEnd="CLOSE_ITALIC_TEXT" type="fmt" dispStart="&lt;i class=&quot;bi bi-key&quot; aria-hidden=&quot;true&quot;&gt;" dispEnd="&lt;/i&gt;"></pc> Rotate token </source>
+      </segment>
+    </unit>
+    <unit id="printer-admin-actions.retry-failed-jobs-button">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-admin-actions/printer-admin-actions.component.ts:47,51</note>
+      </notes>
+      <segment>
+        <source><pc id="0" equivStart="START_ITALIC_TEXT" equivEnd="CLOSE_ITALIC_TEXT" type="fmt" dispStart="&lt;i
+            class=&quot;bi bi-arrow-clockwise&quot;
+            aria-hidden=&quot;true&quot;
+          &gt;" dispEnd="&lt;/i&gt;"></pc> Retry failed jobs </source>
+      </segment>
+    </unit>
+    <unit id="printer-admin-actions.delete-all-jobs-button">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-admin-actions/printer-admin-actions.component.ts:60,62</note>
+      </notes>
+      <segment>
+        <source><pc id="0" equivStart="START_ITALIC_TEXT" equivEnd="CLOSE_ITALIC_TEXT" type="fmt" dispStart="&lt;i class=&quot;bi bi-trash3&quot; aria-hidden=&quot;true&quot;&gt;" dispEnd="&lt;/i&gt;"></pc> Delete all jobs </source>
+      </segment>
+    </unit>
+    <unit id="printer-admin-actions.remove-printer-export-class">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-admin-actions/printer-admin-actions.component.ts:71,73</note>
+      </notes>
+      <segment>
+        <source><pc id="0" equivStart="START_ITALIC_TEXT" equivEnd="CLOSE_ITALIC_TEXT" type="fmt" dispStart="&lt;i class=&quot;bi bi-x-octagon&quot; aria-hidden=&quot;true&quot;&gt;" dispEnd="&lt;/i&gt;"></pc> Remove printer </source>
+      </segment>
+    </unit>
+    <unit id="printer-details.upload-page">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-details/printer-details.component.ts:14,16</note>
+      </notes>
+      <segment>
+        <source> Upload page </source>
+      </segment>
+    </unit>
+    <unit id="printer-details.print-nbsp-i-class">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-details/printer-details.component.ts:23,30</note>
+      </notes>
+      <segment>
+        <source> /print/<ph id="0" equiv="INTERPOLATION" disp="{{ printer().slug }}"/>  <pc id="1" equivStart="START_ITALIC_TEXT" equivEnd="CLOSE_ITALIC_TEXT" type="fmt" dispStart="&lt;i
+            class=&quot;bi bi-box-arrow-up-right&quot;
+            aria-hidden=&quot;true&quot;
+          &gt;" dispEnd="&lt;/i&gt;"></pc><pc id="2" equivStart="START_TAG_SPAN" equivEnd="CLOSE_TAG_SPAN" type="other" dispStart="&lt;span class=&quot;visually-hidden&quot;&gt;" dispEnd="&lt;/span&gt;">(opens in new tab)</pc></source>
+      </segment>
+    </unit>
+    <unit id="printer-details.upload-pin">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-details/printer-details.component.ts:32,34</note>
+      </notes>
+      <segment>
+        <source> Upload PIN </source>
+      </segment>
+    </unit>
+    <unit id="printer-details.pin">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-details/printer-details.component.ts:35,41</note>
+      </notes>
+      <segment>
+        <source><pc id="0" equivStart="START_BLOCK_IF" equivEnd="CLOSE_BLOCK_IF" type="other" dispStart="@if (printer().pin) {" dispEnd="}"><pc id="1" equivStart="START_TAG_SPAN" equivEnd="CLOSE_TAG_SPAN" type="other" dispStart="&lt;span class=&quot;font-monospace&quot;&gt;" dispEnd="&lt;/span&gt;"><ph id="2" equiv="INTERPOLATION" disp="{{ printer().pin }}"/></pc></pc><pc id="3" equivStart="START_BLOCK_ELSE" equivEnd="CLOSE_BLOCK_ELSE" type="other" dispStart="@else {" dispEnd="}"> Off (QR code only) </pc></source>
+      </segment>
+    </unit>
+    <unit id="printer-details.destination">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-details/printer-details.component.ts:42,44</note>
+      </notes>
+      <segment>
+        <source> Destination </source>
+      </segment>
+    </unit>
+    <unit id="printer-details.cover-page">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-details/printer-details.component.ts:48,50</note>
+      </notes>
+      <segment>
+        <source> Cover page </source>
+      </segment>
+    </unit>
+    <unit id="printer-details.agent-last-seen">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-details/printer-details.component.ts:57,59</note>
+      </notes>
+      <segment>
+        <source> Agent last seen </source>
+      </segment>
+    </unit>
+    <unit id="printer-details.never-connected">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-details/printer-details.component.ts:64,67</note>
+      </notes>
+      <segment>
+        <source>Never connected</source>
+      </segment>
+    </unit>
+    <unit id="printer-list-item.active">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-list-item/printer-list-item.component.ts:50,53</note>
+      </notes>
+      <segment>
+        <source> <ph id="0" equiv="INTERPOLATION" disp="{{ printer().activeJobs }}"/> active <ph id="1" equiv="INTERPOLATION_1" disp="{{ printer().activeJobs === 1 ? &apos;job&apos; : &apos;jobs&apos; }}"/> </source>
+      </segment>
+    </unit>
+    <unit id="printer-list-item.failed">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-list-item/printer-list-item.component.ts:58,59</note>
+      </notes>
+      <segment>
+        <source> <ph id="0" equiv="INTERPOLATION" disp="{{ printer().failedJobs }}"/> failed </source>
+      </segment>
+    </unit>
+    <unit id="printer-quick-actions.open-upload-page.title">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-quick-actions/printer-quick-actions.component.ts:21,23</note>
+      </notes>
+      <segment>
+        <source>Open upload page</source>
+      </segment>
+    </unit>
+    <unit id="printer-quick-actions.open-upload-page-for">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-quick-actions/printer-quick-actions.component.ts:32,34</note>
+      </notes>
+      <segment>
+        <source>Open upload page for <ph id="0" equiv="INTERPOLATION" disp="{{ printer().name }}"/> (opens in new tab)</source>
+      </segment>
+    </unit>
+    <unit id="printer-quick-actions.print-qr-sheet.title">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-quick-actions/printer-quick-actions.component.ts:39,40</note>
+      </notes>
+      <segment>
+        <source>Print QR sheet</source>
+      </segment>
+    </unit>
+    <unit id="printer-quick-actions.print-qr-sheet-on">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-quick-actions/printer-quick-actions.component.ts:48,50</note>
+      </notes>
+      <segment>
+        <source>Print QR sheet on <ph id="0" equiv="INTERPOLATION" disp="{{ printer().name }}"/></source>
+      </segment>
+    </unit>
+    <unit id="printer-quick-actions.show-qr-code.title">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-quick-actions/printer-quick-actions.component.ts:53,54</note>
+      </notes>
+      <segment>
+        <source>Show QR code</source>
+      </segment>
+    </unit>
+    <unit id="printer-quick-actions.show-qr-code-for">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-quick-actions/printer-quick-actions.component.ts:61,63</note>
+      </notes>
+      <segment>
+        <source>Show QR code for <ph id="0" equiv="INTERPOLATION" disp="{{ printer().name }}"/></source>
+      </segment>
+    </unit>
+    <unit id="printer-messages.qr-sheet-sent">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printers/helpers/printer-messages/printer-messages.ts:8</note>
+      </notes>
+      <segment>
+        <source>QR sheet sent to <ph id="0" equiv="name" disp="name"/>.</source>
+      </segment>
+    </unit>
+    <unit id="printer-messages.qr-sheet-queued">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printers/helpers/printer-messages/printer-messages.ts:9</note>
+      </notes>
+      <segment>
+        <source>QR sheet queued. It prints when the <ph id="0" equiv="name" disp="name"/> agent is online.</source>
+      </segment>
+    </unit>
+    <unit id="printer-messages.token-rotated">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printers/helpers/printer-messages/printer-messages.ts:12</note>
+      </notes>
+      <segment>
+        <source>Agent token rotated for <ph id="0" equiv="name" disp="name"/>. Copy the new token below.</source>
+      </segment>
+    </unit>
+    <unit id="printer-messages.retried">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printers/helpers/printer-messages/printer-messages.ts:16</note>
+      </notes>
+      <segment>
+        <source>Retried <ph id="0" equiv="retried" disp="retried"/> <ph id="1" equiv="retried2" disp="plural(retried)"/> for <ph id="2" equiv="name" disp="name"/>.</source>
+      </segment>
+    </unit>
+    <unit id="printer-messages.nothing-retried">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printers/helpers/printer-messages/printer-messages.ts:17</note>
+      </notes>
+      <segment>
+        <source>No failed jobs for <ph id="0" equiv="name" disp="name"/> could be retried; their documents have expired.</source>
+      </segment>
+    </unit>
+    <unit id="manage-printers.administration">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printers/manage-printers.component.ts:62,64</note>
+      </notes>
+      <segment>
+        <source> Administration </source>
+      </segment>
+    </unit>
+    <unit id="manage-printers.printers">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printers/manage-printers.component.ts:65,67</note>
+      </notes>
+      <segment>
+        <source> Printers </source>
+      </segment>
+    </unit>
+    <unit id="manage-printers.add-printer-if-error">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printers/manage-printers.component.ts:73,75</note>
+      </notes>
+      <segment>
+        <source><pc id="0" equivStart="START_ITALIC_TEXT" equivEnd="CLOSE_ITALIC_TEXT" type="fmt" dispStart="&lt;i class=&quot;bi bi-plus-lg&quot; aria-hidden=&quot;true&quot;&gt;" dispEnd="&lt;/i&gt;"></pc> Add printer </source>
+      </segment>
+    </unit>
+    <unit id="manage-printers.dismiss-error.dismisslabel">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printers/manage-printers.component.ts:81,83</note>
+      </notes>
+      <segment>
+        <source>Dismiss error</source>
+      </segment>
+    </unit>
+    <unit id="manage-printers.dismiss-message.dismisslabel">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printers/manage-printers.component.ts:93,95</note>
+      </notes>
+      <segment>
+        <source>Dismiss message</source>
+      </segment>
+    </unit>
+    <unit id="manage-printers.loading-printers">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printers/manage-printers.component.ts:114,116</note>
+      </notes>
+      <segment>
+        <source> Loading printers... </source>
+      </segment>
+    </unit>
+    <unit id="manage-printers.no-printers-configured">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printers/manage-printers.component.ts:121,124</note>
+      </notes>
+      <segment>
+        <source> No printers configured. </source>
+      </segment>
+    </unit>
+    <unit id="manage-printers.load-error">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printers/manage-printers.component.ts:152</note>
+      </notes>
+      <segment>
+        <source>Unable to load printers.</source>
+      </segment>
+    </unit>
+    <unit id="not-found.not-found-works">
+      <notes>
+        <note category="location">packages/server/src/app/pages/not-found/not-found.ts:8,12</note>
+      </notes>
+      <segment>
+        <source>not-found works!</source>
+      </segment>
+    </unit>
+    <unit id="pin-form.enter-the-pin-posted">
+      <notes>
+        <note category="location">packages/server/src/app/pages/print/components/pin-form/pin-form.component.ts:20,23</note>
+      </notes>
+      <segment>
+        <source> Enter the PIN posted at the printer, or scan its QR code. </source>
+      </segment>
+    </unit>
+    <unit id="pin-form.printer-pin">
+      <notes>
+        <note category="location">packages/server/src/app/pages/print/components/pin-form/pin-form.component.ts:31,34</note>
+      </notes>
+      <segment>
+        <source>Printer PIN</source>
+      </segment>
+    </unit>
+    <unit id="pin-form.9-digits">
+      <notes>
+        <note category="location">packages/server/src/app/pages/print/components/pin-form/pin-form.component.ts:53,55</note>
+      </notes>
+      <segment>
+        <source> 9 digits </source>
+      </segment>
+    </unit>
+    <unit id="upload-document-row.document">
+      <notes>
+        <note category="location">packages/server/src/app/pages/print/components/upload-document-row/upload-document-row.component.ts:30,32</note>
+      </notes>
+      <segment>
+        <source> Document <ph id="0" equiv="INTERPOLATION" disp="{{ index() + 1 }}"/> </source>
+      </segment>
+    </unit>
+    <unit id="upload-document-row.copies">
+      <notes>
+        <note category="location">packages/server/src/app/pages/print/components/upload-document-row/upload-document-row.component.ts:50,53</note>
+      </notes>
+      <segment>
+        <source>Copies</source>
+      </segment>
+    </unit>
+    <unit id="upload-document-row.remove">
+      <notes>
+        <note category="location">packages/server/src/app/pages/print/components/upload-document-row/upload-document-row.component.ts:71,74</note>
+      </notes>
+      <segment>
+        <source> Remove </source>
+      </segment>
+    </unit>
+    <unit id="upload-form.job-title-reference">
+      <notes>
+        <note category="location">packages/server/src/app/pages/print/components/upload-form/upload-form.component.ts:26,29</note>
+      </notes>
+      <segment>
+        <source>Job Title/Reference</source>
+      </segment>
+    </unit>
+    <unit id="upload-form.documents">
+      <notes>
+        <note category="location">packages/server/src/app/pages/print/components/upload-form/upload-form.component.ts:40,42</note>
+      </notes>
+      <segment>
+        <source> Documents </source>
+      </segment>
+    </unit>
+    <unit id="upload-form.upload-pdf-jpeg-png">
+      <notes>
+        <note category="location">packages/server/src/app/pages/print/components/upload-form/upload-form.component.ts:46,49</note>
+      </notes>
+      <segment>
+        <source> Upload PDF, JPEG, PNG, or HEIC/HEIF documents; up to <ph id="0" equiv="INTERPOLATION" disp="{{ maxUploadMb() }}"/> MB per document. </source>
+      </segment>
+    </unit>
+    <unit id="upload-form.add-another-document">
+      <notes>
+        <note category="location">packages/server/src/app/pages/print/components/upload-form/upload-form.component.ts:71,75</note>
+      </notes>
+      <segment>
+        <source> Add another document </source>
+      </segment>
+    </unit>
+    <unit id="print-upload.link-expired">
+      <notes>
+        <note category="location">packages/server/src/app/pages/print/helpers/print-upload/print-upload.ts:25</note>
+      </notes>
+      <segment>
+        <source>This print link has expired.</source>
+      </segment>
+    </unit>
+    <unit id="print-upload.link-invalid">
+      <notes>
+        <note category="location">packages/server/src/app/pages/print/helpers/print-upload/print-upload.ts:26</note>
+      </notes>
+      <segment>
+        <source>This print link is not valid.</source>
+      </segment>
+    </unit>
+    <unit id="print-upload.qr-not-active">
+      <notes>
+        <note category="location">packages/server/src/app/pages/print/helpers/print-upload/print-upload.ts:27</note>
+      </notes>
+      <segment>
+        <source>This QR code is not active yet.</source>
+      </segment>
+    </unit>
+    <unit id="print.print">
+      <notes>
+        <note category="location">packages/server/src/app/pages/print/print.component.html:3,4</note>
+      </notes>
+      <segment>
+        <source>Print</source>
+      </segment>
+    </unit>
+    <unit id="print.loading-printer">
+      <notes>
+        <note category="location">packages/server/src/app/pages/print/print.component.html:5,7</note>
+      </notes>
+      <segment>
+        <source> Loading printer... </source>
+      </segment>
+    </unit>
+    <unit id="print.print-to">
+      <notes>
+        <note category="location">packages/server/src/app/pages/print/print.component.html:11,14</note>
+      </notes>
+      <segment>
+        <source> Print to <ph id="0" equiv="INTERPOLATION" disp="{{ printer.name }}"/> </source>
+      </segment>
+    </unit>
+    <unit id="print.as-username-printing-as">
+      <notes>
+        <note category="location">packages/server/src/app/pages/print/print.component.html:24,35</note>
+      </notes>
+      <segment>
+        <source><pc id="0" equivStart="START_BLOCK_IF" equivEnd="CLOSE_BLOCK_IF" type="other" dispStart="@if (printingAs(); as username) {" dispEnd="}"> Printing as <ph id="1" equiv="INTERPOLATION" disp="{{ username }}"/>. </pc><pc id="2" equivStart="START_BLOCK_ELSE_IF" equivEnd="CLOSE_BLOCK_ELSE_IF" type="other" dispStart="@else if (
+            printer.access.tokenExpiresAt;
+            as expiresAt
+          ) {" dispEnd="}"> This link works until <ph id="3" equiv="INTERPOLATION_1" disp="{{ expiresAt | date: &apos;short&apos; }}"/>. </pc></source>
+      </segment>
+    </unit>
+    <unit id="print.scan-the-qr-code">
+      <notes>
+        <note category="location">packages/server/src/app/pages/print/print.component.html:60,64</note>
+      </notes>
+      <segment>
+        <source> Scan the QR code posted at the printer to print. </source>
+      </segment>
+    </unit>
+    <unit id="print.printer-not-found">
+      <notes>
+        <note category="location">packages/server/src/app/pages/print/print.component.html:66,68</note>
+      </notes>
+      <segment>
+        <source> Printer not found </source>
+      </segment>
+    </unit>
+    <unit id="print.check-the-link-or">
+      <notes>
+        <note category="location">packages/server/src/app/pages/print/print.component.html:69,72</note>
+      </notes>
+      <segment>
+        <source> Check the link or QR code and try again. </source>
+      </segment>
+    </unit>
+    <unit id="print.print-2">
+      <notes>
+        <note category="location">packages/server/src/app/pages/print/print.component.html:72,73</note>
+      </notes>
+      <segment>
+        <source>Print</source>
+      </segment>
+    </unit>
+    <unit id="print.unable-to-load-this">
+      <notes>
+        <note category="location">packages/server/src/app/pages/print/print.component.html:74,77</note>
+      </notes>
+      <segment>
+        <source>Unable to load this printer.</source>
+      </segment>
+    </unit>
+    <unit id="print.try-again">
+      <notes>
+        <note category="location">packages/server/src/app/pages/print/print.component.html:82,85</note>
+      </notes>
+      <segment>
+        <source> Try again </source>
+      </segment>
+    </unit>
+    <unit id="datetime-nudge-field.15-min-button">
+      <notes>
+        <note category="location">packages/server/src/app/pages/printer-qr/components/datetime-nudge-field/datetime-nudge-field.component.ts:37,41</note>
+      </notes>
+      <segment>
+        <source> −15 min<pc id="0" equivStart="START_TAG_SPAN" equivEnd="CLOSE_TAG_SPAN" type="other" dispStart="&lt;span class=&quot;visually-hidden&quot;&gt;" dispEnd="&lt;/span
+        &gt;"> (<ph id="1" equiv="INTERPOLATION" disp="{{ context() }}"/>)</pc></source>
+      </segment>
+    </unit>
+    <unit id="datetime-nudge-field.15-min-if-er">
+      <notes>
+        <note category="location">packages/server/src/app/pages/printer-qr/components/datetime-nudge-field/datetime-nudge-field.component.ts:47,51</note>
+      </notes>
+      <segment>
+        <source> +15 min<pc id="0" equivStart="START_TAG_SPAN" equivEnd="CLOSE_TAG_SPAN" type="other" dispStart="&lt;span class=&quot;visually-hidden&quot;&gt;" dispEnd="&lt;/span
+        &gt;"> (<ph id="1" equiv="INTERPOLATION" disp="{{ context() }}"/>)</pc></source>
+      </segment>
+    </unit>
+    <unit id="pin-section.upload-pin">
+      <notes>
+        <note category="location">packages/server/src/app/pages/printer-qr/components/pin-section/pin-section.component.ts:15,17</note>
+      </notes>
+      <segment>
+        <source> Upload PIN </source>
+      </segment>
+    </unit>
+    <unit id="pin-section.visitors-without-the-qr">
+      <notes>
+        <note category="location">packages/server/src/app/pages/printer-qr/components/pin-section/pin-section.component.ts:19,25</note>
+      </notes>
+      <segment>
+        <source> Visitors without the QR code can enter this PIN to get a short-lived upload link: <pc id="0" equivStart="START_TAG_STRONG" equivEnd="CLOSE_TAG_STRONG" type="other" dispStart="&lt;strong class=&quot;pin font-monospace fs-4 ms-2&quot;&gt;" dispEnd="&lt;/strong&gt;"><ph id="1" equiv="INTERPOLATION" disp="{{
+            pin
+          }}"/></pc></source>
+      </segment>
+    </unit>
+    <unit id="pin-section.pin-uploads-are-off">
+      <notes>
+        <note category="location">packages/server/src/app/pages/printer-qr/components/pin-section/pin-section.component.ts:30,34</note>
+      </notes>
+      <segment>
+        <source> PIN uploads are off. Only QR codes work for this printer. </source>
+      </segment>
+    </unit>
+    <unit id="pin-section.refresh">
+      <notes>
+        <note category="location">packages/server/src/app/pages/printer-qr/components/pin-section/pin-section.component.ts:44,46</note>
+      </notes>
+      <segment>
+        <source>Refresh PIN</source>
+      </segment>
+    </unit>
+    <unit id="pin-section.turn-on">
+      <notes>
+        <note category="location">packages/server/src/app/pages/printer-qr/components/pin-section/pin-section.component.ts:48,50</note>
+      </notes>
+      <segment>
+        <source>Turn on PIN</source>
+      </segment>
+    </unit>
+    <unit id="pin-section.turn-off-pin">
+      <notes>
+        <note category="location">packages/server/src/app/pages/printer-qr/components/pin-section/pin-section.component.ts:60,62</note>
+      </notes>
+      <segment>
+        <source> Turn off PIN </source>
+      </segment>
+    </unit>
+    <unit id="qr-issued.valid-to">
+      <notes>
+        <note category="location">packages/server/src/app/pages/printer-qr/components/qr-issued/qr-issued.component.ts:37,40</note>
+      </notes>
+      <segment>
+        <source> Valid <ph id="0" equiv="INTERPOLATION" disp="{{ issued().notBefore | date: &apos;medium&apos; }}"/> to <ph id="1" equiv="INTERPOLATION_1" disp="{{ issued().expiresAt | date: &apos;medium&apos; }}"/> </source>
+      </segment>
+    </unit>
+    <unit id="qr-issued.open-print-page-i">
+      <notes>
+        <note category="location">packages/server/src/app/pages/printer-qr/components/qr-issued/qr-issued.component.ts:49,58</note>
+      </notes>
+      <segment>
+        <source> Open print page <pc id="0" equivStart="START_ITALIC_TEXT" equivEnd="CLOSE_ITALIC_TEXT" type="fmt" dispStart="&lt;i
+              class=&quot;bi bi-box-arrow-up-right&quot;
+              aria-hidden=&quot;true&quot;
+            &gt;" dispEnd="&lt;/i&gt;"></pc><pc id="1" equivStart="START_TAG_SPAN" equivEnd="CLOSE_TAG_SPAN" type="other" dispStart="&lt;span class=&quot;visually-hidden&quot;
+              &gt;" dispEnd="&lt;/span
+            &gt;">(opens in new tab)</pc></source>
+      </segment>
+    </unit>
+    <unit id="qr-issued.copy-link-button-type">
+      <notes>
+        <note category="location">packages/server/src/app/pages/printer-qr/components/qr-issued/qr-issued.component.ts:70,72</note>
+      </notes>
+      <segment>
+        <source><pc id="0" equivStart="START_ITALIC_TEXT" equivEnd="CLOSE_ITALIC_TEXT" type="fmt" dispStart="&lt;i class=&quot;bi bi-clipboard&quot; aria-hidden=&quot;true&quot;&gt;" dispEnd="&lt;/i&gt;"></pc> Copy link </source>
+      </segment>
+    </unit>
+    <unit id="qr-issued.open-poster-pdf-span">
+      <notes>
+        <note category="location">packages/server/src/app/pages/printer-qr/components/qr-issued/qr-issued.component.ts:81,88</note>
+      </notes>
+      <segment>
+        <source><pc id="0" equivStart="START_ITALIC_TEXT" equivEnd="CLOSE_ITALIC_TEXT" type="fmt" dispStart="&lt;i
+              class=&quot;bi bi-file-earmark-pdf&quot;
+              aria-hidden=&quot;true&quot;
+            &gt;" dispEnd="&lt;/i&gt;"></pc> Open poster PDF <pc id="1" equivStart="START_TAG_SPAN" equivEnd="CLOSE_TAG_SPAN" type="other" dispStart="&lt;span class=&quot;visually-hidden&quot;
+              &gt;" dispEnd="&lt;/span
+            &gt;">(opens in new tab)</pc></source>
+      </segment>
+    </unit>
+    <unit id="qr-issued.print-poster-on-export">
+      <notes>
+        <note category="location">packages/server/src/app/pages/printer-qr/components/qr-issued/qr-issued.component.ts:96,98</note>
+      </notes>
+      <segment>
+        <source><pc id="0" equivStart="START_ITALIC_TEXT" equivEnd="CLOSE_ITALIC_TEXT" type="fmt" dispStart="&lt;i class=&quot;bi bi-printer&quot; aria-hidden=&quot;true&quot;&gt;" dispEnd="&lt;/i&gt;"></pc> Print poster on <ph id="1" equiv="INTERPOLATION" disp="{{ printer().name }}"/> </source>
+      </segment>
+    </unit>
+    <unit id="qr-window-form.valid-from.label">
+      <notes>
+        <note category="location">packages/server/src/app/pages/printer-qr/components/qr-window-form/qr-window-form.component.ts:30,31</note>
+      </notes>
+      <segment>
+        <source>Valid from</source>
+      </segment>
+    </unit>
+    <unit id="qr-window-form.valid-until.label">
+      <notes>
+        <note category="location">packages/server/src/app/pages/printer-qr/components/qr-window-form/qr-window-form.component.ts:39,40</note>
+      </notes>
+      <segment>
+        <source>Valid until</source>
+      </segment>
+    </unit>
+    <unit id="revoke-section.revoke-access">
+      <notes>
+        <note category="location">packages/server/src/app/pages/printer-qr/components/revoke-section/revoke-section.component.ts:13,16</note>
+      </notes>
+      <segment>
+        <source> Revoke access </source>
+      </segment>
+    </unit>
+    <unit id="revoke-section.stops-every-qr-code">
+      <notes>
+        <note category="location">packages/server/src/app/pages/printer-qr/components/revoke-section/revoke-section.component.ts:19,22</note>
+      </notes>
+      <segment>
+        <source> Stops every QR code and PIN link issued so far for <ph id="0" equiv="INTERPOLATION" disp="{{ printerName() }}"/>, including printed posters. The PIN itself keeps working. </source>
+      </segment>
+    </unit>
+    <unit id="revoke-section.revoke-all-qr-codes">
+      <notes>
+        <note category="location">packages/server/src/app/pages/printer-qr/components/revoke-section/revoke-section.component.ts:30,32</note>
+      </notes>
+      <segment>
+        <source><pc id="0" equivStart="START_ITALIC_TEXT" equivEnd="CLOSE_ITALIC_TEXT" type="fmt" dispStart="&lt;i class=&quot;bi bi-x-octagon&quot; aria-hidden=&quot;true&quot;&gt;" dispEnd="&lt;/i&gt;"></pc> Revoke all QR codes </source>
+      </segment>
+    </unit>
+    <unit id="until-presets.until">
+      <notes>
+        <note category="location">packages/server/src/app/pages/printer-qr/components/until-presets/until-presets.component.ts:15,18</note>
+      </notes>
+      <segment>
+        <source>Until:</source>
+      </segment>
+    </unit>
+    <unit id="qr-messages.poster-sent">
+      <notes>
+        <note category="location">packages/server/src/app/pages/printer-qr/helpers/qr-messages/qr-messages.ts:6</note>
+      </notes>
+      <segment>
+        <source>QR poster sent to <ph id="0" equiv="name" disp="name"/>.</source>
+      </segment>
+    </unit>
+    <unit id="qr-messages.poster-queued">
+      <notes>
+        <note category="location">packages/server/src/app/pages/printer-qr/helpers/qr-messages/qr-messages.ts:7</note>
+      </notes>
+      <segment>
+        <source>QR poster queued. It prints when the <ph id="0" equiv="name" disp="name"/> agent is online.</source>
+      </segment>
+    </unit>
+    <unit id="qr-messages.replace-pin">
+      <notes>
+        <note category="location">packages/server/src/app/pages/printer-qr/helpers/qr-messages/qr-messages.ts:10</note>
+      </notes>
+      <segment>
+        <source>Replace the PIN for <ph id="0" equiv="name" disp="name"/>? The old PIN stops working.</source>
+      </segment>
+    </unit>
+    <unit id="qr-messages.pin-refreshed">
+      <notes>
+        <note category="location">packages/server/src/app/pages/printer-qr/helpers/qr-messages/qr-messages.ts:13</note>
+      </notes>
+      <segment>
+        <source>New PIN for <ph id="0" equiv="name" disp="name"/> is ready.</source>
+      </segment>
+    </unit>
+    <unit id="qr-messages.disable-pin">
+      <notes>
+        <note category="location">packages/server/src/app/pages/printer-qr/helpers/qr-messages/qr-messages.ts:16</note>
+      </notes>
+      <segment>
+        <source>Turn off PIN uploads for <ph id="0" equiv="name" disp="name"/>? Only QR codes will work.</source>
+      </segment>
+    </unit>
+    <unit id="qr-messages.pin-disabled">
+      <notes>
+        <note category="location">packages/server/src/app/pages/printer-qr/helpers/qr-messages/qr-messages.ts:19</note>
+      </notes>
+      <segment>
+        <source>PIN uploads turned off for <ph id="0" equiv="name" disp="name"/>.</source>
+      </segment>
+    </unit>
+    <unit id="qr-messages.revoke">
+      <notes>
+        <note category="location">packages/server/src/app/pages/printer-qr/helpers/qr-messages/qr-messages.ts:22</note>
+      </notes>
+      <segment>
+        <source>Revoke every QR code and PIN link for <ph id="0" equiv="name" disp="name"/>? Printed posters stop working and must be replaced.</source>
+      </segment>
+    </unit>
+    <unit id="qr-messages.revoked">
+      <notes>
+        <note category="location">packages/server/src/app/pages/printer-qr/helpers/qr-messages/qr-messages.ts:25</note>
+      </notes>
+      <segment>
+        <source>All QR codes for <ph id="0" equiv="name" disp="name"/> were revoked.</source>
+      </segment>
+    </unit>
+    <unit id="qr-window.after-start">
+      <notes>
+        <note category="location">packages/server/src/app/pages/printer-qr/helpers/qr-window/qr-window.ts:104</note>
+      </notes>
+      <segment>
+        <source>Must be after the start time.</source>
+      </segment>
+    </unit>
+    <unit id="printer-qr.printers-if-printerresource-isloading">
+      <notes>
+        <note category="location">packages/server/src/app/pages/printer-qr/printer-qr.component.ts:64,66</note>
+      </notes>
+      <segment>
+        <source><pc id="0" equivStart="START_ITALIC_TEXT" equivEnd="CLOSE_ITALIC_TEXT" type="fmt" dispStart="&lt;i class=&quot;bi bi-arrow-left&quot; aria-hidden=&quot;true&quot;&gt;" dispEnd="&lt;/i&gt;"></pc> Printers</source>
+      </segment>
+    </unit>
+    <unit id="printer-qr.loading-printer">
+      <notes>
+        <note category="location">packages/server/src/app/pages/printer-qr/printer-qr.component.ts:71,73</note>
+      </notes>
+      <segment>
+        <source> Loading printer... </source>
+      </segment>
+    </unit>
+    <unit id="printer-qr.qr-code-pin-for">
+      <notes>
+        <note category="location">packages/server/src/app/pages/printer-qr/printer-qr.component.ts:75,78</note>
+      </notes>
+      <segment>
+        <source> QR code &amp; PIN for <ph id="0" equiv="INTERPOLATION" disp="{{ printer.name }}"/> </source>
+      </segment>
+    </unit>
+    <unit id="printer-qr.qr-code">
+      <notes>
+        <note category="location">packages/server/src/app/pages/printer-qr/printer-qr.component.ts:95,97</note>
+      </notes>
+      <segment>
+        <source> QR code </source>
+      </segment>
+    </unit>
+    <unit id="printer-qr.anyone-with-this-qr">
+      <notes>
+        <note category="location">packages/server/src/app/pages/printer-qr/printer-qr.component.ts:101,104</note>
+      </notes>
+      <segment>
+        <source> Anyone with this QR code (or its link) can upload to <ph id="0" equiv="INTERPOLATION" disp="{{ printer.name }}"/> during the window below, without a PIN. </source>
+      </segment>
+    </unit>
+    <unit id="printer-qr.printer-not-found">
+      <notes>
+        <note category="location">packages/server/src/app/pages/printer-qr/printer-qr.component.ts:142,145</note>
+      </notes>
+      <segment>
+        <source> Printer not found </source>
+      </segment>
+    </unit>
+    <unit id="printer-qr.start-required">
+      <notes>
+        <note category="location">packages/server/src/app/pages/printer-qr/printer-qr.component.ts:175</note>
+      </notes>
+      <segment>
+        <source>Choose when the QR code starts working.</source>
+      </segment>
+    </unit>
+    <unit id="printer-qr.end-required">
+      <notes>
+        <note category="location">packages/server/src/app/pages/printer-qr/printer-qr.component.ts:178</note>
+      </notes>
+      <segment>
+        <source>Choose when the QR code stops working.</source>
+      </segment>
+    </unit>
+    <unit id="welcome.print-from-your-phone">
+      <notes>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:7,9</note>
+      </notes>
+      <segment>
+        <source> Print from your phone in seconds </source>
+      </segment>
+    </unit>
+    <unit id="welcome.no-app-no-account">
+      <notes>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:10,14</note>
+      </notes>
+      <segment>
+        <source> No app, no account, no cables. Scan the code at the printer, pick your documents, and pick up your pages. </source>
+      </segment>
+    </unit>
+    <unit id="welcome.try-again">
+      <notes>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:25,28</note>
+      </notes>
+      <segment>
+        <source> Try again </source>
+      </segment>
+    </unit>
+    <unit id="welcome.how-this-works">
+      <notes>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:36,38</note>
+      </notes>
+      <segment>
+        <source> How this works </source>
+      </segment>
+    </unit>
+    <unit id="welcome.scan-the-qr-code">
+      <notes>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:46,48</note>
+      </notes>
+      <segment>
+        <source>Scan the QR code</source>
+      </segment>
+    </unit>
+    <unit id="welcome.point-your-phone-s">
+      <notes>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:49,52</note>
+      </notes>
+      <segment>
+        <source> Point your phone’s camera at the code posted next to the printer and tap the link that appears. </source>
+      </segment>
+    </unit>
+    <unit id="welcome.choose-your-documents">
+      <notes>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:61,63</note>
+      </notes>
+      <segment>
+        <source>Choose your documents</source>
+      </segment>
+    </unit>
+    <unit id="welcome.add-pdfs-or-photos">
+      <notes>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:64,67</note>
+      </notes>
+      <segment>
+        <source> Add PDFs or photos, give the job a name you’ll recognize, and set the number of copies. </source>
+      </segment>
+    </unit>
+    <unit id="welcome.collect-your-pages">
+      <notes>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:76,79</note>
+      </notes>
+      <segment>
+        <source>Collect your pages</source>
+      </segment>
+    </unit>
+    <unit id="welcome.and-your-job-goes">
+      <notes>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:82,85</note>
+      </notes>
+      <segment>
+        <source> Tap <pc id="0" equivStart="START_EMPHASISED_TEXT" equivEnd="CLOSE_EMPHASISED_TEXT" type="fmt" dispStart="&lt;em&gt;" dispEnd="&lt;/em&gt;">Print</pc> and your job goes straight to that printer. Pick it up from the tray in a moment. </source>
+      </segment>
+    </unit>
+    <unit id="welcome.frequently-asked-questions">
+      <notes>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:96,99</note>
+      </notes>
+      <segment>
+        <source> Frequently asked questions </source>
+      </segment>
+    </unit>
+    <unit id="welcome.faq-1.answer">
+      <notes>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.ts:28</note>
+      </notes>
+      <segment>
+        <source>No. Everything happens in your phone’s web browser — there is nothing to install and no sign-in.</source>
+      </segment>
+    </unit>
+    <unit id="welcome.faq-1.question">
+      <notes>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.ts:29</note>
+      </notes>
+      <segment>
+        <source>Do I need an app or an account?</source>
+      </segment>
+    </unit>
+    <unit id="welcome.faq-2.answer">
+      <notes>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.ts:32</note>
+      </notes>
+      <segment>
+        <source>PDFs and photos (JPEG, PNG, and iPhone HEIC). You can send several documents at once and choose how many copies of each.</source>
+      </segment>
+    </unit>
+    <unit id="welcome.faq-2.question">
+      <notes>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.ts:33</note>
+      </notes>
+      <segment>
+        <source>What can I print?</source>
+      </segment>
+    </unit>
+    <unit id="welcome.faq-3.answer">
+      <notes>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.ts:36</note>
+      </notes>
+      <segment>
+        <source>Your document goes only to the printer you chose and is deleted as soon as it prints. Some printers also add a cover sheet on top so others can’t see your pages in the tray.</source>
+      </segment>
+    </unit>
+    <unit id="welcome.faq-3.question">
+      <notes>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.ts:37</note>
+      </notes>
+      <segment>
+        <source>Is my document private?</source>
+      </segment>
+    </unit>
+    <unit id="welcome.faq-4.answer">
+      <notes>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.ts:40</note>
+      </notes>
+      <segment>
+        <source>Each printed code only works for the dates shown under it. Ask a staff member or volunteer for a current one.</source>
+      </segment>
+    </unit>
+    <unit id="welcome.faq-4.question">
+      <notes>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.ts:41</note>
+      </notes>
+      <segment>
+        <source>The QR code says it has expired or is not active yet.</source>
+      </segment>
+    </unit>
+    <unit id="welcome.faq-5.answer">
+      <notes>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.ts:44</note>
+      </notes>
+      <segment>
+        <source>If the poster shows a web address and PIN, open that address in your browser and enter the 9-digit PIN when asked. Otherwise, ask for help at the front desk.</source>
+      </segment>
+    </unit>
+    <unit id="welcome.faq-5.question">
+      <notes>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.ts:45</note>
+      </notes>
+      <segment>
+        <source>I can’t scan the code. Can I type the address instead?</source>
+      </segment>
+    </unit>
+    <unit id="welcome.faq-6.answer">
+      <notes>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.ts:48</note>
+      </notes>
+      <segment>
+        <source>Check the status above to make sure printers are online, then ask a staff member or volunteer — they can see your job and send it to the printer again.</source>
+      </segment>
+    </unit>
+    <unit id="welcome.faq-6.question">
+      <notes>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.ts:49</note>
+      </notes>
+      <segment>
+        <source>My document didn’t print. What should I do?</source>
+      </segment>
+    </unit>
+    <unit id="welcome.status-checking">
+      <notes>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.ts:87</note>
+      </notes>
+      <segment>
+        <source>Checking printers…</source>
+      </segment>
+    </unit>
+    <unit id="welcome.status-down">
+      <notes>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.ts:89</note>
+      </notes>
+      <segment>
+        <source>The print service is unavailable</source>
+      </segment>
+    </unit>
+    <unit id="welcome.status-idle">
+      <notes>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.ts:91</note>
+      </notes>
+      <segment>
+        <source>No printers online right now</source>
+      </segment>
+    </unit>
+    <unit id="welcome.status-online">
+      <notes>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.ts:93</note>
+      </notes>
+      <segment>
+        <source><ph id="0" equiv="count" disp="count"/> <ph id="1" equiv="noun" disp="inflect(count, &apos;printer&apos;, &apos;printers&apos;)"/> online</source>
+      </segment>
+    </unit>
+    <unit id="live-events.sign-in-required">
+      <notes>
+        <note category="location">packages/server/src/app/services/live-events/live-events.service.ts:126</note>
+      </notes>
+      <segment>
+        <source>Sign in to receive live updates.</source>
+      </segment>
+    </unit>
+  </file>
+</xliff>

@@ -33,12 +33,13 @@ import type {
         />
       }
       <div class="qr-details flex-grow-1">
-        <p class="mb-2">
+        <p i18n="@@qr-issued.valid-to" class="mb-2">
           Valid {{ issued().notBefore | date: 'medium' }} to
           {{ issued().expiresAt | date: 'medium' }}
         </p>
         <p class="mb-2">
           <a
+            i18n="@@qr-issued.open-print-page-i"
             class="print-link"
             [routerLink]="['/print', printer().slug]"
             [queryParams]="{ token: issued().token }"
@@ -61,6 +62,7 @@ import type {
         >
         <div class="d-flex flex-wrap gap-2">
           <button
+            i18n="@@qr-issued.copy-link-button-type"
             type="button"
             class="btn btn-sm btn-outline-secondary"
             (click)="copyLink.emit()"
@@ -69,6 +71,7 @@ import type {
             Copy link
           </button>
           <button
+            i18n="@@qr-issued.open-poster-pdf-span"
             type="button"
             class="btn btn-sm btn-outline-secondary"
             [disabled]="busy()"
@@ -84,6 +87,7 @@ import type {
             >
           </button>
           <button
+            i18n="@@qr-issued.print-poster-on-export"
             type="button"
             class="btn btn-sm btn-outline-secondary"
             [disabled]="busy()"

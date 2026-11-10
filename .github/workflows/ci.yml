@@ -26,6 +26,8 @@ jobs:
       - run: npm run format:check
       - run: npm run lint
       - run: npm run lint:typed
+      - run: npm run extract-i18n -w @uwacwy/print-server
+      - run: git diff --exit-code packages/server/src/locale/messages.xlf
       - run: npm run typecheck
       - run: npm test
       - run: npm run build

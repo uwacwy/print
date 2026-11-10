@@ -12,7 +12,11 @@ export function createdPrinterCommands({
   serverUrl,
 }: CreatedPrinter): SetupCommand[] {
   return [
-    { command: agentToken, id: 'token', label: 'Agent token' },
+    {
+      command: agentToken,
+      id: 'token',
+      label: $localize`:@@setup-command.agent-token:Agent token`,
+    },
     ...(serverUrl
       ? agentSetupCommands({
           agentToken,

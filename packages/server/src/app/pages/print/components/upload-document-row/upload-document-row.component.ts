@@ -23,6 +23,7 @@ import {
     <div class="row g-2 align-items-end mb-3">
       <div class="col-sm-7">
         <label
+          i18n="@@upload-document-row.document"
           class="form-label"
           [for]="'document-file-' + id()"
         >
@@ -43,6 +44,7 @@ import {
       </div>
       <div class="col-6 col-sm-3">
         <label
+          i18n="@@upload-document-row.copies"
           class="form-label"
           [for]="'document-copies-' + id()"
           >Copies</label
@@ -59,6 +61,7 @@ import {
       </div>
       <div class="col-6 col-sm-2">
         <button
+          i18n="@@upload-document-row.remove"
           type="button"
           class="btn btn-outline-secondary w-100"
           [disabled]="!canRemove()"

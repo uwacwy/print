@@ -111,6 +111,35 @@ export default defineConfig(
     ],
     files: ['packages/server/src/**/*.html'],
   },
+  {
+    files: ['packages/server/src/**/*.html'],
+    ignores: [
+      // Inline test-host templates and the static shell are not translated.
+      'packages/server/src/**/*.spec.ts/**',
+      'packages/server/src/index.html',
+    ],
+    rules: {
+      '@angular-eslint/template/i18n': [
+        'error',
+        {
+          checkAttributes: true,
+          checkId: true,
+          checkText: true,
+          // Identifiers, ARIA references, and enums that never reach the reader as text.
+          ignoreAttributes: [
+            'aria-describedby',
+            'aria-labelledby',
+            'aria-live',
+            'context',
+            'inputId',
+            'inputmode',
+            'rel',
+            'variant',
+          ],
+        },
+      ],
+    },
+  },
 
   prettier,
 
