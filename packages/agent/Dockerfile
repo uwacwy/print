@@ -13,7 +13,7 @@ RUN npm ci --no-audit --no-fund --ignore-scripts
 COPY scripts ./scripts
 COPY packages/shared ./packages/shared
 COPY packages/agent ./packages/agent
-RUN npm run build:agent && npm pack -w @uwacwy/print-agent --pack-destination /tmp
+RUN npm run build -w @uwacwy/print-shared -w @uwacwy/print-agent && npm pack -w @uwacwy/print-agent --pack-destination /tmp
 
 FROM node:24-bookworm-slim AS runtime
 ARG VERSION=0.0.0-dev

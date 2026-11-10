@@ -36,7 +36,7 @@ jobs:
           if [[ "$version" == *-* ]]; then echo "prerelease=true"; else echo "prerelease=false"; fi >> "$GITHUB_OUTPUT"
       - run: npm run fmt:check
       - run: npm run lint
-      - run: npm run typecheck:api
+      - run: npm run typecheck
       - run: npm test
       - run: npm run build
       - run: npm pack --dry-run -w @uwacwy/print-server -w @uwacwy/print-agent

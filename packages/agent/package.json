@@ -34,8 +34,10 @@
     "provenance": true
   },
   "scripts": {
-    "start": "tsx --watch src/index.ts run --config .env",
     "build": "tsc -p tsconfig.json --noEmit && node build.mjs",
+    "dev": "tsx --watch src/index.ts run --config .env",
+    "test-api": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
     "prepack": "npm run build && node ../../scripts/prepack.mjs dist/cli.mjs",
     "postpack": "node ../../scripts/prepack.mjs --clean"
   },

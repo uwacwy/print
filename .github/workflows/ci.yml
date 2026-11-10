@@ -25,7 +25,7 @@ jobs:
       - run: npm run version:check
       - run: npm run fmt:check
       - run: npm run lint
-      - run: npm run typecheck:api
+      - run: npm run typecheck
       - run: npm test
       - run: npm run build
       - name: Pack (dry run)

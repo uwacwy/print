@@ -22,7 +22,7 @@ COPY LICENSE ./
 COPY scripts ./scripts
 COPY packages/shared ./packages/shared
 COPY packages/server ./packages/server
-RUN npm run build:server && npm pack -w @uwacwy/print-server --pack-destination /tmp
+RUN npm run build -w @uwacwy/print-shared -w @uwacwy/print-server && npm pack -w @uwacwy/print-server --pack-destination /tmp
 
 # Installs the same tarball that is published to npm, with production dependencies only.
 FROM deps AS install

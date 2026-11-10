@@ -138,7 +138,7 @@ and each package's `.env.example` lists every setting.
 To start a local development server, run:
 
 ```bash
-npm start
+npm run dev -w @uwacwy/print-server
 ```
 
 Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
@@ -150,7 +150,7 @@ WebSocket upgrades to `server.ts`, so under `ng serve` the server runs socket.io
 side port 4201 (`SOCKET_DEV_PORT`), and `proxy.conf.mjs` forwards `/ws` to it. The dev server
 only loads `server.ts` on demand, so the proxy loads it before forwarding the first `/ws`
 request; agents can connect before anyone opens a page. The server loads `packages/server/.env`
-itself, so `ng serve` and `npm start` behave the same.
+itself, so `ng serve` and `npm run dev -w @uwacwy/print-server` behave the same.
 Agent state is kept on `globalThis`, so connected agents survive rebuilds. An edit to
 `api/sockets/agent-hub/agent-hub.ts` disconnects agents and live clients so they reconnect to the new
 code; edits to the namespaces in `api/sockets/` need a dev-server restart.
@@ -316,7 +316,7 @@ the built server instead; it listens on every interface:
 2. Build and run:
 
    ```bash
-   npm run build:server
+   npm run build -w @uwacwy/print-shared -w @uwacwy/print-server
    npm run start:server        # packages/server/dist, port PORT (4200)
    ```
 
@@ -340,10 +340,15 @@ it on a Pi set up as a user service. For a first install, copy a `npm pack` tarb
 
 ## Building and testing
 
+Every package under `packages/` uses the same script names (`build`, `dev`, `test-ng`, `test-api`,
+`typecheck`, …), so the root runs each one across all packages with
+`npm run <script> --workspaces --if-present`; packages without a script skip it. To target one package,
+use `npm run <script> -w @uwacwy/print-<shared|agent|server>`, e.g. `npm run dev -w @uwacwy/print-agent`.
+
 ```bash
-npm run build            # server (packages/server/dist) and agent (packages/agent/dist/cli.mjs)
-npm test                 # Angular unit tests, then API and agent tests
-npm run typecheck:api
+npm run build            # shared, agent (packages/agent/dist/cli.mjs), server (packages/server/dist)
+npm test                 # test-ng (Angular unit tests), then test-api (vitest in every package)
+npm run typecheck
 npm run lint && npm run fmt:check
 npm run compose:check    # validates examples/compose.*.yml and compose.yml
 ```

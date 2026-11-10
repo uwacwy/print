@@ -13,6 +13,9 @@
     }
   },
   "scripts": {
-    "build": "tsc -b && node build.mjs"
+    "build": "tsc -b && node build.mjs",
+    "dev": "tsc -b --watch --preserveWatchOutput",
+    "test-api": "vitest run",
+    "typecheck": "tsc -p tsconfig.test.json"
   }
 }

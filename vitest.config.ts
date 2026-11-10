@@ -1,13 +1,8 @@
-import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
+/** Lets editor integrations run every package's vitest suite from the repo root. */
 export default defineConfig({
-  resolve: {
-    // Mirrors the tsconfig `paths` entry so tests use the shared source, not a build.
-    alias: {
-      '@uwacwy/print-shared': fileURLToPath(
-        new URL('./packages/shared/src/index.ts', import.meta.url),
-      ),
-    },
+  test: {
+    projects: ['packages/*/vitest.config.ts'],
   },
 });
