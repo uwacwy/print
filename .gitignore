@@ -45,7 +45,7 @@ Thumbs.db
 
 packages/agent/dist/
 server/dist/
-shared/dist/
+packages/shared/dist/
 
 .env
 */tsconfig.tsbuildinfo

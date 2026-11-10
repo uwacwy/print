@@ -6,12 +6,12 @@
 FROM --platform=$BUILDPLATFORM node:24-bookworm-slim AS build
 WORKDIR /app
 COPY package.json package-lock.json tsconfig.base.json tsconfig.json LICENSE ./
-COPY shared/package.json shared/tsconfig.json ./shared/
+COPY packages/shared/package.json packages/shared/tsconfig.json ./packages/shared/
 COPY packages/server/package.json ./packages/server/
 COPY packages/agent/package.json ./packages/agent/
 RUN npm ci --no-audit --no-fund --ignore-scripts
 COPY scripts ./scripts
-COPY shared/src ./shared/src
+COPY packages/shared/src ./packages/shared/src
 COPY packages/agent ./packages/agent
 RUN npm run build:agent && npm pack -w @uwacwy/print-agent --pack-destination /tmp
 

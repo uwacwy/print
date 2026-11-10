@@ -6,7 +6,7 @@ export default defineConfig({
     // Mirrors the tsconfig `paths` entry so tests use the shared source, not a build.
     alias: {
       '@uwacwy/print-shared': fileURLToPath(
-        new URL('./shared/src/index.ts', import.meta.url),
+        new URL('./packages/shared/src/index.ts', import.meta.url),
       ),
     },
   },

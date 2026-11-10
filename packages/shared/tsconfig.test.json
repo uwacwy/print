@@ -1,6 +1,6 @@
 /* Typechecks the vitest tests co-located with shared helpers. */
 {
-  "extends": "../tsconfig.base.json",
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "module": "preserve",
     "moduleResolution": "bundler",

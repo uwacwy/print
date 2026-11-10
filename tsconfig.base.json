@@ -14,6 +14,6 @@
     "declaration": true,
     "sourceMap": true,
     "types": ["node"],
-    "paths": { "@uwacwy/print-shared": ["./shared/src/index.ts"] }
+    "paths": { "@uwacwy/print-shared": ["./packages/shared/src/index.ts"] }
   }
 }

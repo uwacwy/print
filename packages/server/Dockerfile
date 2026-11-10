@@ -5,7 +5,7 @@ FROM node:24-bookworm-slim AS deps
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json tsconfig.base.json tsconfig.json angular.json ./
-COPY shared/package.json shared/tsconfig.json ./shared/
+COPY packages/shared/package.json packages/shared/tsconfig.json ./packages/shared/
 COPY packages/server/package.json ./packages/server/
 COPY packages/agent/package.json packages/agent/tsconfig.json ./packages/agent/
 RUN npm ci --no-audit --no-fund
@@ -15,12 +15,12 @@ RUN npm ci --no-audit --no-fund
 FROM deps AS dev
 ENV NODE_ENV=development
 RUN cp package-lock.json .installed-package-lock.json
-CMD ["/bin/sh", "-ec", "if ! cmp -s package-lock.json .installed-package-lock.json; then npm ci --no-audit --no-fund; cp package-lock.json .installed-package-lock.json; fi; ./node_modules/.bin/tsc -b shared; SOCKET_DEV_PORT=${SOCKET_DEV_PORT:-4201} exec ./node_modules/.bin/ng serve print-server --host 0.0.0.0 --port 4200"]
+CMD ["/bin/sh", "-ec", "if ! cmp -s package-lock.json .installed-package-lock.json; then npm ci --no-audit --no-fund; cp package-lock.json .installed-package-lock.json; fi; ./node_modules/.bin/tsc -b packages/shared; SOCKET_DEV_PORT=${SOCKET_DEV_PORT:-4201} exec ./node_modules/.bin/ng serve print-server --host 0.0.0.0 --port 4200"]
 
 FROM deps AS build
 COPY LICENSE ./
 COPY scripts ./scripts
-COPY shared/src ./shared/src
+COPY packages/shared/src ./packages/shared/src
 COPY packages/server ./packages/server
 RUN npm run build:server && npm pack -w @uwacwy/print-server --pack-destination /tmp
 

@@ -8,7 +8,7 @@ QR code or a printer PIN, and a small print agent next to each printer prints th
 | [`packages/server`](packages/server) — web app, REST API, agent socket | `@uwacwy/print-server` | `ghcr.io/uwacwy/print-server` (amd64)       |
 | [`packages/agent`](packages/agent) — prints jobs through CUPS or IPP   | `@uwacwy/print-agent`  | `ghcr.io/uwacwy/print-agent` (amd64, arm64) |
 
-`shared` holds types used by both and is bundled into each package; it is not published.
+[`packages/shared`](packages/shared) holds types used by both and is bundled into each package; it is not published.
 
 ## Deploying
 
