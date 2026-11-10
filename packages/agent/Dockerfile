@@ -11,7 +11,7 @@ COPY packages/server/package.json ./packages/server/
 COPY packages/agent/package.json ./packages/agent/
 RUN npm ci --no-audit --no-fund --ignore-scripts
 COPY scripts ./scripts
-COPY packages/shared/src ./packages/shared/src
+COPY packages/shared ./packages/shared
 COPY packages/agent ./packages/agent
 RUN npm run build:agent && npm pack -w @uwacwy/print-agent --pack-destination /tmp
 

@@ -20,7 +20,7 @@ CMD ["/bin/sh", "-ec", "if ! cmp -s package-lock.json .installed-package-lock.js
 FROM deps AS build
 COPY LICENSE ./
 COPY scripts ./scripts
-COPY packages/shared/src ./packages/shared/src
+COPY packages/shared ./packages/shared
 COPY packages/server ./packages/server
 RUN npm run build:server && npm pack -w @uwacwy/print-server --pack-destination /tmp
 
