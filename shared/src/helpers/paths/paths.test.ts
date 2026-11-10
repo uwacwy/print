@@ -3,7 +3,7 @@ import {
   agentJobFilePath,
   agentJobStatusPath,
   installScriptPath,
-} from './paths.js';
+} from './paths';
 
 describe('paths', () => {
   it('encodes job ids', () => {

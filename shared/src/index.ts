@@ -1,4 +1,4 @@
-export * from './helpers/index.js';
+export * from './helpers/index';
 
 export const JOB_STATUSES = [
   'queued',

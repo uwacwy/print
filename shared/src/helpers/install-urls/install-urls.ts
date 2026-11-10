@@ -1,4 +1,4 @@
-import { installScriptPath } from '../paths/paths.js';
+import { installScriptPath } from '../paths/paths';
 
 /** Absolute URL of the enrollment (with token) or generic install script. */
 export const installUrl = (

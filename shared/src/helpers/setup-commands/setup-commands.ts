@@ -1,5 +1,5 @@
-import { installUrl } from '../install-urls/install-urls.js';
-import { shArg, shq } from '../shell/shell.js';
+import { installUrl } from '../install-urls/install-urls';
+import { shArg, shq } from '../shell/shell';
 
 export const AGENT_PACKAGE = '@uwacwy/print-agent';
 export const AGENT_IMAGE = 'ghcr.io/uwacwy/print-agent';

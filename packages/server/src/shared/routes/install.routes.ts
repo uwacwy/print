@@ -1,4 +1,4 @@
-import { segment, string } from 'ts-routes';
+import { arg, segment } from 'ts-routes';
 
 export const installRoutes = {
   install_sh: segment`/install.sh`,
@@ -6,7 +6,7 @@ export const installRoutes = {
     ...segment`/printer`,
     children: {
       $token: {
-        ...segment`${string('token')}`,
+        ...segment`/${arg('token')}`,
         children: {
           install: segment`/install`,
         },

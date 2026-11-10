@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseAgentJobs } from './agent-jobs.js';
+import { parseAgentJobs } from './agent-jobs';
 
 describe('parseAgentJobs', () => {
   it('accepts a list of jobs', () => {

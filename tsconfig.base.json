@@ -13,6 +13,7 @@
     "skipLibCheck": true,
     "declaration": true,
     "sourceMap": true,
-    "types": ["node"]
+    "types": ["node"],
+    "paths": { "@uwacwy/print-shared": ["./shared/src/index.ts"] }
   }
 }

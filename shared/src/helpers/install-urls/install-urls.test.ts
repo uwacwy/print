@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { installUrl } from './install-urls.js';
+import { installUrl } from './install-urls';
 
 describe('installUrl', () => {
   it('builds the enrollment script URL', () => {

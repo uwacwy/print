@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { PRINTER_SLUG_PATTERN } from '../../index.js';
-import { slugify } from './slugify.js';
+import { PRINTER_SLUG_PATTERN } from '../../index';
+import { slugify } from './slugify';
 
 describe('slugify', () => {
   it('lowercases and hyphenates', () => {

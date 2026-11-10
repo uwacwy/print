@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { shArg, shq } from './shell.js';
+import { shArg, shq } from './shell';
 
 describe('shq', () => {
   it('wraps values in single quotes', () => {

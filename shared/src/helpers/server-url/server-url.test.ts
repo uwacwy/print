@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isAllowedServerUrl, serverOrigin } from './server-url.js';
+import { isAllowedServerUrl, serverOrigin } from './server-url';
 
 describe('isAllowedServerUrl', () => {
   it('allows https anywhere', () => {

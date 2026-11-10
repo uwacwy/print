@@ -1,8 +1,9 @@
-export * from './agent-jobs/agent-jobs.js';
-export * from './inflect/inflect.js';
-export * from './install-urls/install-urls.js';
-export * from './paths/paths.js';
-export * from './server-url/server-url.js';
-export * from './setup-commands/setup-commands.js';
-export * from './shell/shell.js';
-export * from './slugify/slugify.js';
+export * from './agent-jobs/agent-jobs';
+export * from './inflect/inflect';
+export * from './install-urls/install-urls';
+export * from './paths/paths';
+export * from './server-url/server-url';
+export * from './setup-commands/setup-commands';
+export * from './shell/shell';
+export * from './slugify/slugify';
+

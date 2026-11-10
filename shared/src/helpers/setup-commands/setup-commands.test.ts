@@ -8,7 +8,7 @@ import {
   enrollSetupCommands,
   npxEnrollCommand,
   npxInstallCommand,
-} from './setup-commands.js';
+} from './setup-commands';
 
 const server = 'https://print.example.org';
 const credentials = {

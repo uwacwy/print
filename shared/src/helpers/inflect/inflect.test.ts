@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { inflect } from './inflect.js';
+import { inflect } from './inflect';
 
 describe('inflect', () => {
   it.each([
