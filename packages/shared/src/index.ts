@@ -1,4 +1,7 @@
+import { $ } from './routes/routes';
+
 export * from './helpers/index';
+export * from './routes/index';
 
 export const JOB_STATUSES = [
   'queued',
@@ -10,7 +13,7 @@ export const JOB_STATUSES = [
 export type JobStatus = (typeof JOB_STATUSES)[number];
 
 /** socket.io endpoint shared by every namespace; the dev proxy forwards it to the socket server. */
-export const SOCKET_PATH = '/ws';
+export const SOCKET_PATH = $.ws();
 
 /** `GET /api/client-config`: browser sign-in settings the server reads from its environment at runtime. */
 export interface ClientConfig {

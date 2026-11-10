@@ -1,12 +1,9 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { inject, Service } from '@angular/core';
 import {
-  ENROLL_TOKEN_PATH,
+  $,
   type EnrollTokenResponse,
 } from '@uwacwy/print-shared';
-import { createRouting } from 'ts-routes';
-
-import { root } from '../../../shared/routes/routes';
 
 export interface CreatedPrinter {
   agentToken: string;
@@ -103,8 +100,6 @@ export interface UploadTokenWindow {
   notBefore?: string;
 }
 
-const $ = createRouting(root);
-
 @Service()
 export class PrinterService {
   readonly #http = inject(HttpClient);
@@ -119,7 +114,7 @@ export class PrinterService {
   /** A short-lived token the printer's computer exchanges for a new printer and its agent token. */
   createEnrollToken() {
     return this.#http.post<EnrollTokenResponse>(
-      ENROLL_TOKEN_PATH,
+      $.api.printers.enrollToken(),
       {},
     );
   }

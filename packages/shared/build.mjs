@@ -5,6 +5,7 @@ import { build } from 'esbuild';
 await build({
   bundle: true,
   entryPoints: ['src/index.ts'],
+  external: ['ts-routes', 'zod'],
   format: 'esm',
   outfile: 'dist/index.js',
   platform: 'neutral',

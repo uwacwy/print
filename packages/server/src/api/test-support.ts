@@ -1,5 +1,6 @@
 import type { Server as SocketServer } from 'socket.io';
 
+import { $ } from '@uwacwy/print-shared';
 import express from 'express';
 import { createServer, type Server } from 'node:http';
 import { PDFDocument } from 'pdf-lib';
@@ -204,7 +205,7 @@ export function useApiServer(defaults: StartOptions = {}) {
         ? `Bearer ${await uploadToken()}`
         : authorization;
     return fetch(
-      `http://${host}/api/printers/front-office/jobs`,
+      `http://${host}${$.api.printers.$slug.jobs({ slug: 'front-office' })}`,
       {
         body: form,
         headers: credential
@@ -219,14 +220,17 @@ export function useApiServer(defaults: StartOptions = {}) {
     pin: string,
     headers: Record<string, string> = {},
   ) =>
-    fetch(`http://${host}/api/printers/front-office/token`, {
-      headers: {
-        authorization: `Pin ${pin}`,
-        'x-print-upload': '1',
-        ...headers,
+    fetch(
+      `http://${host}${$.api.printers.$slug.token({ slug: 'front-office' })}`,
+      {
+        headers: {
+          authorization: `Pin ${pin}`,
+          'x-print-upload': '1',
+          ...headers,
+        },
+        method: 'POST',
       },
-      method: 'POST',
-    });
+    );
 
   return {
     get baseUrl() {

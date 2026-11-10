@@ -1,5 +1,6 @@
 import type { ClientConfig } from '@uwacwy/print-shared';
 
+import { api } from '@uwacwy/print-shared';
 import express from 'express';
 import { createRouting } from 'ts-routes';
 
@@ -11,7 +12,6 @@ import type {
 import type { EntraUserOptions } from './middleware/auth/entra-user/entra-user.strategy';
 import type { AgentHub } from './sockets/agent-hub/agent-hub';
 
-import { api } from '../shared/routes/api.routes';
 import { createAuthenticate } from './middleware/auth/passport/passport';
 import agentRouter from './routers/agent/agent.router';
 import printersRouter from './routers/printers/printers.router';

@@ -1,8 +1,7 @@
 import {
+  $,
   AGENT_NAMESPACE,
   type AgentJob,
-  agentJobFilePath,
-  agentJobStatusPath,
   type JobReport,
   parseAgentJobs,
   SOCKET_PATH,
@@ -75,7 +74,10 @@ export function startAgent(config: AgentConfig): Promise<void> {
     while (!stopping) {
       try {
         const response = await fetch(
-          new URL(agentJobStatusPath(jobId), apiOrigin),
+          new URL(
+            $.api.agent.jobs.$id.status({ id: jobId }),
+            apiOrigin,
+          ),
           {
             body: JSON.stringify(result),
             headers: {
@@ -115,7 +117,10 @@ export function startAgent(config: AgentConfig): Promise<void> {
     { options }: IPrinter,
   ): Promise<Buffer> {
     const response = await fetch(
-      new URL(agentJobFilePath(job.id), apiOrigin),
+      new URL(
+        $.api.agent.jobs.$id.file({ id: job.id }),
+        apiOrigin,
+      ),
       {
         headers: {
           authorization: `Bearer ${config.PRINT_AGENT_TOKEN}`,
@@ -258,7 +263,7 @@ export function startAgent(config: AgentConfig): Promise<void> {
       })
       .on('hello', (registered) =>
         log(
-          `[ws] Listening to queue: '${new URL(`/print/${registered.slug}`, websocketBase).href}' => '${registered.name}'`,
+          `[ws] Listening to queue: '${new URL($.print.$slug({ slug: registered.slug }), websocketBase).href}' => '${registered.name}'`,
         ),
       )
       .on('jobs', (value) => {

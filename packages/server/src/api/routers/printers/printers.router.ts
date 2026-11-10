@@ -1,5 +1,6 @@
 import type { EnrollTokenResponse } from '@uwacwy/print-shared';
 
+import { printers } from '@uwacwy/print-shared';
 import express, {
   type Request,
   type RequestHandler,
@@ -17,7 +18,6 @@ import type {
 import type { Authenticate } from '../../middleware/auth/passport/passport';
 import type { AgentHub } from '../../sockets/agent-hub/agent-hub';
 
-import { printers } from '../../../shared/routes/api.printers.routes';
 import {
   bumpQrEpoch,
   countActiveJobs,

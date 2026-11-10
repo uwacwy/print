@@ -1,5 +1,6 @@
 import type { RequestHandler } from 'express';
 
+import { $ } from '@uwacwy/print-shared';
 import winston from 'winston';
 
 import { DailyLogFile } from '../daily-log-file/daily-log-file';
@@ -40,7 +41,7 @@ const SECRET_PARAMS = new Set([
 ]);
 
 /** Paths polled by health checks; logging them buries real traffic. */
-const UNLOGGED_PATHS = new Set(['/api/healthz']);
+const UNLOGGED_PATHS = new Set([$.api.healthz()]);
 
 type ParamSegmentSpec = { name: string; type: 'param' };
 const isParamSegmentSpec = (s: {
@@ -102,7 +103,9 @@ const route = (urlSpec: string): RouteCodec => {
   };
 };
 
-const printerInstallUrl = route('/printer/:token/install');
+const printerInstallUrl = route(
+  $.printer.$token.install.pattern,
+);
 
 const omitOrigin = (u: URL) =>
   u

@@ -1,3 +1,4 @@
+import { installRoutes } from '@uwacwy/print-shared';
 import express, { type Request, type Response } from 'express';
 import { createRouting } from 'ts-routes';
 
@@ -6,7 +7,6 @@ import type {
   UploadConfig,
 } from '../../helpers/server-config/server-config';
 
-import { installRoutes } from '../../../shared/routes/install.routes';
 import {
   INSTALL_SCRIPT_CONTENT_TYPE,
   renderErrorScript,

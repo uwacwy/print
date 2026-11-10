@@ -1,6 +1,5 @@
 import {
-  AGENT_ENROLL_PATH,
-  AGENT_PRINTER_PATH,
+  $,
   type AgentPrinterUpdate,
   type EnrollRequest,
   type EnrollResponse,
@@ -82,7 +81,7 @@ export const enroll = (
   enrollToken: string,
   printer: EnrollRequest,
 ): Promise<EnrollResponse> =>
-  request(serverUrl, AGENT_ENROLL_PATH, {
+  request(serverUrl, $.api.agent.enroll(), {
     body: { ...printer, queue: queueForReport(printer.queue) },
     method: 'POST',
     token: enrollToken,
@@ -94,7 +93,7 @@ export const reportQueue = (
   agentToken: string,
   printerUri: string,
 ): Promise<EnrollRequest> =>
-  request(serverUrl, AGENT_PRINTER_PATH, {
+  request(serverUrl, $.api.agent.printer(), {
     body: {
       queue: queueForReport(printerUri),
     } satisfies AgentPrinterUpdate,

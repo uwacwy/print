@@ -1,4 +1,5 @@
 import {
+  agents,
   type EnrollResponse,
   MAX_ERROR_LENGTH,
 } from '@uwacwy/print-shared';
@@ -12,7 +13,6 @@ import { z } from 'zod';
 import type { UploadConfig } from '../../helpers/server-config/server-config';
 import type { AgentHub } from '../../sockets/agent-hub/agent-hub';
 
-import { agents } from '../../../shared/routes/api.agents.routes';
 import {
   createPrinter,
   getJobForPrinter,
@@ -57,7 +57,7 @@ const agentPrinter = (request: express.Request) => {
 
 const $ = createRouting(agents);
 
-/** HTTP side of the agent protocol; mounted at `/api/agent` to match the shared path helpers. */
+/** HTTP side of the agent protocol; mounted at the shared `api.agent` route. */
 export default ({
   db,
   getHub,

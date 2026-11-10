@@ -1,7 +1,4 @@
-import {
-  agentJobFilePath,
-  agentJobStatusPath,
-} from '@uwacwy/print-shared';
+import { $ } from '@uwacwy/print-shared';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -33,12 +30,18 @@ describe('agent router', () => {
     });
 
     const unauthorized = await fetch(
-      `http://${api.host}${agentJobFilePath(body.jobId)}`,
+      new URL(
+        $.api.agent.jobs.$id.file({ id: body.jobId }),
+        `http://${api.host}`,
+      ),
     );
     expect(unauthorized.status).toBe(401);
 
     const file = await fetch(
-      `http://${api.host}${agentJobFilePath(body.jobId)}`,
+      new URL(
+        $.api.agent.jobs.$id.file({ id: body.jobId }),
+        `http://${api.host}`,
+      ),
       {
         headers: { authorization: `Bearer ${token}` },
       },
@@ -54,7 +57,10 @@ describe('agent router', () => {
     ).toBe('%PDF-');
 
     const report = await fetch(
-      `http://${api.host}${agentJobStatusPath(body.jobId)}`,
+      new URL(
+        $.api.agent.jobs.$id.status({ id: body.jobId }),
+        `http://${api.host}`,
+      ),
       {
         body: JSON.stringify({ status: 'printed' }),
         headers: {
@@ -70,7 +76,10 @@ describe('agent router', () => {
     ).toBe(false);
 
     const again = await fetch(
-      `http://${api.host}${agentJobStatusPath(body.jobId)}`,
+      new URL(
+        $.api.agent.jobs.$id.status({ id: body.jobId }),
+        `http://${api.host}`,
+      ),
       {
         body: JSON.stringify({ status: 'printed' }),
         headers: {
@@ -97,7 +106,10 @@ describe('agent router', () => {
     await agent.next();
 
     const report = await fetch(
-      `http://${api.host}${agentJobStatusPath(jobId)}`,
+      new URL(
+        $.api.agent.jobs.$id.status({ id: jobId }),
+        `http://${api.host}`,
+      ),
       {
         body: JSON.stringify({
           error: 'jammed',

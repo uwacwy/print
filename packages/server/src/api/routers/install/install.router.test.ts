@@ -1,7 +1,5 @@
 import {
-  AGENT_ENROLL_PATH,
-  AGENT_PRINTER_PATH,
-  ENROLL_TOKEN_PATH,
+  $,
   type EnrollResponse,
   type EnrollTokenResponse,
   installUrl,
@@ -37,7 +35,7 @@ describe('agent enrollment', () => {
 
   const mint = async () => {
     const response = await fetch(
-      `${api.baseUrl}${ENROLL_TOKEN_PATH}`,
+      `${api.baseUrl}${$.api.printers.enrollToken()}`,
       {
         headers: await admin(),
         method: 'POST',
@@ -48,7 +46,7 @@ describe('agent enrollment', () => {
   };
 
   const enroll = (token: string, body: unknown) =>
-    fetch(`${api.baseUrl}${AGENT_ENROLL_PATH}`, {
+    fetch(`${api.baseUrl}${$.api.agent.enroll()}`, {
       body: JSON.stringify(body),
       headers: {
         authorization: `Bearer ${token}`,
@@ -67,7 +65,7 @@ describe('agent enrollment', () => {
 
   it('lets only admins mint enrollment tokens', async () => {
     const anonymous = await fetch(
-      `${api.baseUrl}${ENROLL_TOKEN_PATH}`,
+      `${api.baseUrl}${$.api.printers.enrollToken()}`,
       {
         method: 'POST',
       },
@@ -85,7 +83,7 @@ describe('agent enrollment', () => {
   it('answers 503 without a usable PUBLIC_URL', async () => {
     await api.start({ enrollment: undefined });
     const response = await fetch(
-      `${api.baseUrl}${ENROLL_TOKEN_PATH}`,
+      `${api.baseUrl}${$.api.printers.enrollToken()}`,
       {
         headers: await admin(),
         method: 'POST',
@@ -97,7 +95,7 @@ describe('agent enrollment', () => {
     });
     expect(
       await (
-        await fetch(`${api.baseUrl}/api/client-config`)
+        await fetch(`${api.baseUrl}${$.api.clientConfig()}`)
       ).json(),
     ).toEqual({
       enrollment: false,
@@ -128,7 +126,7 @@ describe('agent enrollment', () => {
     expect(invalid.status).toBe(400);
 
     const patch = (authorization: string, queue: unknown) =>
-      fetch(`${api.baseUrl}${AGENT_PRINTER_PATH}`, {
+      fetch(`${api.baseUrl}${$.api.agent.printer()}`, {
         body: JSON.stringify({ queue }),
         headers: {
           authorization,
@@ -158,7 +156,7 @@ describe('agent enrollment', () => {
 
   it('rejects missing, invalid, and expired enrollment tokens', async () => {
     const missing = await fetch(
-      `${api.baseUrl}${AGENT_ENROLL_PATH}`,
+      `${api.baseUrl}${$.api.agent.enroll()}`,
       {
         method: 'POST',
       },
@@ -187,14 +185,17 @@ describe('agent enrollment', () => {
   });
 
   it('includes the server URL when an admin creates a printer', async () => {
-    const response = await fetch(`${api.baseUrl}/api/printers`, {
-      body: JSON.stringify(front),
-      headers: {
-        ...(await admin()),
-        'content-type': 'application/json',
+    const response = await fetch(
+      `${api.baseUrl}${$.api.printers()}`,
+      {
+        body: JSON.stringify(front),
+        headers: {
+          ...(await admin()),
+          'content-type': 'application/json',
+        },
+        method: 'POST',
       },
-      method: 'POST',
-    });
+    );
     expect(await response.json()).toMatchObject({ serverUrl });
   });
 

@@ -1,14 +1,11 @@
 import type { ClientConfig } from '@uwacwy/print-shared';
 
 import { InjectionToken } from '@angular/core';
-import { createRouting } from 'ts-routes';
+import { $ } from '@uwacwy/print-shared';
 
 import type { PrintServerClientEnvironment } from '../../environments/environment.interface';
 
 import { environment } from '../../environments/environment';
-import { root } from '../../shared/routes/routes';
-
-const $ = createRouting(root);
 
 /** Sign-in settings for this deployment; `main.ts` provides the server's runtime values. */
 export const CLIENT_ENVIRONMENT =

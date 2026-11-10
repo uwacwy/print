@@ -1,3 +1,4 @@
+import { $ } from '@uwacwy/print-shared';
 import { z } from 'zod';
 
 import { formatPin } from '../middleware/auth/pin/pin';
@@ -59,4 +60,7 @@ export const printPath = (
   printer: Pick<PrinterRow, 'slug'>,
   token?: string,
 ) =>
-  `/print/${encodeURIComponent(printer.slug)}${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+  $.print.$slug(
+    { slug: printer.slug },
+    token ? { token } : undefined,
+  );

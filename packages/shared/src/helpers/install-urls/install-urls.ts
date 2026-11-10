@@ -1,8 +1,13 @@
-import { installScriptPath } from '../paths/paths';
+import { $ } from '../../routes/routes';
 
 /** Absolute URL of the enrollment (with token) or generic install script. */
 export const installUrl = (
   serverUrl: string,
   enrollToken?: string,
 ): string =>
-  new URL(installScriptPath(enrollToken), serverUrl).href;
+  new URL(
+    enrollToken === undefined
+      ? $.install_sh()
+      : $.printer.$token.install({ token: enrollToken }),
+    serverUrl,
+  ).href;

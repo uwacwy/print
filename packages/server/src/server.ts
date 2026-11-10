@@ -5,6 +5,7 @@ import {
   isMainModule,
   writeResponseToNodeResponse,
 } from '@angular/ssr/node';
+import { $ } from '@uwacwy/print-shared';
 import express from 'express';
 import { randomBytes } from 'node:crypto';
 import http from 'node:http';
@@ -133,8 +134,6 @@ app.use(
 );
 
 app.use(express.json({ limit: '32kb' }));
-
-const $ = createRouting(root);
 
 app.use(
   $.api.pattern,
@@ -277,10 +276,7 @@ function startDevServer(port: number): Promise<void> {
   return devSockets.ready;
 }
 
-import { createRouting } from 'ts-routes';
-
 import pkg from '../package.json';
-import { root } from './shared/routes/routes';
 
 /** Production: pages, the REST API, and socket.io share one HTTP server and port. */
 async function startServer(): Promise<void> {

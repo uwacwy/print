@@ -1,3 +1,4 @@
+import { $ } from '@uwacwy/print-shared';
 import { existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -18,6 +19,16 @@ import {
   uploadForm,
   useApiServer,
 } from '../../test-support';
+
+type PrinterAction =
+  | 'agentToken'
+  | 'jobs'
+  | 'pin'
+  | 'qrEpoch'
+  | 'qrPdf'
+  | 'qrPrint'
+  | 'qrToken'
+  | 'token';
 
 describe('printers router', () => {
   const { bearer, entra } = testEntra({
@@ -47,7 +58,7 @@ describe('printers router', () => {
         'content-type': 'application/json',
       };
       const createdResponse = await fetch(
-        `${api.baseUrl}/api/printers`,
+        `${api.baseUrl}${$.api.printers()}`,
         {
           body: JSON.stringify({
             coverPage: true,
@@ -70,7 +81,7 @@ describe('printers router', () => {
       expect(created.printer).not.toHaveProperty('token');
 
       const publicResponse = await fetch(
-        `${api.baseUrl}/api/printers/front-office`,
+        `${api.baseUrl}${$.api.printers.$slug({ slug: 'front-office' })}`,
       );
       expect(publicResponse.status).toBe(200);
       expect(await publicResponse.json()).toEqual({
@@ -91,7 +102,7 @@ describe('printers router', () => {
       });
 
       const managed = await fetch(
-        `${api.baseUrl}/api/printers/front-office`,
+        `${api.baseUrl}${$.api.printers.$slug({ slug: 'front-office' })}`,
         { headers: { authorization } },
       );
       expect(await managed.json()).toMatchObject({
@@ -101,7 +112,7 @@ describe('printers router', () => {
       });
 
       const list = await (
-        await fetch(`${api.baseUrl}/api/printers`, {
+        await fetch(`${api.baseUrl}${$.api.printers()}`, {
           headers: { authorization },
         })
       ).json();
@@ -112,7 +123,7 @@ describe('printers router', () => {
       });
 
       const updateResponse = await fetch(
-        `${api.baseUrl}/api/printers/front-office`,
+        `${api.baseUrl}${$.api.printers.$slug({ slug: 'front-office' })}`,
         {
           body: JSON.stringify({
             coverPage: false,
@@ -131,12 +142,12 @@ describe('printers router', () => {
       });
 
       const anonymousDelete = await fetch(
-        `${api.baseUrl}/api/printers/front-office`,
+        `${api.baseUrl}${$.api.printers.$slug({ slug: 'front-office' })}`,
         { method: 'DELETE' },
       );
       expect(anonymousDelete.status).toBe(401);
       const deleteResponse = await fetch(
-        `${api.baseUrl}/api/printers/front-office`,
+        `${api.baseUrl}${$.api.printers.$slug({ slug: 'front-office' })}`,
         {
           headers: { authorization },
           method: 'DELETE',
@@ -144,8 +155,11 @@ describe('printers router', () => {
       );
       expect(deleteResponse.status).toBe(204);
       expect(
-        (await fetch(`${api.baseUrl}/api/printers/front-office`))
-          .status,
+        (
+          await fetch(
+            `${api.baseUrl}${$.api.printers.$slug({ slug: 'front-office' })}`,
+          )
+        ).status,
       ).toBe(404);
     });
   });
@@ -173,19 +187,24 @@ describe('printers router', () => {
       ).n;
 
     const post = (
-      path: string,
+      action: PrinterAction,
       body?: unknown,
       method: 'DELETE' | 'POST' = 'POST',
     ) =>
-      fetch(`${api.baseUrl}/api/printers/front-office/${path}`, {
-        body:
-          body === undefined ? undefined : JSON.stringify(body),
-        headers: {
-          ...admin,
-          'content-type': 'application/json',
+      fetch(
+        `${api.baseUrl}${$.api.printers.$slug[action]({ slug: 'front-office' })}`,
+        {
+          body:
+            body === undefined
+              ? undefined
+              : JSON.stringify(body),
+          headers: {
+            ...admin,
+            'content-type': 'application/json',
+          },
+          method,
         },
-        method,
-      });
+      );
     const printer = () =>
       api.db
         .prepare(
@@ -199,22 +218,23 @@ describe('printers router', () => {
 
     it('requires admin auth and 404s unknown printers', async () => {
       const anonymous = await fetch(
-        `${api.baseUrl}/api/printers/front-office/qr.pdf`,
+        `${api.baseUrl}${$.api.printers.$slug.qrPdf({ slug: 'front-office' })}`,
       );
       expect(anonymous.status).toBe(401);
-      for (const [method, path] of [
-        ['GET', 'qr.pdf'],
-        ['POST', 'qr.pdf'],
-        ['POST', 'qr-print'],
-        ['POST', 'qr-token'],
-        ['POST', 'qr-epoch'],
+      const cases: [string, PrinterAction][] = [
+        ['GET', 'qrPdf'],
+        ['POST', 'qrPdf'],
+        ['POST', 'qrPrint'],
+        ['POST', 'qrToken'],
+        ['POST', 'qrEpoch'],
         ['POST', 'pin'],
         ['DELETE', 'pin'],
-        ['POST', 'agent-token'],
+        ['POST', 'agentToken'],
         ['DELETE', 'jobs'],
-      ]) {
+      ];
+      for (const [method, path] of cases) {
         const response = await fetch(
-          `${api.baseUrl}/api/printers/missing/${path}`,
+          `${api.baseUrl}${$.api.printers.$slug[path]({ slug: 'missing' })}`,
           {
             headers: admin,
             method,
@@ -226,7 +246,7 @@ describe('printers router', () => {
 
     it('renders the QR poster PDF', async () => {
       const response = await fetch(
-        `${api.baseUrl}/api/printers/front-office/qr.pdf`,
+        `${api.baseUrl}${$.api.printers.$slug.qrPdf({ slug: 'front-office' })}`,
         {
           headers: admin,
         },
@@ -247,7 +267,7 @@ describe('printers router', () => {
     it('issues a QR upload token with a print-page link for the requested window', async () => {
       const notBefore = new Date(Date.now() + 3_600_000);
       const expiresAt = new Date(Date.now() + 5 * 3_600_000);
-      const response = await post('qr-token', {
+      const response = await post('qrToken', {
         expiresAt: expiresAt.toISOString(),
         notBefore: notBefore.toISOString(),
       });
@@ -281,7 +301,7 @@ describe('printers router', () => {
       });
 
       const defaults = (await (
-        await post('qr-token', {})
+        await post('qrToken', {})
       ).json()) as {
         expiresAt: string;
         notBefore: string;
@@ -295,7 +315,7 @@ describe('printers router', () => {
         24 * 3_600_000 + 60_000,
       );
 
-      const backwards = await post('qr-token', {
+      const backwards = await post('qrToken', {
         expiresAt: notBefore.toISOString(),
         notBefore: expiresAt.toISOString(),
       });
@@ -304,28 +324,28 @@ describe('printers router', () => {
 
     it('renders the poster for an already-issued token and rejects foreign ones', async () => {
       const { token } = (await (
-        await post('qr-token', {})
+        await post('qrToken', {})
       ).json()) as { token: string };
-      const poster = await post('qr.pdf', { token });
+      const poster = await post('qrPdf', { token });
       expect(poster.status).toBe(200);
       expect(poster.headers.get('content-type')).toBe(
         'application/pdf',
       );
       expect(
-        (await post('qr.pdf', { token: 'not.a.token' })).status,
+        (await post('qrPdf', { token: 'not.a.token' })).status,
       ).toBe(400);
     });
 
     it('revokes outstanding QR tokens by bumping the epoch', async () => {
       const { token } = (await (
-        await post('qr-token', {})
+        await post('qrToken', {})
       ).json()) as { token: string };
       const key = testUploadConfig.access;
       expect(
         (await verifyUploadToken(key, printer(), token)).status,
       ).toBe('valid');
 
-      const response = await post('qr-epoch');
+      const response = await post('qrEpoch');
       expect(response.status).toBe(200);
       expect(
         ((await response.json()) as { qrEpoch: number }).qrEpoch,
@@ -333,7 +353,7 @@ describe('printers router', () => {
       expect(
         (await verifyUploadToken(key, printer(), token)).status,
       ).toBe('invalid');
-      expect((await post('qr.pdf', { token })).status).toBe(400);
+      expect((await post('qrPdf', { token })).status).toBe(400);
     });
 
     it('refreshes and disables the upload PIN', async () => {
@@ -358,7 +378,7 @@ describe('printers router', () => {
 
     it('queues the QR sheet as a print job', async () => {
       const response = await fetch(
-        `${api.baseUrl}/api/printers/front-office/qr-print`,
+        `${api.baseUrl}${$.api.printers.$slug.qrPrint({ slug: 'front-office' })}`,
         {
           headers: admin,
           method: 'POST',
@@ -384,7 +404,7 @@ describe('printers router', () => {
 
     it('rotates the agent token', async () => {
       const response = await fetch(
-        `${api.baseUrl}/api/printers/front-office/agent-token`,
+        `${api.baseUrl}${$.api.printers.$slug.agentToken({ slug: 'front-office' })}`,
         {
           headers: admin,
           method: 'POST',
@@ -422,7 +442,7 @@ describe('printers router', () => {
       expect(jobCount()).toBe(2);
 
       const response = await fetch(
-        `${api.baseUrl}/api/printers/front-office/jobs`,
+        `${api.baseUrl}${$.api.printers.$slug.jobs({ slug: 'front-office' })}`,
         {
           headers: admin,
           method: 'DELETE',
@@ -470,7 +490,7 @@ describe('printers router', () => {
           .get(id) as { error: null | string; status: string };
 
       const list = (await (
-        await fetch(`${api.baseUrl}/api/printers`, {
+        await fetch(`${api.baseUrl}${$.api.printers()}`, {
           headers: admin,
         })
       ).json()) as { failedJobs: number }[];
@@ -478,7 +498,7 @@ describe('printers router', () => {
 
       const retry = () =>
         fetch(
-          `${api.baseUrl}/api/printers/front-office/jobs/retry`,
+          `${api.baseUrl}${$.api.printers.$slug.jobs.retry({ slug: 'front-office' })}`,
           {
             headers: admin,
             method: 'POST',
@@ -487,7 +507,7 @@ describe('printers router', () => {
       expect(
         (
           await fetch(
-            `${api.baseUrl}/api/printers/front-office/jobs/retry`,
+            `${api.baseUrl}${$.api.printers.$slug.jobs.retry({ slug: 'front-office' })}`,
             { method: 'POST' },
           )
         ).status,
