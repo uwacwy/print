@@ -2,6 +2,7 @@ import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { form, required } from '@angular/forms/signals';
 import { describe, expect, it } from 'vitest';
+
 import { TextFieldComponent } from './text-field.component';
 
 @Component({
@@ -25,8 +26,12 @@ describe('TextFieldComponent', () => {
     await fixture.whenStable();
     const el: HTMLElement = fixture.nativeElement;
     const input = el.querySelector<HTMLInputElement>('#x')!;
-    expect(el.querySelector('label')?.textContent).toContain('Thing');
-    expect(input.getAttribute('aria-describedby')).toBe('x-hint');
+    expect(el.querySelector('label')?.textContent).toContain(
+      'Thing',
+    );
+    expect(input.getAttribute('aria-describedby')).toBe(
+      'x-hint',
+    );
     expect(el.textContent).toContain('A hint');
     expect(el.textContent).not.toContain('Thing is required.');
 

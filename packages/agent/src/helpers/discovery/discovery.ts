@@ -5,22 +5,22 @@ import {
   runCups,
 } from '../cups/cups';
 
-export type PrinterKind = 'cups' | 'ipp';
-
 export interface DiscoveredPrinter {
-  /** A `PRINTER_URI` value. */
-  uri: string;
+  detail?: string;
   /** Person-friendly name; the default printer name when enrolling. */
   name: string;
-  detail?: string;
+  /** A `PRINTER_URI` value. */
+  uri: string;
 }
 
 export interface Discovery {
-  kind: PrinterKind;
-  printers: DiscoveredPrinter[];
   /** Why discovery failed, e.g. CUPS is not installed. */
   error?: string;
+  kind: PrinterKind;
+  printers: DiscoveredPrinter[];
 }
+
+export type PrinterKind = 'cups' | 'ipp';
 
 const LPSTAT_TIMEOUT_MS = 15_000;
 
@@ -46,9 +46,9 @@ export const cupsPrinters = (
   descriptions: ReadonlyMap<string, string>,
 ): DiscoveredPrinter[] =>
   queues.map((queue) => ({
-    uri: `cups://${queue}`,
-    name: humanQueueName(queue, descriptions.get(queue)),
     detail: queue,
+    name: humanQueueName(queue, descriptions.get(queue)),
+    uri: `cups://${queue}`,
   }));
 
 const describeFailure = (
@@ -83,9 +83,9 @@ export async function discover(
       sources[kind]().then(
         (printers): Discovery => ({ kind, printers }),
         (error: unknown): Discovery => ({
+          error: describeFailure(kind, error),
           kind,
           printers: [],
-          error: describeFailure(kind, error),
         }),
       ),
     ),
@@ -97,23 +97,10 @@ const KIND_LABEL: Record<PrinterKind, string> = {
   ipp: 'IPP printers on the network',
 };
 
-/** Plain-text listing for errors and `list-queues`. */
-export function formatDiscovery(
-  discoveries: readonly Discovery[],
-): string {
-  return discoveries
-    .map(({ kind, printers, error }) => {
-      const lines = printers.map(
-        ({ uri, name }) =>
-          `  ${uri}${name !== uri ? `  (${name})` : ''}`,
-      );
-      return [
-        `${KIND_LABEL[kind]}:`,
-        ...(error ? [`  ${error}`] : []),
-        ...(lines.length || error ? lines : ['  (none found)']),
-      ].join('\n');
-    })
-    .join('\n');
+export interface QueueProblem {
+  message: string;
+  /** CUPS answered and the queue is not there (as opposed to CUPS being unreachable). */
+  missing: boolean;
 }
 
 /** `cups://Queue?options` → `Queue`; `undefined` for other schemes. */
@@ -124,6 +111,16 @@ export function cupsQueueName(uri: string): string | undefined {
   } catch {
     return undefined;
   }
+}
+
+/** Why a `cups://` printer URI cannot work here (listing the queues that can), or `undefined`. */
+export async function cupsQueueProblem(
+  uri: string,
+): Promise<QueueProblem | undefined> {
+  const queue = cupsQueueName(uri);
+  return queue
+    ? missingQueueProblem(queue, await discover(['cups']))
+    : undefined;
 }
 
 /** A printer's discovered name, else its CUPS queue or host: the default name when enrolling. */
@@ -141,20 +138,23 @@ export function defaultPrinterName(
     : new URL(uri).hostname;
 }
 
-export interface QueueProblem {
-  message: string;
-  /** CUPS answered and the queue is not there (as opposed to CUPS being unreachable). */
-  missing: boolean;
-}
-
-/** Why a `cups://` printer URI cannot work here (listing the queues that can), or `undefined`. */
-export async function cupsQueueProblem(
-  uri: string,
-): Promise<QueueProblem | undefined> {
-  const queue = cupsQueueName(uri);
-  return queue
-    ? missingQueueProblem(queue, await discover(['cups']))
-    : undefined;
+/** Plain-text listing for errors and `list-queues`. */
+export function formatDiscovery(
+  discoveries: readonly Discovery[],
+): string {
+  return discoveries
+    .map(({ error, kind, printers }) => {
+      const lines = printers.map(
+        ({ name, uri }) =>
+          `  ${uri}${name !== uri ? `  (${name})` : ''}`,
+      );
+      return [
+        `${KIND_LABEL[kind]}:`,
+        ...(error ? [`  ${error}`] : []),
+        ...(lines.length || error ? lines : ['  (none found)']),
+      ].join('\n');
+    })
+    .join('\n');
 }
 
 export function missingQueueProblem(

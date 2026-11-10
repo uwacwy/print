@@ -1,4 +1,3 @@
-import { EventEmitter } from 'node:events';
 import type {
   AgentClientEvents,
   AgentServerEvents,
@@ -6,6 +5,11 @@ import type {
   LiveEvent as SharedLiveEvent,
 } from '@uwacwy/print-shared';
 import type { Socket } from 'socket.io';
+
+import { EventEmitter } from 'node:events';
+
+import type { SocketData } from '../handshake/handshake';
+
 import {
   countActiveJobs,
   countFailedJobs,
@@ -13,16 +17,10 @@ import {
   getQueuedJobs,
   markJobsPrinting,
   markPrinterSeen,
-  resetPrintingJobs,
   type PrintDatabase,
   type PrinterRow,
+  resetPrintingJobs,
 } from '../../helpers/database/database';
-import type { SocketData } from '../handshake/handshake';
-
-export type LiveEvent = Exclude<
-  SharedLiveEvent,
-  { type: 'snapshot' }
->;
 
 export type AgentSocket = Socket<
   AgentClientEvents,
@@ -31,16 +29,21 @@ export type AgentSocket = Socket<
   SocketData
 >;
 
+export type LiveEvent = Exclude<
+  SharedLiveEvent,
+  { type: 'snapshot' }
+>;
+
 /**
  * Tracks the single live socket per printer agent, pushes queued jobs to it, and publishes
  * agent and job changes to live-event subscribers.
  */
 export class AgentHub {
-  readonly #db: PrintDatabase;
   readonly #agents = new Map<number, AgentSocket>();
+  readonly #db: PrintDatabase;
   readonly #events = new EventEmitter<{
-    event: [LiveEvent];
     dispose: [];
+    event: [LiveEvent];
   }>();
 
   constructor(db: PrintDatabase) {
@@ -57,11 +60,15 @@ export class AgentHub {
     }
     resetPrintingJobs(this.#db, printer.id);
     markPrinterSeen(this.#db, printer.id);
-    socket.emit('hello', { slug: printer.slug, name: printer.name });
+    socket.emit('hello', {
+      name: printer.name,
+      slug: printer.slug,
+    });
     this.#emitAgent(printer.id, true);
 
     // socket.io pings every client; each answered ping proves the agent is alive.
-    const onHeartbeat = () => markPrinterSeen(this.#db, printer.id);
+    const onHeartbeat = () =>
+      markPrinterSeen(this.#db, printer.id);
     socket.conn.on('heartbeat', onHeartbeat);
     socket.on('sync', () => this.dispatch(printer.id));
     socket.on('disconnect', () => {
@@ -74,6 +81,11 @@ export class AgentHub {
       this.#emitAgent(printer.id, false);
     });
     this.dispatch(printer.id);
+  }
+
+  /** Drops the printer's agent, e.g. after its token is rotated or the printer is deleted. */
+  disconnect(printerId: number): void {
+    this.#agents.get(printerId)?.disconnect(true);
   }
 
   /** Pushes every queued job for the printer to its agent, if one is connected. */
@@ -99,6 +111,17 @@ export class AgentHub {
     }
   }
 
+  /** Disconnects every agent; they reconnect on their own, and in-flight jobs requeue then. */
+  dispose(): void {
+    const sockets = [...this.#agents.values()];
+    this.#agents.clear();
+    for (const socket of sockets) {
+      socket.disconnect(true);
+    }
+    this.#events.emit('dispose');
+    this.#events.removeAllListeners();
+  }
+
   isOnline(printerId: number): boolean {
     return this.#agents.get(printerId)?.connected === true;
   }
@@ -109,39 +132,27 @@ export class AgentHub {
     );
   }
 
-  /** Drops the printer's agent, e.g. after its token is rotated or the printer is deleted. */
-  disconnect(printerId: number): void {
-    this.#agents.get(printerId)?.disconnect(true);
-  }
-
   publishJob(
     printerId: number,
     jobId: string,
     status: JobStatus,
   ): void {
     this.#events.emit('event', {
-      type: 'job',
-      printerId,
       jobId,
+      printerId,
       status,
+      type: 'job',
       ...this.#jobCounts(printerId),
     });
   }
 
   publishJobsDeleted(printerId: number, count: number): void {
     this.#events.emit('event', {
-      type: 'jobs-deleted',
-      printerId,
       count,
+      printerId,
+      type: 'jobs-deleted',
       ...this.#jobCounts(printerId),
     });
-  }
-
-  #jobCounts(printerId: number) {
-    return {
-      activeJobs: countActiveJobs(this.#db).get(printerId) ?? 0,
-      failedJobs: countFailedJobs(this.#db).get(printerId) ?? 0,
-    };
   }
 
   /** `onDispose` fires when this hub is shut down or replaced, so subscribers can follow its successor. */
@@ -161,24 +172,21 @@ export class AgentHub {
     };
   }
 
-  /** Disconnects every agent; they reconnect on their own, and in-flight jobs requeue then. */
-  dispose(): void {
-    const sockets = [...this.#agents.values()];
-    this.#agents.clear();
-    for (const socket of sockets) {
-      socket.disconnect(true);
-    }
-    this.#events.emit('dispose');
-    this.#events.removeAllListeners();
-  }
-
   #emitAgent(printerId: number, online: boolean): void {
     this.#events.emit('event', {
-      type: 'agent',
-      printerId,
-      online,
       lastSeenAt:
-        getPrinterById(this.#db, printerId)?.last_seen_at ?? null,
+        getPrinterById(this.#db, printerId)?.last_seen_at ??
+        null,
+      online,
+      printerId,
+      type: 'agent',
     });
+  }
+
+  #jobCounts(printerId: number) {
+    return {
+      activeJobs: countActiveJobs(this.#db).get(printerId) ?? 0,
+      failedJobs: countFailedJobs(this.#db).get(printerId) ?? 0,
+    };
   }
 }

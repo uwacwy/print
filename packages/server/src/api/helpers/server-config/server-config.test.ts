@@ -2,6 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
+
 import {
   isAngularDevServer,
   loadLocalEnvFile,
@@ -11,8 +12,8 @@ import {
 const tenant = '11111111-1111-4111-8111-111111111111';
 const client = '22222222-2222-4222-8222-222222222222';
 const secret = {
-  UPLOAD_TOKEN_SECRET: 'x'.repeat(32),
   PUBLIC_URL: 'http://print.example.org',
+  UPLOAD_TOKEN_SECRET: 'x'.repeat(32),
 };
 
 describe('server config', () => {
@@ -21,7 +22,7 @@ describe('server config', () => {
     dirs
       .splice(0)
       .forEach((dir) =>
-        rmSync(dir, { recursive: true, force: true }),
+        rmSync(dir, { force: true, recursive: true }),
       ),
   );
 
@@ -64,29 +65,29 @@ describe('server config', () => {
       loadServerConfig(
         {
           ...secret,
-          ENTRA_TENANT_ID: tenant,
           ENTRA_CLIENT_ID: client,
+          ENTRA_TENANT_ID: tenant,
         },
         false,
       ).client,
     ).toEqual({
       enrollment: false,
-      publicUrl: new URL(secret.PUBLIC_URL),
       msal: {
-        tenantId: tenant,
-        clientId: client,
-        authority: `https://login.microsoftonline.com/${tenant}`,
         apiScope: `api://${client}/Printers.Manage`,
+        authority: `https://login.microsoftonline.com/${tenant}`,
+        clientId: client,
+        tenantId: tenant,
       },
+      publicUrl: new URL(secret.PUBLIC_URL),
     });
     expect(
       loadServerConfig(
         {
           ...secret,
-          ENTRA_TENANT_ID: tenant,
-          ENTRA_CLIENT_ID: client,
-          ENTRA_API_AUDIENCE: 'api://print.example.org',
           ENTRA_ADMIN_SCOPE: 'Print.Admin',
+          ENTRA_API_AUDIENCE: 'api://print.example.org',
+          ENTRA_CLIENT_ID: client,
+          ENTRA_TENANT_ID: tenant,
         },
         false,
       ).client.msal?.apiScope,
@@ -96,12 +97,15 @@ describe('server config', () => {
   it('enables enrollment only for an https (or loopback http) PUBLIC_URL', () => {
     const enrollment = (PUBLIC_URL: string) =>
       loadServerConfig({ ...secret, PUBLIC_URL }, false);
-    expect(enrollment('http://print.example.org').enrollment).toEqual({
+    expect(
+      enrollment('http://print.example.org').enrollment,
+    ).toEqual({
       serverUrl: undefined,
       tokenTtlMinutes: 30,
     });
     expect(
-      enrollment('https://print.example.org/x').enrollment.serverUrl,
+      enrollment('https://print.example.org/x').enrollment
+        .serverUrl,
     ).toBe('https://print.example.org');
     expect(
       enrollment('https://print.example.org').client.enrollment,
@@ -127,7 +131,7 @@ describe('server config', () => {
     ).toThrow('PUBLIC_URL');
     expect(() =>
       loadServerConfig(
-        { UPLOAD_TOKEN_SECRET, PUBLIC_URL: 'not a url' },
+        { PUBLIC_URL: 'not a url', UPLOAD_TOKEN_SECRET },
         false,
       ),
     ).toThrow('PUBLIC_URL');
@@ -141,26 +145,37 @@ describe('server config', () => {
       join(process.cwd(), 'data'),
     );
     expect(
-      loadServerConfig({ ...secret, DATA_DIR: '/srv/print' }, false)
-        .dataDir,
+      loadServerConfig(
+        { ...secret, DATA_DIR: '/srv/print' },
+        false,
+      ).dataDir,
     ).toBe('/srv/print');
   });
 
   it('keeps 14 days of access logs in DATA_DIR/logs unless ACCESS_LOG_DAYS is 0', () => {
     expect(
-      loadServerConfig({ ...secret, DATA_DIR: '/srv/print' }, false)
-        .accessLog,
+      loadServerConfig(
+        { ...secret, DATA_DIR: '/srv/print' },
+        false,
+      ).accessLog,
     ).toEqual({ dir: '/srv/print/logs', maxDays: 14 });
     expect(
-      loadServerConfig({ ...secret, ACCESS_LOG_DAYS: '30' }, false)
-        .accessLog?.maxDays,
+      loadServerConfig(
+        { ...secret, ACCESS_LOG_DAYS: '30' },
+        false,
+      ).accessLog?.maxDays,
     ).toBe(30);
     expect(
-      loadServerConfig({ ...secret, ACCESS_LOG_DAYS: '0' }, false)
-        .accessLog,
+      loadServerConfig(
+        { ...secret, ACCESS_LOG_DAYS: '0' },
+        false,
+      ).accessLog,
     ).toBeUndefined();
     expect(() =>
-      loadServerConfig({ ...secret, ACCESS_LOG_DAYS: '-1' }, false),
+      loadServerConfig(
+        { ...secret, ACCESS_LOG_DAYS: '-1' },
+        false,
+      ),
     ).toThrow();
   });
 
@@ -178,19 +193,19 @@ describe('server config', () => {
       loadServerConfig(
         {
           ...secret,
-          PIN_TOKEN_INTERVAL_MINUTES: '5',
           PIN_MAX_FAILURES: '4',
+          PIN_TOKEN_INTERVAL_MINUTES: '5',
         },
         false,
       ).upload.access,
     ).toEqual({
-      tokenSecret: secret.UPLOAD_TOKEN_SECRET,
+      ipv6Subnet: 56,
+      pinMaxFailures: 4,
+      pinTokenIntervalMs: 5 * 60_000,
+      pinTokenTtlMs: 10 * 60_000,
       tokenIssuer: 'uwacwy-print',
       tokenMaxLifetimeMs: 365 * 86_400_000,
-      pinTokenTtlMs: 10 * 60_000,
-      pinTokenIntervalMs: 5 * 60_000,
-      pinMaxFailures: 4,
-      ipv6Subnet: 56,
+      tokenSecret: secret.UPLOAD_TOKEN_SECRET,
     });
   });
 

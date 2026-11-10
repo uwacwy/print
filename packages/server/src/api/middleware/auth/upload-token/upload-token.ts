@@ -1,4 +1,9 @@
-import { createHmac, hkdfSync, timingSafeEqual } from 'node:crypto';
+import {
+  createHmac,
+  hkdfSync,
+  timingSafeEqual,
+} from 'node:crypto';
+
 import type { PrinterRow } from '../../../helpers/database/database';
 
 /** HKDF salt when no Entra client ID is configured. */
@@ -31,48 +36,51 @@ const MAX_UINT16 = 0xffff;
 const MAX_UINT24 = 0xffffff;
 const MAX_UINT32 = 0xffffffff;
 
-export type UploadTokenSource = 'qr' | 'pin';
-export type UploadTokenPrinter = Pick<PrinterRow, 'id' | 'qr_epoch'>;
-
-/** MAC key material; the issuer (the Entra client ID) scopes tokens to this app. */
-export interface UploadTokenKey {
-  tokenSecret: string;
-  tokenIssuer: string;
-}
-
-export interface UploadToken {
-  token: string;
-  source: UploadTokenSource;
-  notBefore: Date;
+export interface SignUploadTokenOptions {
   expiresAt: Date;
+  /** Longest allowed validity window, measured from the later of now and notBefore. */
+  maxLifetimeMs: number;
+  notBefore: Date;
+  now?: Date;
+  source: UploadTokenSource;
+}
+export interface UploadToken {
+  expiresAt: Date;
+  notBefore: Date;
+  source: UploadTokenSource;
+  token: string;
 }
 
 /** An authentic token's contents, before checking it against a printer or the clock. */
 export interface UploadTokenClaims {
-  source: UploadTokenSource;
-  printerId: number;
   epoch: number;
-  notBefore: Date;
   expiresAt: Date;
+  notBefore: Date;
+  printerId: number;
+  source: UploadTokenSource;
 }
 
-export interface SignUploadTokenOptions {
-  source: UploadTokenSource;
-  notBefore: Date;
-  expiresAt: Date;
-  /** Longest allowed validity window, measured from the later of now and notBefore. */
-  maxLifetimeMs: number;
-  now?: Date;
+/** MAC key material; the issuer (the Entra client ID) scopes tokens to this app. */
+export interface UploadTokenKey {
+  tokenIssuer: string;
+  tokenSecret: string;
 }
+
+export type UploadTokenPrinter = Pick<
+  PrinterRow,
+  'id' | 'qr_epoch'
+>;
+
+export type UploadTokenSource = 'pin' | 'qr';
 
 export type UploadTokenVerification =
   | {
-      status: 'valid';
-      source: UploadTokenSource;
-      notBefore: Date;
       expiresAt: Date;
+      notBefore: Date;
+      source: UploadTokenSource;
+      status: 'valid';
     }
-  | { status: 'invalid' | 'expired' | 'not-yet-valid' };
+  | { status: 'expired' | 'invalid' | 'not-yet-valid' };
 
 export class UploadTokenWindowError extends Error {}
 
@@ -106,11 +114,11 @@ export async function signUploadToken(
   key: UploadTokenKey,
   printer: UploadTokenPrinter,
   {
-    source,
-    notBefore,
     expiresAt,
     maxLifetimeMs,
+    notBefore,
     now = new Date(),
+    source,
   }: SignUploadTokenOptions,
 ): Promise<UploadToken> {
   if (
@@ -138,7 +146,9 @@ export async function signUploadToken(
     );
   }
 
-  const startMinute = Math.floor(notBefore.getTime() / MINUTE_MS);
+  const startMinute = Math.floor(
+    notBefore.getTime() / MINUTE_MS,
+  );
   const lifetime =
     Math.ceil(expiresAt.getTime() / MINUTE_MS) - startMinute;
   if (
@@ -177,12 +187,12 @@ export async function signUploadToken(
   body.writeUInt32BE(startMinute, 8);
   body.writeUIntBE(lifetime, 12, 3);
   return {
+    expiresAt: new Date((startMinute + lifetime) * MINUTE_MS),
+    notBefore: new Date(startMinute * MINUTE_MS),
+    source,
     token: Buffer.concat([body, tag(key, body)]).toString(
       'base64url',
     ),
-    source,
-    notBefore: new Date(startMinute * MINUTE_MS),
-    expiresAt: new Date((startMinute + lifetime) * MINUTE_MS),
   };
 }
 
@@ -192,7 +202,7 @@ const TOKEN_PATTERN = /^[A-Za-z0-9_-]{42}$/;
 export function inspectUploadToken(
   key: UploadTokenKey,
   token: string,
-): UploadTokenClaims | undefined {
+): undefined | UploadTokenClaims {
   if (!TOKEN_PATTERN.test(token)) {
     return undefined;
   }
@@ -217,13 +227,13 @@ export function inspectUploadToken(
   }
   const startMinute = body.readUInt32BE(8);
   return {
-    source: flags === 1 ? 'pin' : 'qr',
-    printerId: body.readUInt32BE(2),
     epoch: body.readUInt16BE(6),
-    notBefore: new Date(startMinute * MINUTE_MS),
     expiresAt: new Date(
       (startMinute + body.readUIntBE(12, 3)) * MINUTE_MS,
     ),
+    notBefore: new Date(startMinute * MINUTE_MS),
+    printerId: body.readUInt32BE(2),
+    source: flags === 1 ? 'pin' : 'qr',
   };
 }
 
@@ -256,9 +266,9 @@ export async function verifyUploadToken(
     return { status: 'expired' };
   }
   return {
-    status: 'valid',
-    source: claims.source,
-    notBefore: claims.notBefore,
     expiresAt: claims.expiresAt,
+    notBefore: claims.notBefore,
+    source: claims.source,
+    status: 'valid',
   };
 }

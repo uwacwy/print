@@ -24,27 +24,28 @@ import { fromEvent } from 'rxjs';
   template: ``,
 })
 export class FileInput implements FormValueControl<File | null> {
-  readonly #host = inject<ElementRef<HTMLInputElement>>(ElementRef);
-
-  readonly value = model<File | null>(null);
-
-  readonly touched = input<boolean>(false);
-  readonly touch = output<void>();
+  readonly dirty = input<boolean>(false);
 
   readonly disabled = input<boolean>(false);
+
   readonly disabledReasons = input<
     readonly WithOptionalFieldTree<DisabledReason>[]
   >([]);
-  readonly readonly = input<boolean>(false);
-  readonly hidden = input<boolean>(false);
-  readonly invalid = input<boolean>(false);
   readonly errors = input<
     readonly WithOptionalFieldTree<ValidationError>[]
   >([]);
-  readonly pending = input<boolean>(false);
-  readonly dirty = input<boolean>(false);
+
+  readonly hidden = input<boolean>(false);
+  readonly invalid = input<boolean>(false);
   readonly name = input<string>('');
+  readonly pending = input<boolean>(false);
+  readonly readonly = input<boolean>(false);
   readonly required = input<boolean>(false);
+  readonly touch = output<void>();
+  readonly touched = input<boolean>(false);
+  readonly value = model<File | null>(null);
+  readonly #host =
+    inject<ElementRef<HTMLInputElement>>(ElementRef);
 
   constructor() {
     const host = this.#host.nativeElement;

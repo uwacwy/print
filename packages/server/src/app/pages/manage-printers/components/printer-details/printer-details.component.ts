@@ -1,12 +1,13 @@
 import { DatePipe } from '@angular/common';
 import { Component, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
+
 import type { PrinterSummary } from '../../../../services/printer/printer.service';
 
 /** The read-only facts about a printer. */
 @Component({
-  selector: 'app-printer-details',
   imports: [DatePipe, RouterLink],
+  selector: 'app-printer-details',
   template: `
     <dl class="row small mb-3">
       <dt class="col-sm-3">Upload page</dt>
@@ -17,7 +18,10 @@ import type { PrinterSummary } from '../../../../services/printer/printer.servic
           rel="noopener"
         >
           /print/{{ printer().slug }}&nbsp;
-          <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
+          <i
+            class="bi bi-box-arrow-up-right"
+            aria-hidden="true"
+          ></i>
           <span class="visually-hidden">(opens in new tab)</span>
         </a>
       </dd>
@@ -34,7 +38,9 @@ import type { PrinterSummary } from '../../../../services/printer/printer.servic
         <code>{{ printer().queue }}</code>
       </dd>
       <dt class="col-sm-3">Cover page</dt>
-      <dd class="col-sm-9">{{ printer().coverPage ? 'On' : 'Off' }}</dd>
+      <dd class="col-sm-9">
+        {{ printer().coverPage ? 'On' : 'Off' }}
+      </dd>
       <dt class="col-sm-3">Agent last seen</dt>
       <dd class="col-sm-9 mb-0">
         {{

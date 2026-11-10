@@ -19,5 +19,9 @@ export const formatSeconds = (count: number): string =>
   `${count} second${count === 1 ? '' : 's'}`;
 
 /** Transport failures only say "websocket error"; a rejected handshake says why. */
-export const connectErrorDetail = ({ message }: Error): string =>
-  message && message !== 'websocket error' ? ` (${message})` : '';
+export const connectErrorDetail = ({
+  message,
+}: Error): string =>
+  message && message !== 'websocket error'
+    ? ` (${message})`
+    : '';

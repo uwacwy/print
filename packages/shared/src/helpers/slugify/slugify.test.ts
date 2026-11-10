@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { PRINTER_SLUG_PATTERN } from '../../index';
 import { slugify } from './slugify';
 

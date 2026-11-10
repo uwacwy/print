@@ -1,16 +1,17 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
-import { Router, type Params } from '@angular/router';
+import { type Params, Router } from '@angular/router';
 import {
   MsalBroadcastService,
   MsalService,
 } from '@azure/msal-angular';
 import {
-  InteractionStatus,
   type AccountInfo,
+  InteractionStatus,
 } from '@azure/msal-browser';
 import { of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
+
 import {
   PrinterService,
   type PublicPrinter,
@@ -21,31 +22,49 @@ import { PrintComponent } from './print.component';
 const printerWith = (
   access: Partial<UploadAccess> = {},
 ): PublicPrinter => ({
-  slug: 'front-office',
-  name: 'Front Office',
-  coverPage: false,
   access: {
-    signedIn: false,
     pinEnabled: true,
+    signedIn: false,
     token: 'valid',
     tokenExpiresAt: null,
     ...access,
   },
+  coverPage: false,
+  name: 'Front Office',
+  slug: 'front-office',
   upload: {
-    maxDocuments: 2,
     maxCopies: 3,
+    maxDocuments: 2,
     maxUploadBytes: 5 * 1048576,
   },
 });
 
+function chooseFile(
+  element: HTMLElement,
+  selector: string,
+  file: File,
+) {
+  const input = element.querySelector(
+    selector,
+  ) as HTMLInputElement;
+  Object.defineProperty(input, 'files', {
+    configurable: true,
+    value: [file],
+  });
+  input.dispatchEvent(new Event('change'));
+}
+
 async function render(
   service: Partial<PrinterService>,
   query: Params = { token: 'jwt' },
-  account: Partial<AccountInfo> | null = null,
+  account: null | Partial<AccountInfo> = null,
 ) {
   // Stands in for withComponentInputBinding(): navigation rebinds the token input.
   const navigate = vi.fn(
-    (_commands: unknown[], extras?: { queryParams?: Params }) => {
+    (
+      _commands: unknown[],
+      extras?: { queryParams?: Params },
+    ) => {
       fixture.componentRef.setInput(
         'token',
         extras?.queryParams?.['token'],
@@ -78,23 +97,10 @@ async function render(
   fixture.componentRef.setInput('token', query['token']);
   await fixture.whenStable();
   return {
-    fixture,
     element: fixture.nativeElement as HTMLElement,
+    fixture,
     navigate,
   };
-}
-
-function chooseFile(
-  element: HTMLElement,
-  selector: string,
-  file: File,
-) {
-  const input = element.querySelector(selector) as HTMLInputElement;
-  Object.defineProperty(input, 'files', {
-    value: [file],
-    configurable: true,
-  });
-  input.dispatchEvent(new Event('change'));
 }
 
 function typePin(element: HTMLElement, value: string) {
@@ -111,21 +117,24 @@ describe('PrintComponent', () => {
     const getPrinter = vi.fn(() => of(printerWith()));
     const { element } = await render({ getPrinter });
 
-    expect(getPrinter).toHaveBeenCalledWith('front-office', 'jwt');
+    expect(getPrinter).toHaveBeenCalledWith(
+      'front-office',
+      'jwt',
+    );
     expect(element.querySelector('h1')?.textContent).toContain(
       'Print to Front Office',
     );
     expect(element.querySelector('#printer-pin')).toBeNull();
-    expect(element.querySelectorAll('select option')).toHaveLength(
-      3,
-    );
+    expect(
+      element.querySelectorAll('select option'),
+    ).toHaveLength(3);
   });
 
   it('submits documents as multipart with the bearer token and reports the result', async () => {
     const submitJob = vi.fn(() =>
-      of({ jobId: 'id', title: 'Taxes', agentOnline: true }),
+      of({ agentOnline: true, jobId: 'id', title: 'Taxes' }),
     );
-    const { fixture, element } = await render({
+    const { element, fixture } = await render({
       getPrinter: () => of(printerWith()),
       submitJob,
     });
@@ -140,9 +149,9 @@ describe('PrintComponent', () => {
     ) as HTMLSelectElement;
     copies.value = '2';
     copies.dispatchEvent(new Event('input'));
-    (element.querySelector('form') as HTMLFormElement).dispatchEvent(
-      new Event('submit'),
-    );
+    (
+      element.querySelector('form') as HTMLFormElement
+    ).dispatchEvent(new Event('submit'));
     await fixture.whenStable();
 
     expect(submitJob).toHaveBeenCalledTimes(1);
@@ -161,7 +170,7 @@ describe('PrintComponent', () => {
   });
 
   it('shows server errors', async () => {
-    const { fixture, element } = await render({
+    const { element, fixture } = await render({
       getPrinter: () => of(printerWith()),
       submitJob: () =>
         throwError(() => ({
@@ -173,9 +182,9 @@ describe('PrintComponent', () => {
       'input[type=file]',
       new File(['%PDF-1.7'], 'taxes.pdf'),
     );
-    (element.querySelector('form') as HTMLFormElement).dispatchEvent(
-      new Event('submit'),
-    );
+    (
+      element.querySelector('form') as HTMLFormElement
+    ).dispatchEvent(new Event('submit'));
     await fixture.whenStable();
 
     expect(
@@ -185,11 +194,13 @@ describe('PrintComponent', () => {
 
   it('requires a document and enforces the size limit before submitting', async () => {
     const submitJob = vi.fn();
-    const { fixture, element } = await render({
+    const { element, fixture } = await render({
       getPrinter: () => of(printerWith()),
       submitJob,
     });
-    const form = element.querySelector('form') as HTMLFormElement;
+    const form = element.querySelector(
+      'form',
+    ) as HTMLFormElement;
 
     form.dispatchEvent(new Event('submit'));
     await fixture.whenStable();
@@ -214,14 +225,17 @@ describe('PrintComponent', () => {
 
   it('asks for the PIN without a token, then navigates with the issued token', async () => {
     const getPrinter = vi.fn(
-      (_slug: string, token?: string | null) =>
+      (_slug: string, token?: null | string) =>
         of(printerWith({ token: token ? 'valid' : null })),
     );
     const exchangePin = vi.fn(() =>
-      of({ token: 'short-jwt', expiresAt: '2030-01-01T00:00:00Z' }),
+      of({
+        expiresAt: '2030-01-01T00:00:00Z',
+        token: 'short-jwt',
+      }),
     );
-    const { fixture, element, navigate } = await render(
-      { getPrinter, exchangePin },
+    const { element, fixture, navigate } = await render(
+      { exchangePin, getPrinter },
       {},
     );
 
@@ -230,9 +244,9 @@ describe('PrintComponent', () => {
     await fixture.whenStable();
     expect(input.value).toBe('123-456-789');
     expect(input.getAttribute('inputmode')).toBe('numeric');
-    (element.querySelector('form') as HTMLFormElement).dispatchEvent(
-      new Event('submit'),
-    );
+    (
+      element.querySelector('form') as HTMLFormElement
+    ).dispatchEvent(new Event('submit'));
     await fixture.whenStable();
 
     expect(exchangePin).toHaveBeenCalledWith(
@@ -249,7 +263,9 @@ describe('PrintComponent', () => {
       'front-office',
       'short-jwt',
     );
-    expect(element.querySelector('input[type=file]')).not.toBeNull();
+    expect(
+      element.querySelector('input[type=file]'),
+    ).not.toBeNull();
   });
 
   it('validates the PIN locally and shows server rejections', async () => {
@@ -261,14 +277,16 @@ describe('PrintComponent', () => {
         },
       })),
     );
-    const { fixture, element } = await render(
+    const { element, fixture } = await render(
       {
-        getPrinter: () => of(printerWith({ token: null })),
         exchangePin,
+        getPrinter: () => of(printerWith({ token: null })),
       },
       {},
     );
-    const form = element.querySelector('form') as HTMLFormElement;
+    const form = element.querySelector(
+      'form',
+    ) as HTMLFormElement;
 
     typePin(element, '1234');
     form.dispatchEvent(new Event('submit'));
@@ -315,10 +333,10 @@ describe('PrintComponent', () => {
 
   it('drops a token the server rejects during upload', async () => {
     const getPrinter = vi.fn(
-      (_slug: string, token?: string | null) =>
+      (_slug: string, token?: null | string) =>
         of(printerWith({ token: token ? 'valid' : null })),
     );
-    const { fixture, element, navigate } = await render({
+    const { element, fixture, navigate } = await render({
       getPrinter,
       submitJob: () =>
         throwError(() => ({
@@ -333,9 +351,9 @@ describe('PrintComponent', () => {
       'input[type=file]',
       new File(['%PDF-1.7'], 'taxes.pdf'),
     );
-    (element.querySelector('form') as HTMLFormElement).dispatchEvent(
-      new Event('submit'),
-    );
+    (
+      element.querySelector('form') as HTMLFormElement
+    ).dispatchEvent(new Event('submit'));
     await fixture.whenStable();
 
     expect(navigate).toHaveBeenCalledWith([
@@ -353,9 +371,9 @@ describe('PrintComponent', () => {
       of(printerWith({ signedIn: true, token: null })),
     );
     const submitJob = vi.fn(() =>
-      of({ jobId: 'id', title: 'Taxes', agentOnline: true }),
+      of({ agentOnline: true, jobId: 'id', title: 'Taxes' }),
     );
-    const { fixture, element } = await render(
+    const { element, fixture } = await render(
       { getPrinter, submitJob },
       {},
       { username: 'pat@example.org' },
@@ -375,9 +393,9 @@ describe('PrintComponent', () => {
       'input[type=file]',
       new File(['%PDF-1.7'], 'taxes.pdf'),
     );
-    (element.querySelector('form') as HTMLFormElement).dispatchEvent(
-      new Event('submit'),
-    );
+    (
+      element.querySelector('form') as HTMLFormElement
+    ).dispatchEvent(new Event('submit'));
     await fixture.whenStable();
 
     expect(submitJob).toHaveBeenCalledWith(
@@ -405,7 +423,9 @@ describe('PrintComponent', () => {
       { username: 'pat@example.org' },
     );
     expect(element.textContent).not.toContain('Printing as');
-    expect(element.textContent).toContain('This link works until');
+    expect(element.textContent).toContain(
+      'This link works until',
+    );
   });
 
   it('asks signed-in users the server does not accept for the PIN', async () => {
@@ -435,7 +455,7 @@ describe('PrintComponent', () => {
         throwError(() => new HttpErrorResponse({ status: 503 })),
       )
       .mockReturnValue(of(printerWith()));
-    const { fixture, element } = await render({ getPrinter });
+    const { element, fixture } = await render({ getPrinter });
 
     expect(
       element.querySelector('[role=alert]')?.textContent,

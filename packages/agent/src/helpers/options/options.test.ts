@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import {
   acceptsMimeType,
   DEFAULT_PRINTER_OPTIONS,
@@ -7,7 +8,7 @@ import {
 
 describe('parsePrinterConnection', () => {
   it('applies defaults and strips the query from the destination', () => {
-    const { uri, options } = parsePrinterConnection(
+    const { options, uri } = parsePrinterConnection(
       'ipp://printer.local/ipp/print?timeout=3000',
       ['timeout'],
     );
@@ -53,9 +54,9 @@ describe('parsePrinterConnection', () => {
 describe('acceptsMimeType', () => {
   it('matches media types case-insensitively, ignoring parameters', () => {
     const options = { mimeTypes: ['application/pdf'] };
-    expect(acceptsMimeType(options, 'Application/PDF; q=1')).toBe(
-      true,
-    );
+    expect(
+      acceptsMimeType(options, 'Application/PDF; q=1'),
+    ).toBe(true);
     expect(acceptsMimeType(options, 'image/png')).toBe(false);
     expect(acceptsMimeType(options, null)).toBe(false);
   });

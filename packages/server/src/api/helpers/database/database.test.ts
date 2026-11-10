@@ -1,26 +1,33 @@
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+} from 'vitest';
+
 import {
   bumpQrEpoch,
   countFailedJobs,
   expireFailedJobs,
   expireStaleJobs,
   getFailedJobIds,
-  getPrinterById,
   getJobForPrinter,
+  getPrinterById,
   getPrinterByToken,
   getQueuedJobs,
   insertJob,
   markJobsPrinting,
   openDatabase,
+  type PrintDatabase,
   purgeFinishedJobs,
   reportJob,
   requeueFailedJobs,
   setPrinterPin,
   tokenHash,
-  type PrintDatabase,
 } from './database';
 
 let directory: string;
@@ -45,17 +52,17 @@ beforeEach(() => {
 
 afterEach(() => {
   db.close();
-  rmSync(directory, { recursive: true, force: true });
+  rmSync(directory, { force: true, recursive: true });
 });
 
 function addJob(id: string, owner = printerId): void {
   insertJob(db, {
-    id,
-    printer_id: owner,
-    title: 'Test job',
     copies: 1,
+    id,
     original_name: 'document.pdf',
+    printer_id: owner,
     submitted_by: null,
+    title: 'Test job',
     uploader_ip: '127.0.0.1',
   });
 }
@@ -85,7 +92,9 @@ describe('upload PINs and token epochs', () => {
 
 describe('print queue persistence', () => {
   it('stores only a token hash and retrieves the matching printer', () => {
-    expect(getPrinterByToken(db, 'agent-token')?.id).toBe(printerId);
+    expect(getPrinterByToken(db, 'agent-token')?.id).toBe(
+      printerId,
+    );
     expect(getPrinterByToken(db, 'wrong-token')).toBeUndefined();
     expect(
       db
@@ -107,9 +116,9 @@ describe('print queue persistence', () => {
     expect(
       reportJob(db, printerId + 1, 'job-owned', 'printed'),
     ).toBe(false);
-    expect(reportJob(db, printerId, 'job-owned', 'printed')).toBe(
-      true,
-    );
+    expect(
+      reportJob(db, printerId, 'job-owned', 'printed'),
+    ).toBe(true);
   });
 
   it('expires stale jobs once and removes finished metadata after retention', () => {
@@ -117,9 +126,9 @@ describe('print queue persistence', () => {
     db.prepare(
       "UPDATE jobs SET created_at = '2000-01-01T00:00:00.000Z' WHERE id = 'job-stale'",
     ).run();
-    expect(expireStaleJobs(db, '2020-01-01T00:00:00.000Z')).toEqual([
-      'job-stale',
-    ]);
+    expect(
+      expireStaleJobs(db, '2020-01-01T00:00:00.000Z'),
+    ).toEqual(['job-stale']);
     const finishedAt = (
       db
         .prepare(
@@ -129,9 +138,9 @@ describe('print queue persistence', () => {
         finished_at: string;
       }
     ).finished_at;
-    expect(expireStaleJobs(db, '2020-01-01T00:00:00.000Z')).toEqual([
-      'job-stale',
-    ]);
+    expect(
+      expireStaleJobs(db, '2020-01-01T00:00:00.000Z'),
+    ).toEqual(['job-stale']);
     expect(
       (
         db
@@ -155,7 +164,11 @@ describe('print queue persistence', () => {
     addJob('job-a');
     addJob('job-b');
     addJob('job-c');
-    markJobsPrinting(db, printerId, getQueuedJobs(db, printerId));
+    markJobsPrinting(
+      db,
+      printerId,
+      getQueuedJobs(db, printerId),
+    );
     reportJob(db, printerId, 'job-a', 'failed', 'jammed');
     reportJob(db, printerId, 'job-b', 'failed', 'offline');
     reportJob(db, printerId, 'job-c', 'printed');
@@ -165,38 +178,46 @@ describe('print queue persistence', () => {
       'job-b',
     ]);
 
-    expect(requeueFailedJobs(db, printerId + 1, ['job-a'])).toEqual(
-      [],
-    );
+    expect(
+      requeueFailedJobs(db, printerId + 1, ['job-a']),
+    ).toEqual([]);
     expect(
       requeueFailedJobs(db, printerId, ['job-a', 'job-c']),
     ).toEqual(['job-a']);
-    expect(getJobForPrinter(db, printerId, 'job-a')).toMatchObject({
-      status: 'queued',
+    expect(
+      getJobForPrinter(db, printerId, 'job-a'),
+    ).toMatchObject({
       error: null,
       finished_at: null,
+      status: 'queued',
     });
 
     expireFailedJobs(db, printerId, ['job-b']);
-    expect(getJobForPrinter(db, printerId, 'job-b')).toMatchObject({
-      status: 'expired',
+    expect(
+      getJobForPrinter(db, printerId, 'job-b'),
+    ).toMatchObject({
       error: 'offline',
+      status: 'expired',
     });
     expect(countFailedJobs(db).get(printerId)).toBeUndefined();
   });
 
   it('expires failed jobs after the TTL but keeps their error', () => {
     addJob('job-failed');
-    markJobsPrinting(db, printerId, getQueuedJobs(db, printerId));
+    markJobsPrinting(
+      db,
+      printerId,
+      getQueuedJobs(db, printerId),
+    );
     reportJob(db, printerId, 'job-failed', 'failed', 'jammed');
     db.prepare(
       "UPDATE jobs SET created_at = '2000-01-01T00:00:00.000Z' WHERE id = 'job-failed'",
     ).run();
-    expect(expireStaleJobs(db, '2020-01-01T00:00:00.000Z')).toEqual([
-      'job-failed',
-    ]);
+    expect(
+      expireStaleJobs(db, '2020-01-01T00:00:00.000Z'),
+    ).toEqual(['job-failed']);
     expect(
       getJobForPrinter(db, printerId, 'job-failed'),
-    ).toMatchObject({ status: 'expired', error: 'jammed' });
+    ).toMatchObject({ error: 'jammed', status: 'expired' });
   });
 });

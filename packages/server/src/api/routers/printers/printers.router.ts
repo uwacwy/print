@@ -1,4 +1,5 @@
 import type { EnrollTokenResponse } from '@uwacwy/print-shared';
+
 import express, {
   type Request,
   type RequestHandler,
@@ -8,6 +9,14 @@ import { access as fileAccess, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createRouting } from 'ts-routes';
 import { z } from 'zod';
+
+import type {
+  EnrollmentConfig,
+  UploadConfig,
+} from '../../helpers/server-config/server-config';
+import type { Authenticate } from '../../middleware/auth/passport/passport';
+import type { AgentHub } from '../../sockets/agent-hub/agent-hub';
+
 import { printers } from '../../../shared/routes/api.printers.routes';
 import {
   bumpQrEpoch,
@@ -21,20 +30,20 @@ import {
   getPrinterById,
   getPrinterBySlug,
   listPrinters,
+  type PrintDatabase,
+  type PrinterRow,
   requeueFailedJobs,
   rotatePrinterToken,
   setPrinterPin,
   updatePrinter,
-  type PrintDatabase,
-  type PrinterRow,
 } from '../../helpers/database/database';
 import { enqueueJob } from '../../helpers/database/jobs';
 import { signEnrollToken } from '../../helpers/enroll-token/enroll-token';
 import { UploadError } from '../../helpers/errors';
 import { copiesValid, jobTitle } from '../../helpers/jobs';
 import {
-  readMultipartSubmission,
   type JobSubmission,
+  readMultipartSubmission,
 } from '../../helpers/multipart';
 import { addCoverPage } from '../../helpers/pdf/cover-page/cover-page';
 import { combineDocuments } from '../../helpers/pdf/document/document';
@@ -45,11 +54,6 @@ import {
   publicPrinter,
   validatePrinterInput,
 } from '../../helpers/printers';
-import type {
-  EnrollmentConfig,
-  UploadConfig,
-} from '../../helpers/server-config/server-config';
-import type { Authenticate } from '../../middleware/auth/passport/passport';
 import {
   formatPin,
   generatePin,
@@ -62,9 +66,9 @@ import {
 import {
   inspectUploadToken,
   signUploadToken,
+  type UploadToken,
   UploadTokenWindowError,
   verifyUploadToken,
-  type UploadToken,
 } from '../../middleware/auth/upload-token/upload-token';
 import { uploadTokenStatus } from '../../middleware/auth/upload-token/upload-token.strategy';
 import {
@@ -73,19 +77,18 @@ import {
   uploadRateLimit,
 } from '../../middleware/rate-limits/rate-limits';
 import { requireSameOrigin } from '../../middleware/same-origin/same-origin';
-import type { AgentHub } from '../../sockets/agent-hub/agent-hub';
 
 const routes = createRouting(printers);
 
 export interface PrintersRouterOptions {
-  db: PrintDatabase;
-  jobsDir: string;
-  getHub: () => AgentHub;
-  upload: UploadConfig;
   authenticate: Authenticate;
+  db: PrintDatabase;
+  enrollment?: EnrollmentConfig;
+  getHub: () => AgentHub;
+  jobsDir: string;
   /** Canonical origin for upload links on QR posters; falls back to the request origin. */
   publicUrl?: URL;
-  enrollment?: EnrollmentConfig;
+  upload: UploadConfig;
 }
 
 const DEFAULT_ENROLL_TOKEN_TTL_MINUTES = 30;
@@ -95,9 +98,9 @@ const DEFAULT_QR_LIFETIME_MS = 24 * 3_600_000;
 /** Either reuse an issued QR token (so a tested link matches the poster) or issue one for a window. */
 const qrTokenInput = z
   .object({
-    token: z.string().min(1).optional(),
-    notBefore: z.iso.datetime({ offset: true }).optional(),
     expiresAt: z.iso.datetime({ offset: true }).optional(),
+    notBefore: z.iso.datetime({ offset: true }).optional(),
+    token: z.string().min(1).optional(),
   })
   .optional()
   .default({});
@@ -108,13 +111,13 @@ const printerOf = (response: Response) =>
 
 /** Every `/printers` route; each declares the credentials it accepts. */
 export default function printersRouter({
-  db,
-  jobsDir,
-  getHub,
-  upload,
   authenticate,
-  publicUrl,
+  db,
   enrollment,
+  getHub,
+  jobsDir,
+  publicUrl,
+  upload,
 }: PrintersRouterOptions) {
   const serverUrl = enrollment?.serverUrl ?? null;
   const { access } = upload;
@@ -139,7 +142,8 @@ export default function printersRouter({
   const absolute = (request: Request, path: string) =>
     new URL(
       path,
-      publicUrl ?? `${request.protocol}://${request.get('host')}`,
+      publicUrl ??
+        `${request.protocol}://${request.get('host')}`,
     ).toString();
 
   const queue = async (
@@ -151,23 +155,25 @@ export default function printersRouter({
     const hub = getHub();
     hub.publishJob(printer.id, jobId, 'queued');
     hub.dispatch(printer.id);
-    return { jobId, agentOnline: hub.isOnline(printer.id) };
+    return { agentOnline: hub.isOnline(printer.id), jobId };
   };
 
   /** Reuses a still-usable QR token from the body, or issues one for the requested window. */
   const resolveQrToken = async (
     request: Request,
     response: Response,
-  ): Promise<UploadToken | undefined> => {
+  ): Promise<undefined | UploadToken> => {
     const printer = printerOf(response);
-    const parsed = qrTokenInput.safeParse(request.body ?? undefined);
+    const parsed = qrTokenInput.safeParse(
+      request.body ?? undefined,
+    );
     if (!parsed.success) {
       response
         .status(400)
         .json({ error: 'Invalid QR code request.' });
       return undefined;
     }
-    const { token, notBefore, expiresAt } = parsed.data;
+    const { expiresAt, notBefore, token } = parsed.data;
     if (token) {
       // Check at the later of now and the start so codes for a future event are accepted.
       const claims = inspectUploadToken(access, token);
@@ -180,7 +186,10 @@ export default function printersRouter({
         token,
         checkAt,
       );
-      if (verified.status !== 'valid' || verified.source !== 'qr') {
+      if (
+        verified.status !== 'valid' ||
+        verified.source !== 'qr'
+      ) {
         response.status(400).json({
           error:
             'That QR code is expired, revoked, or not for this printer.',
@@ -188,18 +197,16 @@ export default function printersRouter({
         return undefined;
       }
       return {
-        token,
-        source: 'qr',
-        notBefore: verified.notBefore,
         expiresAt: verified.expiresAt,
+        notBefore: verified.notBefore,
+        source: 'qr',
+        token,
       };
     }
     const now = new Date();
     const start = notBefore ? new Date(notBefore) : now;
     try {
       return await signUploadToken(access, printer, {
-        source: 'qr',
-        notBefore: start,
         expiresAt: expiresAt
           ? new Date(expiresAt)
           : new Date(
@@ -207,7 +214,9 @@ export default function printersRouter({
                 DEFAULT_QR_LIFETIME_MS,
             ),
         maxLifetimeMs: access.tokenMaxLifetimeMs,
+        notBefore: start,
         now,
+        source: 'qr',
       });
     } catch (error) {
       if (!(error instanceof UploadTokenWindowError)) {
@@ -224,18 +233,21 @@ export default function printersRouter({
     issued: UploadToken,
   ) =>
     buildQrPoster({
-      siteTitle: upload.siteTitle,
-      printerName: printer.name,
-      url: absolute(request, printPath(printer, issued.token)),
-      displayUrl: absolute(request, printPath(printer)),
       date: new Date(),
+      displayUrl: absolute(request, printPath(printer)),
+      pin: printer.pin ? formatPin(printer.pin) : null,
+      printerName: printer.name,
+      siteTitle: upload.siteTitle,
       timeZone: upload.timeZone,
+      url: absolute(request, printPath(printer, issued.token)),
       validFrom: issued.notBefore,
       validUntil: issued.expiresAt,
-      pin: printer.pin ? formatPin(printer.pin) : null,
     });
 
-  const sendPoster: RequestHandler = async (request, response) => {
+  const sendPoster: RequestHandler = async (
+    request,
+    response,
+  ) => {
     const printer = printerOf(response);
     const issued = await resolveQrToken(request, response);
     if (!issued) {
@@ -252,14 +264,22 @@ export default function printersRouter({
       .send(Buffer.from(pdf));
   };
 
-  const submitJob: RequestHandler = async (request, response) => {
+  const submitJob: RequestHandler = async (
+    request,
+    response,
+  ) => {
     const printer = printerOf(response);
     let submission: JobSubmission;
     try {
-      submission = await readMultipartSubmission(request, upload);
+      submission = await readMultipartSubmission(
+        request,
+        upload,
+      );
     } catch (error) {
       response
-        .status(error instanceof UploadError ? error.status : 400)
+        .status(
+          error instanceof UploadError ? error.status : 400,
+        )
         .json({
           error:
             error instanceof Error
@@ -270,9 +290,9 @@ export default function printersRouter({
     }
     const { documents } = submission;
     if (!documents.length) {
-      response
-        .status(400)
-        .json({ error: 'Choose at least one document to print.' });
+      response.status(400).json({
+        error: 'Choose at least one document to print.',
+      });
       return;
     }
     if (!copiesValid(submission, upload.maxCopies)) {
@@ -290,15 +310,15 @@ export default function printersRouter({
       });
       if (printer.cover_page) {
         pdf = await addCoverPage(pdf, {
-          siteTitle: upload.siteTitle,
+          documents: documents.map((document) => ({
+            copies: document.copies,
+            titleOrFilename: document.fileName,
+          })),
           printerName: printer.name,
-          title,
+          siteTitle: upload.siteTitle,
           submittedAt: new Date(),
           timeZone: upload.timeZone,
-          documents: documents.map((document) => ({
-            titleOrFilename: document.fileName,
-            copies: document.copies,
-          })),
+          title,
         });
       }
     } catch (error) {
@@ -315,13 +335,13 @@ export default function printersRouter({
       const queued = await queue(
         printer,
         {
-          printerId: printer.id,
-          title,
           copies: 1,
           originalName: documents
             .map(({ fileName }) => fileName)
             .join(', '),
+          printerId: printer.id,
           submittedBy: submittedBy(principal(request)),
+          title,
           uploaderIp: request.ip ?? 'unknown',
         },
         pdf,
@@ -338,18 +358,21 @@ export default function printersRouter({
   return (
     express
       .Router()
-      .param('slug', (_request, response, next, slug: string) => {
-        const printer = getPrinterBySlug(db, slug);
-        if (!printer) {
-          response.status(404).json({
-            code: 'printer_not_found',
-            error: 'Printer not found.',
-          });
-          return;
-        }
-        response.locals['printer'] = printer;
-        next();
-      })
+      .param(
+        'slug',
+        (_request, response, next, slug: string) => {
+          const printer = getPrinterBySlug(db, slug);
+          if (!printer) {
+            response.status(404).json({
+              code: 'printer_not_found',
+              error: 'Printer not found.',
+            });
+            return;
+          }
+          response.locals['printer'] = printer;
+          next();
+        },
+      )
 
       .get('/', admin, (_request, response) => {
         const activeJobs = countActiveJobs(db);
@@ -376,8 +399,8 @@ export default function printersRouter({
           return;
         }
         response.status(201).json({
-          printer: summary(getPrinterById(db, created.id)!),
           agentToken: created.token,
+          printer: summary(getPrinterById(db, created.id)!),
           serverUrl,
         });
       })
@@ -394,7 +417,7 @@ export default function printersRouter({
             });
             return;
           }
-          const { token, expiresAt } = signEnrollToken(
+          const { expiresAt, token } = signEnrollToken(
             access,
             enrollment?.tokenTtlMinutes ??
               DEFAULT_ENROLL_TOKEN_TTL_MINUTES,
@@ -403,9 +426,9 @@ export default function printersRouter({
             .set('Cache-Control', 'no-store')
             .status(201)
             .json({
-              token,
               expiresAt: expiresAt.toISOString(),
               serverUrl,
+              token,
             } satisfies EnrollTokenResponse);
         },
       )
@@ -428,8 +451,8 @@ export default function printersRouter({
               ? summary(printer)
               : publicPrinter(printer)),
             access: {
-              signedIn,
               pinEnabled: printer.pin !== null,
+              signedIn,
               token: token?.status ?? null,
               tokenExpiresAt:
                 token?.status === 'valid'
@@ -437,8 +460,8 @@ export default function printersRouter({
                   : null,
             },
             upload: {
-              maxDocuments: upload.maxDocumentsPerJob,
               maxCopies: upload.maxCopies,
+              maxDocuments: upload.maxDocumentsPerJob,
               maxUploadBytes: upload.maxUploadBytes,
             },
           });
@@ -494,21 +517,21 @@ export default function printersRouter({
             access,
             printerOf(response),
             {
-              source: 'pin',
-              notBefore: now,
               expiresAt: new Date(
                 now.getTime() + access.pinTokenTtlMs,
               ),
               maxLifetimeMs: access.pinTokenTtlMs,
+              notBefore: now,
               now,
+              source: 'pin',
             },
           );
           response
             .status(201)
             .set('Cache-Control', 'no-store')
             .json({
-              token: issued.token,
               expiresAt: issued.expiresAt.toISOString(),
+              token: issued.token,
             });
         },
       )
@@ -575,8 +598,8 @@ export default function printersRouter({
           );
           hub.dispatch(printer.id);
           response.json({
-            retried: retried.length,
             printer: reloaded(response),
+            retried: retried.length,
           });
         },
       )
@@ -591,16 +614,19 @@ export default function printersRouter({
           if (!issued) {
             return;
           }
-          const path = printPath(printerOf(response), issued.token);
+          const path = printPath(
+            printerOf(response),
+            issued.token,
+          );
           response
             .set('Cache-Control', 'no-store')
             .status(201)
             .json({
-              token: issued.token,
-              path,
-              url: absolute(request, path),
-              notBefore: issued.notBefore.toISOString(),
               expiresAt: issued.expiresAt.toISOString(),
+              notBefore: issued.notBefore.toISOString(),
+              path,
+              token: issued.token,
+              url: absolute(request, path),
             });
         },
       )
@@ -616,11 +642,11 @@ export default function printersRouter({
           const queued = await queue(
             printer,
             {
-              printerId: printer.id,
-              title: `QR info sheet - ${printer.name}`,
               copies: 1,
               originalName: `print-${printer.slug}-qr.pdf`,
+              printerId: printer.id,
               submittedBy: submittedBy(principal(request)),
+              title: `QR info sheet - ${printer.name}`,
               uploaderIp: request.ip ?? '',
             },
             await qrPoster(request, printer, issued),
@@ -641,7 +667,11 @@ export default function printersRouter({
         routes.$slug.pin.pattern,
         admin,
         (_request, response) => {
-          setPrinterPin(db, printerOf(response).id, generatePin());
+          setPrinterPin(
+            db,
+            printerOf(response).id,
+            generatePin(),
+          );
           response.json(reloaded(response));
         },
       )
@@ -662,8 +692,8 @@ export default function printersRouter({
           const agentToken = rotatePrinterToken(db, printer.id)!;
           getHub().disconnect(printer.id);
           response.json({
-            printer: summary(printer),
             agentToken,
+            printer: summary(printer),
             serverUrl,
           });
         },

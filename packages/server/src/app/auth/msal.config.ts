@@ -2,22 +2,31 @@ import type {
   MsalGuardConfiguration,
   MsalInterceptorConfiguration,
 } from '@azure/msal-angular';
-import { InteractionType } from '@azure/msal-browser';
 import type { Configuration } from '@azure/msal-browser';
-import { environment } from '../../environments/environment';
+
+import { InteractionType } from '@azure/msal-browser';
+
 import type { PrintServerClientEnvironment } from '../../environments/environment.interface';
+
+import { environment } from '../../environments/environment';
+
+export function getApiScope(
+  clientEnvironment: PrintServerClientEnvironment = environment,
+): string | undefined {
+  return clientEnvironment.msal.apiScope?.trim() || undefined;
+}
 
 export function getMsalConfiguration(
   clientEnvironment: PrintServerClientEnvironment = environment,
 ): Configuration {
   return {
     auth: {
-      clientId: clientEnvironment.msal.clientId,
       authority:
         clientEnvironment.msal.authority ??
         'https://login.microsoftonline.com/organizations',
-      redirectUri: clientEnvironment.msal.redirectUri,
+      clientId: clientEnvironment.msal.clientId,
       postLogoutRedirectUri: clientEnvironment.msal.redirectUri,
+      redirectUri: clientEnvironment.msal.redirectUri,
     },
     // Shared across tabs so print links opened from the manage pages (target="_blank") stay signed in.
     cache: {
@@ -26,21 +35,19 @@ export function getMsalConfiguration(
   };
 }
 
-export function getApiScope(
-  clientEnvironment: PrintServerClientEnvironment = environment,
-): string | undefined {
-  return clientEnvironment.msal.apiScope?.trim() || undefined;
-}
-
 export function getMsalGuardConfiguration(
   clientEnvironment: PrintServerClientEnvironment = environment,
 ): MsalGuardConfiguration {
   const apiScope = getApiScope(clientEnvironment);
   return {
-    interactionType: InteractionType.Redirect,
     authRequest: {
-      scopes: ['openid', 'profile', ...(apiScope ? [apiScope] : [])],
+      scopes: [
+        'openid',
+        'profile',
+        ...(apiScope ? [apiScope] : []),
+      ],
     },
+    interactionType: InteractionType.Redirect,
   };
 }
 

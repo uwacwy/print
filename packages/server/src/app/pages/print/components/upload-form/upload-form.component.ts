@@ -1,14 +1,23 @@
 import { Component, input, output } from '@angular/core';
-import { FormField, FormRoot, type FieldTree } from '@angular/forms/signals';
+import {
+  type FieldTree,
+  FormField,
+  FormRoot,
+} from '@angular/forms/signals';
+
 import type { UploadModel } from '../../helpers/print-upload/print-upload';
+
 import { UploadDocumentRowComponent } from '../upload-document-row/upload-document-row.component';
 
 /** The job title and document rows; the page owns the model and submission. */
 @Component({
-  selector: 'app-upload-form',
   imports: [FormField, FormRoot, UploadDocumentRowComponent],
+  selector: 'app-upload-form',
   template: `
-    <form [formRoot]="uploadForm()" class="d-flex flex-column gap-3">
+    <form
+      [formRoot]="uploadForm()"
+      class="d-flex flex-column gap-3"
+    >
       <div>
         <label class="form-label" for="job-title"
           >Job Title/Reference</label
@@ -21,7 +30,9 @@ import { UploadDocumentRowComponent } from '../upload-document-row/upload-docume
       </div>
 
       <fieldset class="border rounded p-3">
-        <legend class="float-none w-auto px-2 fs-6 mb-0">Documents</legend>
+        <legend class="float-none w-auto px-2 fs-6 mb-0">
+          Documents
+        </legend>
         <p class="text-muted">
           Upload PDF, JPEG, PNG, or HEIC/HEIF documents; up to
           {{ maxUploadMb() }} MB per document.
@@ -42,7 +53,9 @@ import { UploadDocumentRowComponent } from '../upload-document-row/upload-docume
         <button
           type="button"
           class="btn btn-outline-primary"
-          [disabled]="uploadForm().documents.length >= maxDocuments()"
+          [disabled]="
+            uploadForm().documents.length >= maxDocuments()
+          "
           (click)="addDocument.emit()"
         >
           Add another document
@@ -55,18 +68,20 @@ import { UploadDocumentRowComponent } from '../upload-document-row/upload-docume
           type="submit"
           [disabled]="uploadForm()().submitting()"
         >
-          {{ uploadForm()().submitting() ? 'Sending...' : 'Print' }}
+          {{
+            uploadForm()().submitting() ? 'Sending...' : 'Print'
+          }}
         </button>
       </div>
     </form>
   `,
 })
 export class UploadFormComponent {
-  readonly uploadForm = input.required<FieldTree<UploadModel>>();
-  readonly maxUploadMb = input.required<number>();
-  readonly maxDocuments = input.required<number>();
-  readonly copyOptions = input<readonly string[]>(['1']);
   readonly addDocument = output();
+  readonly copyOptions = input<readonly string[]>(['1']);
+  readonly maxDocuments = input.required<number>();
+  readonly maxUploadMb = input.required<number>();
   /** Emits the id of the row to drop. */
   readonly removeDocument = output<number>();
+  readonly uploadForm = input.required<FieldTree<UploadModel>>();
 }

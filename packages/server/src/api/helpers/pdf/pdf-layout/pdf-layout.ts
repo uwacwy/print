@@ -1,4 +1,9 @@
-import { rgb, type PDFFont, type PDFPage, PageSizes } from 'pdf-lib';
+import {
+  PageSizes,
+  type PDFFont,
+  type PDFPage,
+  rgb,
+} from 'pdf-lib';
 
 // export const PAGE_WIDTH = 612;
 // export const PAGE_HEIGHT = 792;
@@ -14,17 +19,6 @@ const UNSUPPORTED = new RegExp(
   `[^\\x20-\\x7E\\u00A0-\\u00FF${WIN_ANSI_EXTRAS}]`,
   'gu',
 );
-
-/**
- * Standard PDF fonts only cover WinAnsi; replace anything else so drawing never throws.
- * Unicode spaces (Intl puts U+202F before "PM" and U+2009 around range dashes) become plain spaces.
- */
-export function winAnsi(text: string): string {
-  return text
-    .replace(/[\u2000-\u200A\u202F\u205F\u3000]/g, ' ')
-    .replace(/[\u2010\u2011]/g, '-')
-    .replace(UNSUPPORTED, '?');
-}
 
 /** Draws one centered line, shrinking the font to fit the page width; returns the size used. */
 export function drawCentered(
@@ -44,11 +38,11 @@ export function drawCentered(
     size -= 1;
   }
   page.drawText(safe, {
+    color,
+    font,
+    size,
     x: (PAGE_WIDTH - font.widthOfTextAtSize(safe, size)) / 2,
     y,
-    size,
-    font,
-    color,
   });
   return size;
 }
@@ -57,13 +51,13 @@ export function drawTwoColumnTable(
   page: PDFPage,
   headings: readonly [string, string],
   rows: readonly (readonly [string, string])[],
-  fonts: { regular: PDFFont; bold: PDFFont },
+  fonts: { bold: PDFFont; regular: PDFFont },
   options: {
-    width: number;
-    headingY: number;
     firstRowY: number;
-    rowHeight: number;
     fontSize: number;
+    headingY: number;
+    rowHeight: number;
+    width: number;
   },
 ): number {
   const left = (PAGE_WIDTH - options.width) / 2;
@@ -71,22 +65,24 @@ export function drawTwoColumnTable(
   const { fontSize } = options;
   const headingRight = winAnsi(headings[1]);
   page.drawText(winAnsi(headings[0]), {
+    font: fonts.bold,
+    size: fontSize,
     x: left,
     y: options.headingY,
-    size: fontSize,
-    font: fonts.bold,
   });
   page.drawText(headingRight, {
-    x: right - fonts.bold.widthOfTextAtSize(headingRight, fontSize),
-    y: options.headingY,
-    size: fontSize,
     font: fonts.bold,
+    size: fontSize,
+    x:
+      right -
+      fonts.bold.widthOfTextAtSize(headingRight, fontSize),
+    y: options.headingY,
   });
   page.drawLine({
-    start: { x: left, y: options.headingY - 7 },
-    end: { x: right, y: options.headingY - 7 },
-    thickness: 0.5,
     color: GRAY,
+    end: { x: right, y: options.headingY - 7 },
+    start: { x: left, y: options.headingY - 7 },
+    thickness: 0.5,
   });
   rows.forEach(([label, value], index) => {
     const y = options.firstRowY - index * options.rowHeight;
@@ -103,25 +99,38 @@ export function drawTwoColumnTable(
     ) {
       while (
         leftText.length &&
-        fonts.regular.widthOfTextAtSize(`${leftText}...`, fontSize) >
-          availableWidth
+        fonts.regular.widthOfTextAtSize(
+          `${leftText}...`,
+          fontSize,
+        ) > availableWidth
       ) {
         leftText = leftText.slice(0, -1);
       }
       leftText += '...';
     }
     page.drawText(leftText, {
+      font: fonts.regular,
+      size: fontSize,
       x: left,
       y,
-      size: fontSize,
-      font: fonts.regular,
     });
     page.drawText(rightText, {
+      font: fonts.regular,
+      size: fontSize,
       x: right - rightWidth,
       y,
-      size: fontSize,
-      font: fonts.regular,
     });
   });
   return options.firstRowY - rows.length * options.rowHeight;
+}
+
+/**
+ * Standard PDF fonts only cover WinAnsi; replace anything else so drawing never throws.
+ * Unicode spaces (Intl puts U+202F before "PM" and U+2009 around range dashes) become plain spaces.
+ */
+export function winAnsi(text: string): string {
+  return text
+    .replace(/[\u2000-\u200A\u202F\u205F\u3000]/g, ' ')
+    .replace(/[\u2010\u2011]/g, '-')
+    .replace(UNSUPPORTED, '?');
 }

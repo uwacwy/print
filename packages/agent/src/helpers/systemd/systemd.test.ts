@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import {
   isEphemeralInstall,
   renderUnit,
@@ -20,7 +21,9 @@ describe('systemd', () => {
       '/home/print/.config/systemd/user/uwacwy-print-agent.service',
     );
     expect(
-      unitPath('user', '/home/print', { XDG_CONFIG_HOME: '/xdg' }),
+      unitPath('user', '/home/print', {
+        XDG_CONFIG_HOME: '/xdg',
+      }),
     ).toBe('/xdg/systemd/user/uwacwy-print-agent.service');
     expect(systemctlArgs('user', 'daemon-reload')).toEqual([
       '--user',
@@ -74,11 +77,11 @@ describe('systemd', () => {
 
   it('renders a hardened system unit', () => {
     const unit = renderUnit({
-      scope: 'system',
-      nodePath: '/usr/local/bin/node',
       cliPath:
         '/usr/local/lib/node_modules/@uwacwy/print-agent/dist/cli.mjs',
       configPath: '/etc/uwacwy-print-agent.env',
+      nodePath: '/usr/local/bin/node',
+      scope: 'system',
     });
     expect(unit).toContain(
       'ExecStart=/usr/local/bin/node /usr/local/lib/node_modules/@uwacwy/print-agent/dist/cli.mjs run --config /etc/uwacwy-print-agent.env',
@@ -92,11 +95,11 @@ describe('systemd', () => {
   it('passes --insecure through', () => {
     expect(
       renderUnit({
-        scope: 'user',
-        nodePath: '/n',
         cliPath: '/c',
         configPath: '/e',
         insecure: true,
+        nodePath: '/n',
+        scope: 'user',
       }),
     ).toContain('ExecStart=/n /c run --config /e --insecure');
   });
@@ -104,21 +107,21 @@ describe('systemd', () => {
   it('keeps home directories readable when the agent lives there', () => {
     expect(
       renderUnit({
-        scope: 'system',
-        nodePath: '/root/.local/bin/node',
         cliPath: '/usr/local/lib/x/cli.mjs',
         configPath: '/etc/x.env',
+        nodePath: '/root/.local/bin/node',
+        scope: 'system',
       }),
     ).toContain('ProtectHome=read-only');
   });
 
   it('renders a user unit', () => {
     const unit = renderUnit({
-      scope: 'user',
-      nodePath: '/home/print/.local/bin/node',
       cliPath:
         '/home/print/.local/lib/node_modules/@uwacwy/print-agent/dist/cli.mjs',
       configPath: '/home/print/.config/uwacwy-print-agent.env',
+      nodePath: '/home/print/.local/bin/node',
+      scope: 'user',
     });
     expect(unit).not.toContain('User=');
     expect(unit).not.toContain('--insecure');

@@ -1,6 +1,6 @@
 import {
-  MAX_ERROR_LENGTH,
   type EnrollResponse,
+  MAX_ERROR_LENGTH,
 } from '@uwacwy/print-shared';
 import express from 'express';
 import { createReadStream } from 'node:fs';
@@ -8,38 +8,40 @@ import { rm, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createRouting } from 'ts-routes';
 import { z } from 'zod';
+
+import type { UploadConfig } from '../../helpers/server-config/server-config';
+import type { AgentHub } from '../../sockets/agent-hub/agent-hub';
+
 import { agents } from '../../../shared/routes/api.agents.routes';
 import {
   createPrinter,
   getJobForPrinter,
   getPrinterById,
+  type PrintDatabase,
+  type PrinterRow,
   reportJob,
   updatePrinter,
   validatePrinterFields,
-  type PrintDatabase,
-  type PrinterRow,
 } from '../../helpers/database/database';
 import { validatePrinterInput } from '../../helpers/printers';
-import type { UploadConfig } from '../../helpers/server-config/server-config';
 import { createAuthenticate } from '../../middleware/auth/passport/passport';
 import { principal } from '../../middleware/auth/principal';
 import { enrollRateLimit } from '../../middleware/rate-limits/rate-limits';
-import type { AgentHub } from '../../sockets/agent-hub/agent-hub';
 
 export interface AgentApiOptions {
   db: PrintDatabase;
-  jobsDir: string;
   getHub: () => AgentHub;
+  jobsDir: string;
   /** Its token key also signs enrollment tokens. */
   upload: UploadConfig;
 }
 
 const queueUpdate = z.object({ queue: z.string() });
 
-const agentView = ({ slug, name, queue }: PrinterRow) => ({
-  slug,
+const agentView = ({ name, queue, slug }: PrinterRow) => ({
   name,
   queue,
+  slug,
 });
 
 const JOB_ID_PATTERN =
@@ -58,8 +60,8 @@ const $ = createRouting(agents);
 /** HTTP side of the agent protocol; mounted at `/api/agent` to match the shared path helpers. */
 export default ({
   db,
-  jobsDir,
   getHub,
+  jobsDir,
   upload,
 }: AgentApiOptions) => {
   const authenticate = createAuthenticate({
@@ -90,8 +92,8 @@ export default ({
             return;
           }
           response.status(201).json({
-            printer: agentView(getPrinterById(db, created.id)!),
             agentToken: created.token,
+            printer: agentView(getPrinterById(db, created.id)!),
           } satisfies EnrollResponse);
         },
       )
@@ -102,10 +104,10 @@ export default ({
         const body = queueUpdate.safeParse(request.body);
         const fields = body.success
           ? validatePrinterFields({
-              slug: printer.slug,
+              cover_page: printer.cover_page === 1 ? 'true' : '',
               name: printer.name,
               queue: body.data.queue,
-              cover_page: printer.cover_page === 1 ? 'true' : '',
+              slug: printer.slug,
             })
           : 'Invalid printer fields.';
         if (typeof fields === 'string') {
@@ -113,7 +115,9 @@ export default ({
           return;
         }
         updatePrinter(db, printer.id, fields);
-        response.json(agentView(getPrinterById(db, printer.id)!));
+        response.json(
+          agentView(getPrinterById(db, printer.id)!),
+        );
       })
       .param('id', (req, res, next, id: string) => {
         if (!JOB_ID_PATTERN.test(id)) {
@@ -132,17 +136,19 @@ export default ({
             ? getJobForPrinter(db, printer.id, request.params.id)
             : undefined;
           if (!job || job.status !== 'printing') {
-            response.status(404).json({ error: 'Job not found' });
+            response
+              .status(404)
+              .json({ error: 'Job not found' });
             return;
           }
           const filePath = join(jobsDir, `${job.id}.pdf`);
           try {
             const { size } = await stat(filePath);
             response.writeHead(200, {
-              'content-type': 'application/pdf',
-              'content-length': size,
-              'content-disposition': `attachment; filename="${job.id}.pdf"`,
               'cache-control': 'no-store',
+              'content-disposition': `attachment; filename="${job.id}.pdf"`,
+              'content-length': size,
+              'content-type': 'application/pdf',
             });
             createReadStream(filePath)
               .on('error', next)
@@ -186,14 +192,16 @@ export default ({
             !JOB_ID_PATTERN.test(jobId) ||
             !reportJob(db, printer.id, jobId, status, errorText)
           ) {
-            response
-              .status(404)
-              .json({ error: 'Job not found or already completed' });
+            response.status(404).json({
+              error: 'Job not found or already completed',
+            });
             return;
           }
           // A failed job keeps its PDF so an admin can retry it until it expires.
           if (status === 'printed') {
-            await rm(join(jobsDir, `${jobId}.pdf`), { force: true });
+            await rm(join(jobsDir, `${jobId}.pdf`), {
+              force: true,
+            });
           }
           getHub().publishJob(printer.id, jobId, status);
           response.json({ accepted: true });

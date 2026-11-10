@@ -1,8 +1,9 @@
+import { isAllowedServerUrl } from '@uwacwy/print-shared';
 import { posix } from 'node:path';
 // Experimental before Node 24.10, but present and quiet from 20.12, below the agent's 20.17 floor.
 // eslint-disable-next-line n/no-unsupported-features/node-builtins
 import { parseEnv } from 'node:util';
-import { isAllowedServerUrl } from '@uwacwy/print-shared';
+
 import {
   parseAgentToken,
   parsePrinterUri,
@@ -16,8 +17,8 @@ export const CONFIG_KEYS = [
   'PRINTER_URI',
 ] as const;
 
-export type ConfigKey = (typeof CONFIG_KEYS)[number];
 export type AgentConfig = Record<ConfigKey, string>;
+export type ConfigKey = (typeof CONFIG_KEYS)[number];
 export type PartialAgentConfig = Partial<AgentConfig>;
 
 type Env = Readonly<Record<string, string | undefined>>;
@@ -75,8 +76,9 @@ export const isComplete = (
   config: PartialAgentConfig,
 ): config is AgentConfig => missingKeys(config).length === 0;
 
-export const parseConfigFile = (text: string): PartialAgentConfig =>
-  pickConfig(parseEnv(text));
+export const parseConfigFile = (
+  text: string,
+): PartialAgentConfig => pickConfig(parseEnv(text));
 
 /** Problems with a complete config, phrased for the operator. */
 export function configErrors(

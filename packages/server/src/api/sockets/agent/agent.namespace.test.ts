@@ -1,20 +1,26 @@
 import { describe, expect, it } from 'vitest';
+
+import type { LiveEvent } from '../agent-hub/agent-hub';
+
+import { addPrinter } from '../../../realtime/test-support';
 import {
   insertJob,
   type PrintDatabase,
 } from '../../helpers/database/database';
-import { addPrinter } from '../../../realtime/test-support';
 import { useApiServer } from '../../test-support';
-import type { LiveEvent } from '../agent-hub/agent-hub';
 
-function queueJob(db: PrintDatabase, printerId: number, id: string) {
+function queueJob(
+  db: PrintDatabase,
+  printerId: number,
+  id: string,
+) {
   insertJob(db, {
-    id,
-    printer_id: printerId,
-    title: `Job ${id.slice(0, 4)}`,
     copies: 1,
+    id,
     original_name: 'doc.pdf',
+    printer_id: printerId,
     submitted_by: null,
+    title: `Job ${id.slice(0, 4)}`,
     uploader_ip: '127.0.0.1',
   });
 }
@@ -24,7 +30,9 @@ const JOB_B = '22222222-2222-4222-8222-222222222222';
 
 function jobStatus(db: PrintDatabase, id: string) {
   return (
-    db.prepare('SELECT status FROM jobs WHERE id = ?').get(id) as {
+    db
+      .prepare('SELECT status FROM jobs WHERE id = ?')
+      .get(id) as {
       status: string;
     }
   ).status;
@@ -36,12 +44,14 @@ describe('agent namespace', () => {
   it('rejects agents without a valid token during the handshake', async () => {
     await api.start();
     await expect(api.openAgent().rejected()).resolves.toEqual({
-      message: 'Unauthorized',
       data: { code: 'agent_token_required', status: 401 },
-    });
-    await expect(api.openAgent('nope').rejected()).resolves.toEqual({
       message: 'Unauthorized',
+    });
+    await expect(
+      api.openAgent('nope').rejected(),
+    ).resolves.toEqual({
       data: { code: 'agent_token_invalid', status: 401 },
+      message: 'Unauthorized',
     });
   });
 
@@ -62,12 +72,12 @@ describe('agent namespace', () => {
     const agent = api.openAgent(token);
 
     await expect(agent.next()).resolves.toEqual({
+      printer: { name: 'Front Office', slug: 'front-office' },
       type: 'hello',
-      printer: { slug: 'front-office', name: 'Front Office' },
     });
     await expect(agent.next()).resolves.toEqual({
-      type: 'jobs',
       jobs: [{ id: JOB_A, title: 'Job 1111' }],
+      type: 'jobs',
     });
     expect(jobStatus(api.db, JOB_A)).toBe('printing');
     expect(api.hub.isOnline(id)).toBe(true);
@@ -82,8 +92,8 @@ describe('agent namespace', () => {
     api.hub.dispatch(id);
 
     await expect(agent.next()).resolves.toMatchObject({
-      type: 'jobs',
       jobs: [{ id: JOB_B }],
+      type: 'jobs',
     });
   });
 
@@ -96,8 +106,8 @@ describe('agent namespace', () => {
     agent.socket.emit('sync');
 
     await expect(agent.next()).resolves.toMatchObject({
-      type: 'jobs',
       jobs: [{ id: JOB_A }],
+      type: 'jobs',
     });
   });
 
@@ -112,10 +122,12 @@ describe('agent namespace', () => {
     const firstClosed = first.closed();
 
     const second = await api.connectAgent(token);
-    await expect(firstClosed).resolves.toBe('io server disconnect');
+    await expect(firstClosed).resolves.toBe(
+      'io server disconnect',
+    );
     await expect(second.next()).resolves.toMatchObject({
-      type: 'jobs',
       jobs: [{ id: JOB_A }],
+      type: 'jobs',
     });
 
     second.close();

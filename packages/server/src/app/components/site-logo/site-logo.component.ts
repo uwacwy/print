@@ -1,16 +1,17 @@
 import { NgOptimizedImage } from '@angular/common';
 import { Component, inject } from '@angular/core';
+
 import { CLIENT_ENVIRONMENT } from '../../auth/client-environment';
 
 /** The deployment's logo from `GET /api/client-config`; renders nothing without one. */
 @Component({
-  selector: 'app-site-logo',
-  imports: [NgOptimizedImage],
   host: {
+    '[class.d-none]': '!logo',
     // Prerendered pages are built before the server knows its logo.
     ngSkipHydration: 'true',
-    '[class.d-none]': '!logo',
   },
+  imports: [NgOptimizedImage],
+  selector: 'app-site-logo',
   styles: `
     :host {
       display: block;

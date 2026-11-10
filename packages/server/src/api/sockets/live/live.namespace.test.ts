@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import {
   addPrinter,
   testEntra,
@@ -9,7 +10,7 @@ describe('live namespace', () => {
   const { entra, token } = testEntra();
   const api = useApiServer({ entra });
   const adminToken = () =>
-    token({ sub: 'admin', scp: 'Printers.Manage' });
+    token({ scp: 'Printers.Manage', sub: 'admin' });
 
   it('streams a snapshot, then agent and job events to managers', async () => {
     await api.start();
@@ -17,31 +18,31 @@ describe('live namespace', () => {
     const live = api.openLive(await adminToken());
 
     await expect(live.next()).resolves.toEqual({
-      type: 'snapshot',
       onlinePrinterIds: [],
+      type: 'snapshot',
     });
 
     await api.connectAgent(agentToken);
     await expect(live.next()).resolves.toMatchObject({
-      type: 'agent',
-      printerId: id,
       online: true,
+      printerId: id,
+      type: 'agent',
     });
 
     await api.postUpload(await uploadForm());
     await expect(live.next()).resolves.toMatchObject({
-      type: 'job',
+      activeJobs: 1,
+      failedJobs: 0,
       printerId: id,
       status: 'queued',
-      activeJobs: 1,
-      failedJobs: 0,
+      type: 'job',
     });
     await expect(live.next()).resolves.toMatchObject({
-      type: 'job',
-      printerId: id,
-      status: 'printing',
       activeJobs: 1,
       failedJobs: 0,
+      printerId: id,
+      status: 'printing',
+      type: 'job',
     });
   });
 
@@ -52,12 +53,17 @@ describe('live namespace', () => {
 
     await expect(
       api.openLive(await adminToken()).next(),
-    ).resolves.toEqual({ type: 'snapshot', onlinePrinterIds: [id] });
+    ).resolves.toEqual({
+      onlinePrinterIds: [id],
+      type: 'snapshot',
+    });
   });
 
   it('requires a manager token', async () => {
     await api.start();
-    await expect(api.openLive().rejected()).resolves.toMatchObject({
+    await expect(
+      api.openLive().rejected(),
+    ).resolves.toMatchObject({
       data: { status: 401 },
     });
     const { token: agentToken } = addPrinter(api.db);

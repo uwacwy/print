@@ -1,5 +1,6 @@
 import { NEVER } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import {
   chooseDocumentFormat,
   getSupportedDocumentFormats,
@@ -9,12 +10,14 @@ import { convertPdfToPclm } from '../../helpers/pdf';
 import { IppPrinter } from './ipp-printer';
 
 vi.mock('../../helpers/ipp/ipp', () => ({
-  validateIppPrinterUri: (value: string) => new URL(value),
-  getSupportedDocumentFormats: vi.fn(),
   chooseDocumentFormat: vi.fn(),
+  getSupportedDocumentFormats: vi.fn(),
   printDocument: vi.fn(),
+  validateIppPrinterUri: (value: string) => new URL(value),
 }));
-vi.mock('../../helpers/pdf', () => ({ convertPdfToPclm: vi.fn() }));
+vi.mock('../../helpers/pdf', () => ({
+  convertPdfToPclm: vi.fn(),
+}));
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -35,7 +38,9 @@ describe('IppPrinter', () => {
       'ipp://printer.local:631/ipp/print?maxBytes=4096&quality=normal',
     );
     await printer.ready();
-    await printer.print(Buffer.from('%PDF-test'), { title: 'Tax' });
+    await printer.print(Buffer.from('%PDF-test'), {
+      title: 'Tax',
+    });
     expect(getSupportedDocumentFormats).toHaveBeenCalledTimes(1);
     expect(getSupportedDocumentFormats).toHaveBeenCalledWith(
       new URL('ipp://printer.local:631/ipp/print'),
@@ -66,13 +71,18 @@ describe('IppPrinter', () => {
     vi.mocked(chooseDocumentFormat).mockReturnValue(
       'application/pdf',
     );
-    const negotiated = ippPrinter('ipp://printer.local/ipp/print');
+    const negotiated = ippPrinter(
+      'ipp://printer.local/ipp/print',
+    );
     await expect(negotiated.ready()).rejects.toThrow('offline');
     await expect(negotiated.ready()).resolves.toBeUndefined();
   });
 
   it.each([
-    ['ipp://printer.local/ipp/print?dpi=150', /dpi.*not supported/],
+    [
+      'ipp://printer.local/ipp/print?dpi=150',
+      /dpi.*not supported/,
+    ],
     [
       'ipp://printer.local/ipp/print?option_sides=one-sided',
       /not supported/,

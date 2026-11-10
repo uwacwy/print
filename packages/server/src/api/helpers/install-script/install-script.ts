@@ -1,13 +1,13 @@
 import { AGENT_PACKAGE, shq } from '@uwacwy/print-shared';
 
 export interface InstallScriptVars {
-  /** `PUBLIC_URL` origin the agent connects to. */
-  serverUrl: string;
+  /** Pinned agent version (the server's); latest when unknown. */
+  agentVersion?: string;
   /** Present for the interactive enrollment script. */
   enrollToken?: string;
   enrollTokenExpiresAt?: Date;
-  /** Pinned agent version (the server's); latest when unknown. */
-  agentVersion?: string;
+  /** `PUBLIC_URL` origin the agent connects to. */
+  serverUrl: string;
 }
 
 export const INSTALL_SCRIPT_CONTENT_TYPE =
@@ -168,10 +168,10 @@ const safeVersion = (version: string | undefined): string =>
 
 /** The `curl … | bash` installer: preconfigured variables, then the shared body. */
 export const renderInstallScript = ({
-  serverUrl,
+  agentVersion,
   enrollToken,
   enrollTokenExpiresAt,
-  agentVersion,
+  serverUrl,
 }: InstallScriptVars): string =>
   [
     '#!/usr/bin/env bash',

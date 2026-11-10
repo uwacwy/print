@@ -1,5 +1,13 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+} from 'vitest';
+
 import type { PrintDatabase } from '../../helpers/database/database';
+
 import { tempDatabase } from '../../../realtime/test-support';
 import { AgentHub, type LiveEvent } from './agent-hub';
 
@@ -9,7 +17,7 @@ describe('AgentHub', () => {
   let hub: AgentHub;
 
   beforeEach(async () => {
-    ({ db, cleanup } = await tempDatabase());
+    ({ cleanup, db } = await tempDatabase());
     hub = new AgentHub(db);
   });
 
@@ -26,17 +34,19 @@ describe('AgentHub', () => {
 
   it('stops delivering events after unsubscribe', () => {
     const events: LiveEvent[] = [];
-    const unsubscribe = hub.subscribe((event) => events.push(event));
+    const unsubscribe = hub.subscribe((event) =>
+      events.push(event),
+    );
     hub.publishJobsDeleted(1, 2);
     unsubscribe();
     hub.publishJobsDeleted(1, 3);
     expect(events).toEqual([
       {
-        type: 'jobs-deleted',
-        printerId: 1,
-        count: 2,
         activeJobs: 0,
+        count: 2,
         failedJobs: 0,
+        printerId: 1,
+        type: 'jobs-deleted',
       },
     ]);
   });

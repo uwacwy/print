@@ -1,11 +1,3 @@
-import {
-  ApplicationConfig,
-  PLATFORM_ID,
-  inject,
-  provideAppInitializer,
-  provideBrowserGlobalErrorListeners,
-} from '@angular/core';
-import { MsalBroadcastService } from '@azure/msal-angular';
 import { isPlatformBrowser } from '@angular/common';
 import {
   HTTP_INTERCEPTORS,
@@ -13,9 +5,18 @@ import {
   withInterceptorsFromDi,
 } from '@angular/common/http';
 import {
+  ApplicationConfig,
+  inject,
+  PLATFORM_ID,
+  provideAppInitializer,
+  provideBrowserGlobalErrorListeners,
+} from '@angular/core';
+import { provideClientHydration } from '@angular/platform-browser';
+import {
   provideRouter,
   withComponentInputBinding,
 } from '@angular/router';
+import { MsalBroadcastService } from '@azure/msal-angular';
 import {
   MSAL_GUARD_CONFIG,
   MSAL_INSTANCE,
@@ -28,13 +29,12 @@ import { PublicClientApplication } from '@azure/msal-browser';
 import { firstValueFrom, switchMap, tap } from 'rxjs';
 
 import { routes } from './app.routes';
-import { provideClientHydration } from '@angular/platform-browser';
+import { CLIENT_ENVIRONMENT } from './auth/client-environment';
 import {
   getMsalConfiguration,
   getMsalGuardConfiguration,
   getMsalInterceptorConfiguration,
 } from './auth/msal.config';
-import { CLIENT_ENVIRONMENT } from './auth/client-environment';
 import { SignedInMsalInterceptor } from './auth/signed-in-msal.interceptor';
 
 export const appConfig: ApplicationConfig = {
@@ -58,16 +58,18 @@ export const appConfig: ApplicationConfig = {
     {
       provide: MSAL_INTERCEPTOR_CONFIG,
       useFactory: () =>
-        getMsalInterceptorConfiguration(inject(CLIENT_ENVIRONMENT)),
+        getMsalInterceptorConfiguration(
+          inject(CLIENT_ENVIRONMENT),
+        ),
     },
     MsalService,
     MsalGuard,
     MsalBroadcastService,
     MsalInterceptor,
     {
+      multi: true,
       provide: HTTP_INTERCEPTORS,
       useClass: SignedInMsalInterceptor,
-      multi: true,
     },
     provideAppInitializer(() => {
       if (!isPlatformBrowser(inject(PLATFORM_ID))) {

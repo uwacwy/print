@@ -12,11 +12,11 @@ import { Writable } from 'node:stream';
 
 export interface DailyLogFileOptions {
   dir: string;
-  /** Files are `<prefix>-YYYY-MM-DD.log`; `<prefix>.log` links to the current one. */
-  prefix: string;
   /** Days of dated files to keep, counting today. */
   maxDays: number;
   now?: () => Date;
+  /** Files are `<prefix>-YYYY-MM-DD.log`; `<prefix>.log` links to the current one. */
+  prefix: string;
 }
 
 const pad = (value: number) => String(value).padStart(2, '0');
@@ -31,14 +31,26 @@ export const formatLogDate = (date: Date): string =>
  * outside `maxDays`, so rotation needs no timers and no dependencies.
  */
 export class DailyLogFile extends Writable {
-  private stream: WriteStream | undefined;
   private day: string | undefined;
   private readonly now: () => Date;
+  private stream: undefined | WriteStream;
 
   constructor(private readonly options: DailyLogFileOptions) {
     super();
     this.now = options.now ?? (() => new Date());
     mkdirSync(options.dir, { recursive: true });
+  }
+
+  override _final(
+    callback: (error?: Error | null) => void,
+  ): void {
+    const stream = this.stream;
+    this.stream = undefined;
+    if (stream) {
+      stream.end(callback);
+    } else {
+      callback();
+    }
   }
 
   override _write(
@@ -53,16 +65,6 @@ export class DailyLogFile extends Writable {
     }
   }
 
-  override _final(callback: (error?: Error | null) => void): void {
-    const stream = this.stream;
-    this.stream = undefined;
-    if (stream) {
-      stream.end(callback);
-    } else {
-      callback();
-    }
-  }
-
   private current(): WriteStream {
     const day = formatLogDate(this.now());
     if (this.stream && day === this.day) {
@@ -70,9 +72,12 @@ export class DailyLogFile extends Writable {
     }
     this.stream?.end();
     const file = `${this.options.prefix}-${day}.log`;
-    const stream = createWriteStream(join(this.options.dir, file), {
-      flags: 'a',
-    });
+    const stream = createWriteStream(
+      join(this.options.dir, file),
+      {
+        flags: 'a',
+      },
+    );
     // Disk errors must not crash the server; the stream reports them on the next write.
     stream.on('error', (error) => this.destroy(error));
     this.stream = stream;

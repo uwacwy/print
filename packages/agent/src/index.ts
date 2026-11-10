@@ -1,4 +1,5 @@
 import { proposeCompletions, run } from '@stricli/core';
+
 import { app, COMPLETE_COMMAND } from './app';
 
 const [command, ...rest] = process.argv.slice(2);

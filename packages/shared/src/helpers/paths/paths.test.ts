@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import {
   agentJobFilePath,
   agentJobStatusPath,
@@ -10,7 +11,9 @@ describe('paths', () => {
     expect(agentJobFilePath('a/b')).toBe(
       '/api/agent/jobs/a%2Fb/file',
     );
-    expect(agentJobStatusPath('x')).toBe('/api/agent/jobs/x/status');
+    expect(agentJobStatusPath('x')).toBe(
+      '/api/agent/jobs/x/status',
+    );
   });
 
   it('builds install script paths', () => {

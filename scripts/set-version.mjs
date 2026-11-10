@@ -1,19 +1,20 @@
 // Usage: npm run version:set -- 0.2.0
 // Sets the version of the root and every workspace, plus internal dependency pins, in lockstep.
-import { execFileSync } from "node:child_process";
-import { writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { execFileSync } from 'node:child_process';
+import { writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import {
-  SEMVER,
   manifestPaths,
   readManifest,
   repoRoot,
-} from "./workspace-manifests.mjs";
+  SEMVER,
+} from './workspace-manifests.mjs';
 
-const version = process.argv[2]?.replace(/^v/, "");
+const version = process.argv[2]?.replace(/^v/, '');
 if (!version || !SEMVER.test(version)) {
   console.error(
-    "Usage: npm run version:set -- <semver>   (e.g. 0.2.0 or 0.2.0-rc.1)",
+    'Usage: npm run version:set -- <semver>   (e.g. 0.2.0 or 0.2.0-rc.1)',
   );
   process.exit(2);
 }
@@ -28,7 +29,7 @@ const internal = new Set(
 
 for (const [path, manifest] of manifests) {
   manifest.version = version;
-  for (const field of ["dependencies", "devDependencies"]) {
+  for (const field of ['dependencies', 'devDependencies']) {
     for (const name of Object.keys(manifest[field] ?? {})) {
       if (internal.has(name)) {
         manifest[field][name] = version;
@@ -44,10 +45,10 @@ for (const [path, manifest] of manifests) {
 
 // Refresh the lockfile's workspace entries without touching third-party resolutions.
 execFileSync(
-  "npm",
-  ["install", "--package-lock-only", "--ignore-scripts"],
+  'npm',
+  ['install', '--package-lock-only', '--ignore-scripts'],
   {
     cwd: repoRoot,
-    stdio: "inherit",
+    stdio: 'inherit',
   },
 );

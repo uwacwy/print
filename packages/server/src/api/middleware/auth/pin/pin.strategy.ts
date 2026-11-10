@@ -1,12 +1,14 @@
 import type { Request } from 'express';
+
 import { Strategy } from 'passport-strategy';
-import { pinMatches } from './pin';
+
+import { pinCredential } from '../credentials';
 import {
-  routePrinter,
   type AuthChallenge,
   type Principal,
+  routePrinter,
 } from '../principal';
-import { pinCredential } from '../credentials';
+import { pinMatches } from './pin';
 
 const SCHEME = 'Pin realm="print-upload"';
 

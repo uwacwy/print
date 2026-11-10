@@ -2,6 +2,7 @@ import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { form, FormField } from '@angular/forms/signals';
 import { describe, expect, it } from 'vitest';
+
 import { FileInput } from './file-input.component';
 
 @Component({
@@ -13,7 +14,9 @@ class HostComponent {
   readonly f = form(this.model);
 }
 
-const pdf = new File(['x'], 'a.pdf', { type: 'application/pdf' });
+const pdf = new File(['x'], 'a.pdf', {
+  type: 'application/pdf',
+});
 
 describe('FileInput', () => {
   const setup = async () => {
@@ -23,38 +26,38 @@ describe('FileInput', () => {
       fixture.nativeElement.querySelector('input');
     const choose = async (files: File[]) => {
       Object.defineProperty(input, 'files', {
-        value: files,
         configurable: true,
+        value: files,
       });
       input.dispatchEvent(new Event('change'));
       await fixture.whenStable();
     };
-    return { fixture, input, choose };
+    return { choose, fixture, input };
   };
 
   it('writes the chosen file to the form field', async () => {
-    const { fixture, choose } = await setup();
+    const { choose, fixture } = await setup();
     await choose([pdf]);
     expect(fixture.componentInstance.model().file).toBe(pdf);
   });
 
   it('writes null when the selection is cleared', async () => {
-    const { fixture, choose } = await setup();
+    const { choose, fixture } = await setup();
     await choose([pdf]);
     await choose([]);
     expect(fixture.componentInstance.model().file).toBeNull();
   });
 
   it('clears the native input when the field is reset to null', async () => {
-    const { fixture, input, choose } = await setup();
+    const { choose, fixture, input } = await setup();
     await choose([pdf]);
     let cleared = false;
     Object.defineProperty(input, 'value', {
+      configurable: true,
       get: () => '',
       set: (v: string) => {
         cleared = v === '';
       },
-      configurable: true,
     });
     fixture.componentInstance.model.set({ file: null });
     await fixture.whenStable();
@@ -72,9 +75,11 @@ describe('FileInput', () => {
   });
 
   it('reset() empties the value', async () => {
-    const { fixture, choose } = await setup();
+    const { choose, fixture } = await setup();
     await choose([pdf]);
-    fixture.debugElement.children[0].injector.get(FileInput).reset();
+    fixture.debugElement.children[0].injector
+      .get(FileInput)
+      .reset();
     await fixture.whenStable();
     expect(fixture.componentInstance.model().file).toBeNull();
   });
@@ -83,6 +88,8 @@ describe('FileInput', () => {
     const input = document.createElement('input');
     input.type = 'file';
     input.multiple = true;
-    expect(input.matches('input[type=file]:not([multiple])')).toBe(false);
+    expect(
+      input.matches('input[type=file]:not([multiple])'),
+    ).toBe(false);
   });
 });

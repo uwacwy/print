@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { shArg, shq } from './shell';
 
 describe('shq', () => {

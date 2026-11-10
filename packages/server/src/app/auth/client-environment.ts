@@ -1,8 +1,11 @@
-import { InjectionToken } from '@angular/core';
 import type { ClientConfig } from '@uwacwy/print-shared';
+
+import { InjectionToken } from '@angular/core';
 import { createRouting } from 'ts-routes';
-import { environment } from '../../environments/environment';
+
 import type { PrintServerClientEnvironment } from '../../environments/environment.interface';
+
+import { environment } from '../../environments/environment';
 import { root } from '../../shared/routes/routes';
 
 const $ = createRouting(root);
@@ -12,28 +15,10 @@ export const CLIENT_ENVIRONMENT =
   new InjectionToken<PrintServerClientEnvironment>(
     'CLIENT_ENVIRONMENT',
     {
-      providedIn: 'root',
       factory: () => environment,
+      providedIn: 'root',
     },
   );
-
-/** Prefers the server's runtime settings; falls back to the build-time environment. */
-export function toClientEnvironment(
-  config: ClientConfig,
-  origin: string,
-  fallback: PrintServerClientEnvironment = environment,
-): PrintServerClientEnvironment {
-  return config.msal
-    ? {
-        msal: {
-          ...config.msal,
-          redirectUri: `${origin}/auth/callback`,
-        },
-        enrollment: config.enrollment,
-        logo: config.logo,
-      }
-    : { ...fallback, enrollment: config.enrollment, logo: config.logo };
-}
 
 /** Fetches `GET /api/client-config` before bootstrap so prebuilt bundles work for any tenant. */
 export function loadClientEnvironment(
@@ -51,4 +36,26 @@ export function loadClientEnvironment(
       console.warn('Using built-in sign-in settings:', error);
       return environment;
     });
+}
+
+/** Prefers the server's runtime settings; falls back to the build-time environment. */
+export function toClientEnvironment(
+  config: ClientConfig,
+  origin: string,
+  fallback: PrintServerClientEnvironment = environment,
+): PrintServerClientEnvironment {
+  return config.msal
+    ? {
+        enrollment: config.enrollment,
+        logo: config.logo,
+        msal: {
+          ...config.msal,
+          redirectUri: `${origin}/auth/callback`,
+        },
+      }
+    : {
+        ...fallback,
+        enrollment: config.enrollment,
+        logo: config.logo,
+      };
 }

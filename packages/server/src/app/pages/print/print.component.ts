@@ -8,16 +8,19 @@ import {
   PLATFORM_ID,
   signal,
 } from '@angular/core';
-import { rxResource, toSignal } from '@angular/core/rxjs-interop';
+import {
+  rxResource,
+  toSignal,
+} from '@angular/core/rxjs-interop';
 import {
   applyEach,
+  type FieldTree,
   form,
   maxLength,
   pattern,
   required,
-  validate,
-  type FieldTree,
   type TreeValidationResult,
+  validate,
 } from '@angular/forms/signals';
 import { Title } from '@angular/platform-browser';
 import { Router } from '@angular/router';
@@ -26,14 +29,21 @@ import {
   MsalService,
 } from '@azure/msal-angular';
 import { InteractionStatus } from '@azure/msal-browser';
-import { filter, firstValueFrom, map, of, startWith } from 'rxjs';
+import {
+  filter,
+  firstValueFrom,
+  map,
+  of,
+  startWith,
+} from 'rxjs';
+
+import { AlertComponent } from '../../components/alert/alert.component';
 import {
   apiErrorCode,
   apiErrorMessage,
   httpStatus,
 } from '../../helpers/api-error/api-error';
 import { PrinterService } from '../../services/printer/printer.service';
-import { AlertComponent } from '../../components/alert/alert.component';
 import { PinFormComponent } from './components/pin-form/pin-form.component';
 import { UploadFormComponent } from './components/upload-form/upload-form.component';
 import {
@@ -57,35 +67,39 @@ import {
   type UploadModel,
 } from './helpers/print-upload/print-upload';
 
-type AccessMode = 'upload' | 'pin' | 'qr-only';
+type AccessMode = 'pin' | 'qr-only' | 'upload';
 
 @Component({
-  selector: 'app-print',
   imports: [
     DatePipe,
     AlertComponent,
     PinFormComponent,
     UploadFormComponent,
   ],
+  selector: 'app-print',
   templateUrl: './print.component.html',
 })
 export class PrintComponent {
-  readonly #printers = inject(PrinterService);
-  readonly #router = inject(Router);
-  readonly #msal = inject(MsalService);
-  readonly #browser = isPlatformBrowser(inject(PLATFORM_ID));
-  #nextId = 1;
-
-  readonly slug = input.required<string>();
-
-  readonly token = input<string>();
-
   /** Re-fetches whenever the slug or token changes (e.g. after a PIN exchange). */
   protected readonly printerResource = rxResource({
     params: () => ({ slug: this.slug(), token: this.token() }),
     stream: ({ params }) =>
       this.#printers.getPrinter(params.slug, params.token),
   });
+  readonly printer = computed(() =>
+    this.printerResource.hasValue()
+      ? this.printerResource.value()
+      : undefined,
+  );
+  readonly copyOptions = computed(() =>
+    copyOptions(this.printer()?.upload.maxCopies),
+  );
+  readonly maxUploadMb = computed(() =>
+    maxUploadMb(this.printer()?.upload.maxUploadBytes),
+  );
+  readonly #browser = isPlatformBrowser(inject(PLATFORM_ID));
+
+  readonly #msal = inject(MsalService);
 
   /** The MSAL account, re-read whenever an interaction finishes; always null during SSR. */
   readonly #account = toSignal(
@@ -104,90 +118,36 @@ export class PrintComponent {
     { initialValue: null },
   );
 
-  readonly printer = computed(() =>
-    this.printerResource.hasValue()
-      ? this.printerResource.value()
-      : undefined,
-  );
-
-  readonly #title = inject(Title);
-
-  constructor() {
-    effect(() => {
-      const printer = this.printer();
-      if (printer) {
-        this.#title.setTitle(`${printer.name}`);
-      }
-    });
-  }
-
-  readonly notFound = computed(
-    () => httpStatus(this.printerResource.error()) === 404,
-  );
   /** Upload tokens take precedence; otherwise a signed-in user the server accepts prints as themselves. */
   readonly #tokenValid = computed(
     () => this.printer()?.access.token === 'valid',
   );
+
   readonly printingAs = computed(() =>
     !this.#tokenValid() && this.printer()?.access.signedIn
       ? (this.#account()?.username ?? null)
       : null,
   );
+
   readonly mode = computed<AccessMode>(() => {
     if (this.#tokenValid() || this.printingAs()) {
       return 'upload';
     }
     return this.printer()?.access.pinEnabled ? 'pin' : 'qr-only';
   });
+
+  readonly notFound = computed(
+    () => httpStatus(this.printerResource.error()) === 404,
+  );
+
+  readonly #submitNotice = signal('');
+
   readonly #tokenNotice = computed(() =>
     tokenNotice(this.printer()?.access.token),
   );
-  readonly #submitNotice = signal('');
   readonly notice = computed(
     () => this.#submitNotice() || this.#tokenNotice(),
   );
-
-  readonly copyOptions = computed(() =>
-    copyOptions(this.printer()?.upload.maxCopies),
-  );
-  readonly maxUploadMb = computed(() =>
-    maxUploadMb(this.printer()?.upload.maxUploadBytes),
-  );
-
-  readonly success = signal('');
-  readonly #upload = signal<UploadModel>(emptyUpload(this.#nextId++));
-  readonly uploadForm = form(
-    this.#upload,
-    (path) => {
-      maxLength(path.title, TITLE_MAX_LENGTH);
-      validate(path.documents, ({ value }) =>
-        hasDocument(value())
-          ? undefined
-          : { kind: 'documents', message: NO_DOCUMENTS_MESSAGE },
-      );
-      applyEach(path.documents, (document) => {
-        validate(document.file, ({ value }) => {
-          const message = fileSizeError(
-            value(),
-            this.printer()?.upload.maxUploadBytes,
-          );
-          return message ? { kind: 'fileSize', message } : undefined;
-        });
-      });
-    },
-    { submission: { action: () => this.#submitJob() } },
-  );
-  /** Form-level problems: no documents chosen, or the server rejected the job. */
-  readonly uploadError = computed(() => {
-    const documents = this.uploadForm.documents();
-    return (
-      [
-        ...this.uploadForm().errors(),
-        ...(documents.touched() ? documents.errors() : []),
-      ][0]?.message ?? ''
-    );
-  });
-
   readonly #pin = signal({ pin: '' });
   readonly pinForm = form(
     this.#pin,
@@ -203,9 +163,65 @@ export class PrintComponent {
       },
     },
   );
+  readonly slug = input.required<string>();
+  readonly success = signal('');
+  readonly token = input<string>();
+
+  #nextId = 1;
+  readonly #upload = signal<UploadModel>(
+    emptyUpload(this.#nextId++),
+  );
+
+  readonly uploadForm = form(
+    this.#upload,
+    (path) => {
+      maxLength(path.title, TITLE_MAX_LENGTH);
+      validate(path.documents, ({ value }) =>
+        hasDocument(value())
+          ? undefined
+          : { kind: 'documents', message: NO_DOCUMENTS_MESSAGE },
+      );
+      applyEach(path.documents, (document) => {
+        validate(document.file, ({ value }) => {
+          const message = fileSizeError(
+            value(),
+            this.printer()?.upload.maxUploadBytes,
+          );
+          return message
+            ? { kind: 'fileSize', message }
+            : undefined;
+        });
+      });
+    },
+    { submission: { action: () => this.#submitJob() } },
+  );
+  /** Form-level problems: no documents chosen, or the server rejected the job. */
+  readonly uploadError = computed(() => {
+    const documents = this.uploadForm.documents();
+    return (
+      [
+        ...this.uploadForm().errors(),
+        ...(documents.touched() ? documents.errors() : []),
+      ][0]?.message ?? ''
+    );
+  });
+  readonly #printers = inject(PrinterService);
+  readonly #router = inject(Router);
+
+  readonly #title = inject(Title);
+  constructor() {
+    effect(() => {
+      const printer = this.printer();
+      if (printer) {
+        this.#title.setTitle(`${printer.name}`);
+      }
+    });
+  }
 
   addDocument(): void {
-    this.#upload.update((upload) => addDocument(upload, this.#nextId++));
+    this.#upload.update((upload) =>
+      addDocument(upload, this.#nextId++),
+    );
   }
 
   removeDocument(id: number): void {
@@ -227,13 +243,12 @@ export class PrintComponent {
         return undefined;
       },
       (error: unknown) => ({
-        kind: 'server',
         fieldTree: pin,
-        message:
-          apiErrorMessage(
-            error,
-            'Unable to check the PIN. Please try again.',
-          ),
+        kind: 'server',
+        message: apiErrorMessage(
+          error,
+          'Unable to check the PIN. Please try again.',
+        ),
       }),
     );
   }
@@ -262,7 +277,10 @@ export class PrintComponent {
         if (apiErrorCode(error)?.startsWith('token_')) {
           // The link stopped working mid-session; drop it so the PIN prompt (or QR hint) returns.
           this.#submitNotice.set(
-            apiErrorMessage(error, 'This print link is no longer valid.'),
+            apiErrorMessage(
+              error,
+              'This print link is no longer valid.',
+            ),
           );
           void this.#router.navigate(['/print', printer.slug]);
           return undefined;

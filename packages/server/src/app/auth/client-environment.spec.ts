@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+
 import { environment } from '../../environments/environment';
 import {
   loadClientEnvironment,
@@ -6,10 +7,10 @@ import {
 } from './client-environment';
 
 const msal = {
-  tenantId: 'tenant',
-  clientId: 'client',
-  authority: 'https://login.microsoftonline.com/tenant',
   apiScope: 'api://client/Printers.Manage',
+  authority: 'https://login.microsoftonline.com/tenant',
+  clientId: 'client',
+  tenantId: 'tenant',
 };
 
 const respond = (response: Response) =>
@@ -21,18 +22,18 @@ describe('client environment', () => {
     expect(
       toClientEnvironment(
         {
-          msal,
           enrollment: true,
+          msal,
           publicUrl,
         },
         'https://print.example.org',
       ),
     ).toEqual({
+      enrollment: true,
       msal: {
         ...msal,
         redirectUri: 'https://print.example.org/auth/callback',
       },
-      enrollment: true,
     });
   });
 
@@ -49,16 +50,16 @@ describe('client environment', () => {
   });
 
   it('passes the server logo through', () => {
-    const logo = { src: '/logo.svg?v=1', alt: 'United Way' };
+    const logo = { alt: 'United Way', src: '/logo.svg?v=1' };
     expect(
       toClientEnvironment(
-        { enrollment: false, publicUrl, logo },
+        { enrollment: false, logo, publicUrl },
         'https://print.example.org',
       ).logo,
     ).toEqual(logo);
     expect(
       toClientEnvironment(
-        { msal, enrollment: false, publicUrl, logo },
+        { enrollment: false, logo, msal, publicUrl },
         'https://print.example.org',
       ).logo,
     ).toEqual(logo);
@@ -66,22 +67,24 @@ describe('client environment', () => {
 
   it('loads /api/client-config and falls back when it fails', async () => {
     const ok = respond(
-      Response.json({ msal, enrollment: false, publicUrl }),
+      Response.json({ enrollment: false, msal, publicUrl }),
     );
     await expect(
       loadClientEnvironment(ok, 'http://localhost:4200'),
     ).resolves.toEqual({
+      enrollment: false,
       msal: {
         ...msal,
         redirectUri: 'http://localhost:4200/auth/callback',
       },
-      enrollment: false,
     });
     expect(ok).toHaveBeenCalledWith('/api/client-config', {
       cache: 'no-cache',
     });
 
-    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    vi.spyOn(console, 'warn').mockImplementation(
+      () => undefined,
+    );
     await expect(
       loadClientEnvironment(
         respond(new Response('', { status: 500 })),

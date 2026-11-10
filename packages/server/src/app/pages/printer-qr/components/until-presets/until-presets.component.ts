@@ -1,4 +1,5 @@
 import { Component, input, output } from '@angular/core';
+
 import type { UntilPreset } from '../../helpers/qr-window/qr-window';
 
 /** A toggle button group of preset end times. */
@@ -7,7 +8,9 @@ import type { UntilPreset } from '../../helpers/qr-window/qr-window';
   template: `
     @if (presets().length) {
       <div class="d-flex flex-wrap align-items-center gap-2">
-        <span id="qr-until-presets" class="fw-semibold">Until:</span>
+        <span id="qr-until-presets" class="fw-semibold"
+          >Until:</span
+        >
         <div
           class="d-flex flex-wrap gap-2"
           role="group"
@@ -32,8 +35,8 @@ import type { UntilPreset } from '../../helpers/qr-window/qr-window';
   `,
 })
 export class UntilPresetsComponent {
+  readonly picked = output<string>();
   readonly presets = input.required<readonly UntilPreset[]>();
   /** The currently chosen datetime-local value. */
   readonly value = input('');
-  readonly picked = output<string>();
 }

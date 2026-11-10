@@ -4,19 +4,19 @@ export const printers = {
   $slug: {
     ...segment`/${arg('slug')}`,
     children: {
-      token: segment`/token`,
+      agentToken: segment`/agent-token`,
       jobs: {
         ...segment`/jobs`,
         children: {
           retry: segment`/retry`,
         },
       },
-      qrPdf: segment`/qr.pdf`,
-      qrToken: segment`/qr-token`,
-      qrPrint: segment`/qr-print`,
-      qrEpoch: segment`/qr-epoch`,
       pin: segment`/pin`,
-      agentToken: segment`/agent-token`,
+      qrEpoch: segment`/qr-epoch`,
+      qrPdf: segment`/qr.pdf`,
+      qrPrint: segment`/qr-print`,
+      qrToken: segment`/qr-token`,
+      token: segment`/token`,
     },
   },
   enrollToken: segment`/enroll-token`,

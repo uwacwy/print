@@ -1,5 +1,9 @@
 import { Component, computed, input } from '@angular/core';
-import { FormRoot, type FieldTree } from '@angular/forms/signals';
+import {
+  type FieldTree,
+  FormRoot,
+} from '@angular/forms/signals';
+
 import {
   presetsForWindow,
   type QrWindow,
@@ -9,8 +13,12 @@ import { UntilPresetsComponent } from '../until-presets/until-presets.component'
 
 /** Chooses when a QR code starts and stops working. */
 @Component({
+  imports: [
+    FormRoot,
+    DatetimeNudgeFieldComponent,
+    UntilPresetsComponent,
+  ],
   selector: 'app-qr-window-form',
-  imports: [FormRoot, DatetimeNudgeFieldComponent, UntilPresetsComponent],
   template: `
     <form
       [formRoot]="windowForm()"
@@ -52,17 +60,20 @@ import { UntilPresetsComponent } from '../until-presets/until-presets.component'
   `,
 })
 export class QrWindowFormComponent {
-  readonly windowForm = input.required<FieldTree<QrWindow>>();
+  readonly busy = input(false);
   /** The browser's current time; undefined during server rendering, which hides the presets. */
   readonly now = input<Date>();
-  readonly busy = input(false);
   /** A QR code already exists, so submitting replaces it. */
   readonly regenerate = input(false);
+  readonly windowForm = input.required<FieldTree<QrWindow>>();
 
   protected readonly presets = computed(() => {
     const now = this.now();
     return now
-      ? presetsForWindow(now, this.windowForm().notBefore().value())
+      ? presetsForWindow(
+          now,
+          this.windowForm().notBefore().value(),
+        )
       : [];
   });
 }

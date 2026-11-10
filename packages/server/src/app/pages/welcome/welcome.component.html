@@ -3,15 +3,15 @@
     Print from your phone in seconds
   </h2>
   <p class="lead mb-3">
-    No app, no account, no cables. Scan the code at the printer, pick
-    your documents, and pick up your pages.
+    No app, no account, no cables. Scan the code at the printer,
+    pick your documents, and pick up your pages.
   </p>
 
   <div class="status" [attr.data-state]="state()">
     <span class="status-dot" aria-hidden="true"></span>
     <span role="status" aria-live="polite">{{ summary() }}</span>
   </div>
-  @if (state() === "down" && !statusResource.isLoading()) {
+  @if (state() === 'down' && !statusResource.isLoading()) {
     <button
       type="button"
       class="btn btn-outline-primary btn-sm"
@@ -33,8 +33,8 @@
       <div>
         <strong>Scan the QR code</strong>
         <p>
-          Point your phone’s camera at the code posted next to the
-          printer and tap the link that appears.
+          Point your phone’s camera at the code posted next to
+          the printer and tap the link that appears.
         </p>
       </div>
     </li>
@@ -46,8 +46,8 @@
       <div>
         <strong>Choose your documents</strong>
         <p>
-          Add PDFs or photos, give the job a name you’ll recognize,
-          and set the number of copies.
+          Add PDFs or photos, give the job a name you’ll
+          recognize, and set the number of copies.
         </p>
       </div>
     </li>

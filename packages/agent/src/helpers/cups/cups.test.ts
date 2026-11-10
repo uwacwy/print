@@ -1,14 +1,15 @@
-import { EventEmitter } from 'node:events';
 import { spawn } from 'node:child_process';
+import { EventEmitter } from 'node:events';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import {
   CupsClient,
   humanQueueName,
+  parseCupsQueue,
+  parseJobOutcome,
   parseQueueDescriptions,
   parseQueueList,
-  parseJobOutcome,
   parseQueueState,
-  parseCupsQueue,
   parseRequestId,
   takeLpOptions,
 } from './cups';
@@ -24,20 +25,22 @@ function fakeCups(
   reply: (command: string, args: string[]) => Reply,
 ) {
   vi.mocked(spawn).mockImplementation((command, args) => {
-    const result = reply(command, [...(args)]);
-    const { code, stdout, stderr } =
+    const result = reply(command, [...args]);
+    const { code, stderr, stdout } =
       typeof result === 'string'
-        ? { code: 0, stdout: result, stderr: '' }
-        : { stdout: '', stderr: '', ...result };
+        ? { code: 0, stderr: '', stdout: result }
+        : { stderr: '', stdout: '', ...result };
     const stream = () =>
-      Object.assign(new EventEmitter(), { setEncoding: vi.fn() });
+      Object.assign(new EventEmitter(), {
+        setEncoding: vi.fn(),
+      });
     const child = new EventEmitter() as ReturnType<typeof spawn>;
     const out = stream();
     const err = stream();
     Object.assign(child, {
-      stdout: out,
-      stderr: err,
       kill: vi.fn(),
+      stderr: err,
+      stdout: out,
     });
     queueMicrotask(() => {
       out.emit('data', stdout);
@@ -140,12 +143,16 @@ describe('lpstat parsing', () => {
       alerts: ['canceled-at-device'],
       status: 'Unable to add document to print job.',
     });
-    expect(parseJobOutcome(COMPLETED, 'Queue-80')).toBeUndefined();
+    expect(
+      parseJobOutcome(COMPLETED, 'Queue-80'),
+    ).toBeUndefined();
   });
 
   it('reads the lp request id', () => {
     expect(
-      parseRequestId('request id is HP-LaserJet-14 (1 file(s))\n'),
+      parseRequestId(
+        'request id is HP-LaserJet-14 (1 file(s))\n',
+      ),
     ).toBe('HP-LaserJet-14');
     expect(parseRequestId('')).toBeUndefined();
   });
@@ -153,7 +160,7 @@ describe('lpstat parsing', () => {
 
 describe('CupsClient', () => {
   const cups = new CupsClient('Queue', 5000);
-  const wait = { waitMs: 60_000, pollMs: 0 };
+  const wait = { pollMs: 0, waitMs: 60_000 };
 
   it('runs CUPS commands untranslated with sbin on PATH', async () => {
     fakeCups(() => ENABLED);
@@ -164,7 +171,9 @@ describe('CupsClient', () => {
   });
 
   it('re-enables a stopped queue, and explains when it cannot', async () => {
-    fakeCups((command) => (command === 'lpstat' ? DISABLED : ''));
+    fakeCups((command) =>
+      command === 'lpstat' ? DISABLED : '',
+    );
     await cups.ensureEnabled();
     expect(commands()).toEqual([
       'lpstat -p Queue',
@@ -207,7 +216,9 @@ describe('CupsClient', () => {
     fakeCups((_, args) =>
       args.includes('not-completed') ? '' : COMPLETED,
     );
-    await expect(cups.waitForJob('Queue-8', wait)).rejects.toThrow(
+    await expect(
+      cups.waitForJob('Queue-8', wait),
+    ).rejects.toThrow(
       'CUPS job Queue-8 did not complete (canceled-at-device): Unable to add document to print job.',
     );
   });
@@ -234,8 +245,8 @@ describe('CupsClient', () => {
     });
     await cups.waitForJob('Queue-9', {
       ...wait,
-      retryDelaysMs: [0, 0, 0],
       log,
+      retryDelaysMs: [0, 0, 0],
     });
     expect(commands()).toContain('cupsenable Queue');
     expect(commands()).not.toContain('cancel Queue-9');
@@ -255,8 +266,8 @@ describe('CupsClient', () => {
     await expect(
       cups.waitForJob('Queue-9', {
         ...wait,
-        retryDelaysMs: [0, 0, 0],
         log,
+        retryDelaysMs: [0, 0, 0],
       }),
     ).rejects.toThrow(
       'CUPS stopped Queue after 3 retries: Unable to add document to print job.',
@@ -296,9 +307,9 @@ describe('CupsClient', () => {
     });
     await expect(
       cups.waitForJob('Queue-9', {
-        waitMs: 1000,
         pollMs: 0,
         retryDelaysMs: [15_000],
+        waitMs: 1000,
       }),
     ).rejects.toThrow('after 0 retries');
     expect(commands()).toContain('cancel Queue-9');
@@ -313,7 +324,7 @@ describe('CupsClient', () => {
           : '',
     );
     await expect(
-      cups.waitForJob('Queue-9', { waitMs: 0, pollMs: 0 }),
+      cups.waitForJob('Queue-9', { pollMs: 0, waitMs: 0 }),
     ).rejects.toThrow(
       'CUPS job Queue-9 did not finish within 0 seconds and was canceled.',
     );

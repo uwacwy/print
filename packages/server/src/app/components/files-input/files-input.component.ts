@@ -27,27 +27,28 @@ import { fromEvent } from 'rxjs';
   template: ``,
 })
 export class FilesInput implements FormValueControl<File[]> {
-  readonly #host = inject<ElementRef<HTMLInputElement>>(ElementRef);
-
-  readonly value = model<File[]>([]);
-
-  readonly touched = input<boolean>(false);
-  readonly touch = output<void>();
+  readonly dirty = input<boolean>(false);
 
   readonly disabled = input<boolean>(false);
+
   readonly disabledReasons = input<
     readonly WithOptionalFieldTree<DisabledReason>[]
   >([]);
-  readonly readonly = input<boolean>(false);
-  readonly hidden = input<boolean>(false);
-  readonly invalid = input<boolean>(false);
   readonly errors = input<
     readonly WithOptionalFieldTree<ValidationError>[]
   >([]);
-  readonly pending = input<boolean>(false);
-  readonly dirty = input<boolean>(false);
+
+  readonly hidden = input<boolean>(false);
+  readonly invalid = input<boolean>(false);
   readonly name = input<string>('');
+  readonly pending = input<boolean>(false);
+  readonly readonly = input<boolean>(false);
   readonly required = input<boolean>(false);
+  readonly touch = output<void>();
+  readonly touched = input<boolean>(false);
+  readonly value = model<File[]>([]);
+  readonly #host =
+    inject<ElementRef<HTMLInputElement>>(ElementRef);
 
   constructor() {
     const host = this.#host.nativeElement;
@@ -61,7 +62,9 @@ export class FilesInput implements FormValueControl<File[]> {
 
     fromEvent(host, 'change')
       .pipe(takeUntilDestroyed())
-      .subscribe(() => this.value.set(Array.from(host.files ?? [])));
+      .subscribe(() =>
+        this.value.set(Array.from(host.files ?? [])),
+      );
   }
 
   focus(options?: FocusOptions): void {

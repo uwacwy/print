@@ -1,27 +1,32 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { describe, expect, it } from 'vitest';
+
 import { CreatedPrinterComponent } from './created-printer.component';
 
 describe('CreatedPrinterComponent', () => {
-  const create = (serverUrl: string | null) => {
-    TestBed.configureTestingModule({ providers: [provideRouter([])] });
-    const fixture = TestBed.createComponent(CreatedPrinterComponent);
+  const create = (serverUrl: null | string) => {
+    TestBed.configureTestingModule({
+      providers: [provideRouter([])],
+    });
+    const fixture = TestBed.createComponent(
+      CreatedPrinterComponent,
+    );
     fixture.componentRef.setInput('created', {
+      agentToken: 'a'.repeat(43),
       printer: {
-        id: 2,
-        slug: 'front',
-        name: 'Front',
-        queue: 'cups://Front',
-        coverPage: false,
-        lastSeenAt: null,
         activeJobs: 0,
+        coverPage: false,
         failedJobs: 0,
+        id: 2,
+        lastSeenAt: null,
+        name: 'Front',
         online: false,
         pin: null,
         qrEpoch: 0,
+        queue: 'cups://Front',
+        slug: 'front',
       },
-      agentToken: 'a'.repeat(43),
       serverUrl,
     });
     fixture.detectChanges();

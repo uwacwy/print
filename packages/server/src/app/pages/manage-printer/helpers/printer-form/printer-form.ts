@@ -4,24 +4,25 @@ import type {
 } from '../../../../services/printer/printer.service';
 
 export const NAME_MAX_LENGTH = 100;
-export const SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+export const SLUG_PATTERN =
+  /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 
 export type PrinterModel = PrinterInput;
 
 export const emptyPrinterModel = (): PrinterModel => ({
-  name: '',
-  slug: '',
-  queue: '',
   coverPage: false,
+  name: '',
+  queue: '',
+  slug: '',
 });
 
 export const toPrinterModel = (
   printer: PrinterSummary,
 ): PrinterModel => ({
-  name: printer.name,
-  slug: printer.slug,
-  queue: printer.queue,
   coverPage: printer.coverPage,
+  name: printer.name,
+  queue: printer.queue,
+  slug: printer.slug,
 });
 
 /** Title of the management page, following the name being edited. */

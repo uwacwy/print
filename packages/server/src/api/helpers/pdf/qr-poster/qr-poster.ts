@@ -1,10 +1,11 @@
 import {
   PDFDocument,
+  type PDFPage,
   PDFString,
   StandardFonts,
-  type PDFPage,
 } from 'pdf-lib';
 import QRCode from 'qrcode';
+
 import {
   BLACK,
   drawCentered,
@@ -16,44 +17,27 @@ import {
 } from '../pdf-layout/pdf-layout';
 
 export interface QrPosterOptions {
-  siteTitle: string;
-  printerName: string;
-  /** Encoded in the QR code and linked from the page; may carry an upload token. */
-  url: string;
+  date: Date;
   /** Short, typeable address printed under the code with the PIN; defaults to `url`. */
   displayUrl?: string;
-  date: Date;
+  /** Printer PIN (###-###-###) for visitors who type the address instead of scanning; without one, only the QR code is offered. */
+  pin?: null | string;
+  printerName: string;
+  siteTitle: string;
   timeZone?: string;
+  /** Encoded in the QR code and linked from the page; may carry an upload token. */
+  url: string;
   validFrom?: Date;
   validUntil?: Date;
-  /** Printer PIN (###-###-###) for visitors who type the address instead of scanning; without one, only the QR code is offered. */
-  pin?: string | null;
-}
-
-/** Makes a rectangle of the page open `url` when clicked in a PDF viewer. */
-function addLink(
-  pdf: PDFDocument,
-  page: PDFPage,
-  url: string,
-  [x, y, width, height]: [number, number, number, number],
-): void {
-  const annotation = pdf.context.register(
-    pdf.context.obj({
-      Type: 'Annot',
-      Subtype: 'Link',
-      Rect: [x, y, x + width, y + height],
-      Border: [0, 0, 0],
-      A: { Type: 'Action', S: 'URI', URI: PDFString.of(url) },
-    }),
-  );
-  page.node.addAnnot(annotation);
 }
 
 export async function buildQrPoster(
   options: QrPosterOptions,
 ): Promise<Uint8Array> {
   const pdf = await PDFDocument.create();
-  pdf.setTitle(winAnsi(`${options.printerName} - print QR code`));
+  pdf.setTitle(
+    winAnsi(`${options.printerName} - print QR code`),
+  );
   const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
   const regular = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
@@ -101,11 +85,11 @@ export async function buildQrPoster(
         continue;
       }
       page.drawRectangle({
+        color: BLACK,
+        height: cell,
+        width: cell,
         x: qrLeft + (col + quietZone) * cell,
         y: qrTop - (row + quietZone + 1) * cell,
-        width: cell,
-        height: cell,
-        color: BLACK,
       });
     }
   }
@@ -142,7 +126,14 @@ export async function buildQrPoster(
       PAGE_WIDTH - MARGIN * 2,
       displaySize + 8,
     ]);
-    drawCentered(page, 'and enter PIN', regular, 14, nextLine - 56, GRAY);
+    drawCentered(
+      page,
+      'and enter PIN',
+      regular,
+      14,
+      nextLine - 56,
+      GRAY,
+    );
     drawCentered(page, options.pin, mono, 26, nextLine - 84);
     nextLine -= 112;
   }
@@ -163,4 +154,23 @@ export async function buildQrPoster(
     );
   }
   return pdf.save();
+}
+
+/** Makes a rectangle of the page open `url` when clicked in a PDF viewer. */
+function addLink(
+  pdf: PDFDocument,
+  page: PDFPage,
+  url: string,
+  [x, y, width, height]: [number, number, number, number],
+): void {
+  const annotation = pdf.context.register(
+    pdf.context.obj({
+      A: { S: 'URI', Type: 'Action', URI: PDFString.of(url) },
+      Border: [0, 0, 0],
+      Rect: [x, y, x + width, y + height],
+      Subtype: 'Link',
+      Type: 'Annot',
+    }),
+  );
+  page.node.addAnnot(annotation);
 }

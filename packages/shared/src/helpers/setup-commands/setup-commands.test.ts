@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import {
   agentSetupCommands,
   curlEnrollCommand,
@@ -12,9 +13,9 @@ import {
 
 const server = 'https://print.example.org';
 const credentials = {
-  serverUrl: server,
   agentToken: 'tok_123',
   printerUri: 'cups://HP-LaserJet',
+  serverUrl: server,
 };
 
 describe('setup commands', () => {
@@ -77,7 +78,10 @@ describe('setup commands', () => {
 describe('setup command lists', () => {
   it('offers curl and npx for enrollment', () => {
     const commands = enrollSetupCommands(server, 'enroll_tok');
-    expect(commands.map(({ id }) => id)).toEqual(['curl', 'npx']);
+    expect(commands.map(({ id }) => id)).toEqual([
+      'curl',
+      'npx',
+    ]);
     expect(commands[1]!.command).toContain(
       '--print-enroll-token enroll_tok',
     );

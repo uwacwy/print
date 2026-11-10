@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { addPrinter } from '../../../realtime/test-support';
 import { uploadForm, useApiServer } from '../../test-support';
 
@@ -14,8 +15,8 @@ describe('requireSameOrigin', () => {
     expect(
       (
         await api.postUpload(await uploadForm(), {
-          'x-print-upload': '1',
           'sec-fetch-site': 'cross-site',
+          'x-print-upload': '1',
         })
       ).status,
     ).toBe(403);

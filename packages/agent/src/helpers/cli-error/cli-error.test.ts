@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { CliError, exitCodeFor, expectedFailure } from './cli-error';
+
 import { ServerError } from '../enroll-client/enroll-client';
+import {
+  CliError,
+  exitCodeFor,
+  expectedFailure,
+} from './cli-error';
 
 describe('cli-error', () => {
   it('maps exit codes', () => {
@@ -20,8 +25,8 @@ describe('cli-error', () => {
     );
     expect(expectedFailure(cancelled)).toEqual(
       expect.objectContaining({
-        message: 'Cancelled.',
         exitCode: 130,
+        message: 'Cancelled.',
       }),
     );
 
@@ -29,8 +34,8 @@ describe('cli-error', () => {
       expectedFailure(new ServerError('Slug taken.', 409)),
     ).toEqual(
       expect.objectContaining({
-        message: 'Slug taken.',
         exitCode: 1,
+        message: 'Slug taken.',
       }),
     );
 

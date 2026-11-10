@@ -1,4 +1,7 @@
-export const posterNotice = (name: string, agentOnline: boolean) =>
+export const posterNotice = (
+  name: string,
+  agentOnline: boolean,
+) =>
   agentOnline
     ? `QR poster sent to ${name}.`
     : `QR poster queued. It prints when the ${name} agent is online.`;

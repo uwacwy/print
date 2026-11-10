@@ -1,5 +1,11 @@
+import {
+  isAllowedServerUrl,
+  slugify,
+} from '@uwacwy/print-shared';
 import { homedir } from 'node:os';
-import { isAllowedServerUrl, slugify } from '@uwacwy/print-shared';
+
+import type { InstallFlags } from './command';
+
 import { isInteractive, type LocalContext } from '../../context';
 import {
   CliError,
@@ -7,23 +13,23 @@ import {
   expectedFailure,
 } from '../../helpers/cli-error/cli-error';
 import {
-  configCandidates,
-  defaultWriteTarget,
-  missingSettingsMessage,
-  type AgentConfig,
-} from '../../helpers/config/config';
-import {
   configExists,
   firstWritable,
   writeConfig,
 } from '../../helpers/config-file/config-file';
 import {
+  type AgentConfig,
+  configCandidates,
+  defaultWriteTarget,
+  missingSettingsMessage,
+} from '../../helpers/config/config';
+import {
   cupsQueueName,
   defaultPrinterName,
   discover,
+  type DiscoveredPrinter,
   formatDiscovery,
   missingQueueProblem,
-  type DiscoveredPrinter,
 } from '../../helpers/discovery/discovery';
 import {
   enroll,
@@ -42,16 +48,64 @@ import {
   satisfiesMinimum,
 } from '../../helpers/node-version/node-version';
 import { serviceScope } from '../../helpers/systemd/systemd';
-import type { InstallFlags } from './command';
 
-type Prompts = typeof import('../../prompts/prompts');
 type Env = NodeJS.ProcessEnv;
+type Prompts = typeof import('../../prompts/prompts');
 
 export default function install(
   this: LocalContext,
   flags: InstallFlags,
-): Promise<void | Error> {
+): Promise<Error | void> {
   return main(this, flags).catch(expectedFailure);
+}
+
+async function enrollPrinter(
+  serverUrl: string,
+  enrollToken: string,
+  printer: DiscoveredPrinter,
+  flags: InstallFlags,
+  prompts: Prompts | undefined,
+): Promise<{ agentToken: string; name: string; slug: string }> {
+  const name =
+    flags.name ??
+    (prompts
+      ? await prompts.promptName(printer.name)
+      : defaultName(printer.name));
+  let slug =
+    flags.slug ??
+    (prompts ? await prompts.promptSlug(name) : slugify(name));
+  if (!slug) {
+    throw new CliError(
+      `Could not make a slug from "${name}"; give --slug.`,
+      EXIT_USAGE,
+    );
+  }
+  for (;;) {
+    try {
+      const { agentToken, printer: created } = await enroll(
+        serverUrl,
+        enrollToken,
+        {
+          name,
+          queue: printer.uri,
+          slug,
+        },
+      );
+      return { ...created, agentToken };
+    } catch (error) {
+      if (!(
+        prompts &&
+        error instanceof ServerError &&
+        error.status === 409
+      )) {
+        throw error;
+      }
+      slug = await prompts.promptSlug(
+        name,
+        `"${slug}" is taken; choose another slug`,
+      );
+    }
+  }
 }
 
 /** An environment variable, validated like the matching flag. */
@@ -78,7 +132,7 @@ async function main(
   context: LocalContext,
   flags: InstallFlags,
 ): Promise<void> {
-  const { env, stdout, stderr } = context.process;
+  const { env, stderr, stdout } = context.process;
   const say = (line: string) => stdout.write(`${line}\n`);
   if (!satisfiesMinimum(context.process.version)) {
     throw new CliError(
@@ -129,19 +183,24 @@ async function main(
       ? undefined
       : fromEnv(env, 'PRINT_ENROLL_TOKEN', parseEnrollToken));
   const printerUri =
-    flags.printerUri ?? fromEnv(env, 'PRINTER_URI', parsePrinterUri);
+    flags.printerUri ??
+    fromEnv(env, 'PRINTER_URI', parsePrinterUri);
 
   if (!interactive) {
     const missing = [
       ...(serverUrl ? [] : ['PRINT_SERVER_URL']),
-      ...(agentToken || enrollToken ? [] : ['PRINT_ENROLL_TOKEN']),
+      ...(agentToken || enrollToken
+        ? []
+        : ['PRINT_ENROLL_TOKEN']),
       ...(printerUri ? [] : ['PRINTER_URI']),
     ];
     if (missing.length) {
       const printers = printerUri
         ? undefined
         : formatDiscovery(
-            await discover(['cups', 'ipp'], { mdnsTimeoutMs: 3000 }),
+            await discover(['cups', 'ipp'], {
+              mdnsTimeoutMs: 3000,
+            }),
           );
       throw new CliError(
         missingSettingsMessage(missing, candidates, printers),
@@ -154,7 +213,9 @@ async function main(
     : undefined;
 
   serverUrl ??= await prompts!.promptServerUrl();
-  if (!isAllowedServerUrl(serverUrl, { insecure: flags.insecure })) {
+  if (
+    !isAllowedServerUrl(serverUrl, { insecure: flags.insecure })
+  ) {
     throw new CliError(
       `${serverUrl} must use https:// (plain http:// is allowed only on localhost, or with --insecure).`,
       EXIT_USAGE,
@@ -187,20 +248,22 @@ async function main(
     say(`Connected to "${reported.name}" (${reported.slug}).`);
   }
   const config: AgentConfig = {
-    PRINT_SERVER_URL: serverUrl,
     PRINT_AGENT_TOKEN: agentToken!,
+    PRINT_SERVER_URL: serverUrl,
     PRINTER_URI: printer.uri,
   };
 
   const hostWide = scope === 'system' && flags.service;
   try {
-    const service = hostWide ? await import('./service') : undefined;
+    const service = hostWide
+      ? await import('./service')
+      : undefined;
     const gid = service
       ? await service.ensureServiceUser()
       : undefined;
     await writeConfig(target, config, {
-      mode: hostWide ? 0o640 : 0o600,
       gid,
+      mode: hostWide ? 0o640 : 0o600,
     });
   } catch (error) {
     if (enrollToken) {
@@ -215,10 +278,10 @@ async function main(
   if (flags.service) {
     const { installService } = await import('./service');
     await installService({
-      scope,
       configPath: target,
       insecure: flags.insecure,
       log: say,
+      scope,
     });
   } else {
     say(
@@ -237,7 +300,7 @@ async function resolvePrinter(
   }
   const queue = cupsQueueName(uri);
   if (!queue) {
-    return { uri, name: defaultPrinterName(uri, []) };
+    return { name: defaultPrinterName(uri, []), uri };
   }
   const discoveries = await discover(['cups']);
   const problem = missingQueueProblem(queue, discoveries);
@@ -245,63 +308,12 @@ async function resolvePrinter(
     throw new CliError(problem.message, EXIT_USAGE);
   }
   return {
-    uri,
     name: defaultPrinterName(
       uri,
       discoveries.flatMap((discovery) => discovery.printers),
     ),
+    uri,
   };
-}
-
-async function enrollPrinter(
-  serverUrl: string,
-  enrollToken: string,
-  printer: DiscoveredPrinter,
-  flags: InstallFlags,
-  prompts: Prompts | undefined,
-): Promise<{ name: string; slug: string; agentToken: string }> {
-  const name =
-    flags.name ??
-    (prompts
-      ? await prompts.promptName(printer.name)
-      : defaultName(printer.name));
-  let slug =
-    flags.slug ??
-    (prompts ? await prompts.promptSlug(name) : slugify(name));
-  if (!slug) {
-    throw new CliError(
-      `Could not make a slug from "${name}"; give --slug.`,
-      EXIT_USAGE,
-    );
-  }
-  for (;;) {
-    try {
-      const { printer: created, agentToken } = await enroll(
-        serverUrl,
-        enrollToken,
-        {
-          name,
-          slug,
-          queue: printer.uri,
-        },
-      );
-      return { ...created, agentToken };
-    } catch (error) {
-      if (
-        !(
-          prompts &&
-          error instanceof ServerError &&
-          error.status === 409
-        )
-      ) {
-        throw error;
-      }
-      slug = await prompts.promptSlug(
-        name,
-        `"${slug}" is taken; choose another slug`,
-      );
-    }
-  }
 }
 
 const defaultName = (name: string): string => {

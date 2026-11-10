@@ -10,11 +10,12 @@ import { MsalService } from '@azure/msal-angular';
 import {
   LIVE_NAMESPACE,
   type LiveEvent,
-  type LiveServerEvents
+  type LiveServerEvents,
 } from '@uwacwy/print-shared';
 import { firstValueFrom, Observable, share } from 'rxjs';
 import { io, type Socket } from 'socket.io-client';
 import { createRouting } from 'ts-routes';
+
 import { root } from '../../../shared/routes/routes';
 import { CLIENT_ENVIRONMENT } from '../../auth/client-environment';
 import { getApiScope } from '../../auth/msal.config';
@@ -22,9 +23,12 @@ import { getApiScope } from '../../auth/msal.config';
 export type { LiveEvent };
 
 /** The socket.io client factory; replaced in tests. */
-export const SOCKET_IO = new InjectionToken<typeof io>('SOCKET_IO', {
-  factory: () => io,
-});
+export const SOCKET_IO = new InjectionToken<typeof io>(
+  'SOCKET_IO',
+  {
+    factory: () => io,
+  },
+);
 
 const MIN_RETRY_MS = 1000;
 const MAX_RETRY_MS = 30_000;
@@ -37,27 +41,16 @@ const $ = createRouting(root);
  */
 @Service()
 export class LiveEventsService {
-  readonly #msal = inject(MsalService);
-  readonly #clientEnvironment = inject(CLIENT_ENVIRONMENT);
-  readonly #io = inject(SOCKET_IO);
-  readonly #isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
-  readonly #onlinePrinterIds = signal<ReadonlySet<number>>(
-    new Set(),
-  );
   readonly #connected = signal(false);
-
-  readonly onlinePrinterIds = this.#onlinePrinterIds.asReadonly();
   readonly connected = this.#connected.asReadonly();
-
-  readonly events: Observable<LiveEvent> = new Observable<LiveEvent>(
-    (subscriber) => {
+  readonly events: Observable<LiveEvent> =
+    new Observable<LiveEvent>((subscriber) => {
       if (!this.#isBrowser) {
         return;
       }
       const socket: Socket<LiveServerEvents> = this.#io(
         LIVE_NAMESPACE,
         {
-          path: $.ws(),
           // Called on every attempt, so reconnects pick up refreshed tokens.
           auth: (send) => {
             void this.#accessToken().then(
@@ -65,6 +58,7 @@ export class LiveEventsService {
               () => send({}),
             );
           },
+          path: $.ws(),
           reconnectionDelay: MIN_RETRY_MS,
           reconnectionDelayMax: MAX_RETRY_MS,
         },
@@ -108,26 +102,42 @@ export class LiveEventsService {
         socket.disconnect();
         this.#connected.set(false);
       };
-    },
-  ).pipe(share());
+    }).pipe(share());
+  readonly #onlinePrinterIds = signal<ReadonlySet<number>>(
+    new Set(),
+  );
+  readonly onlinePrinterIds =
+    this.#onlinePrinterIds.asReadonly();
+  readonly #clientEnvironment = inject(CLIENT_ENVIRONMENT);
+
+  readonly #io = inject(SOCKET_IO);
+  readonly #isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
+
+  readonly #msal = inject(MsalService);
 
   async #accessToken(): Promise<string> {
     const scope = getApiScope(this.#clientEnvironment);
     const instance = this.#msal.instance;
     const account =
-      instance.getActiveAccount() ?? instance.getAllAccounts()[0];
+      instance.getActiveAccount() ??
+      instance.getAllAccounts()[0];
     if (!scope || !account) {
       throw new Error('Sign in to receive live updates.');
     }
     const result = await firstValueFrom(
-      this.#msal.acquireTokenSilent({ scopes: [scope], account }),
+      this.#msal.acquireTokenSilent({
+        account,
+        scopes: [scope],
+      }),
     );
     return result.accessToken;
   }
 
   #apply(event: LiveEvent): void {
     if (event.type === 'snapshot') {
-      this.#onlinePrinterIds.set(new Set(event.onlinePrinterIds));
+      this.#onlinePrinterIds.set(
+        new Set(event.onlinePrinterIds),
+      );
     } else if (event.type === 'agent') {
       this.#onlinePrinterIds.update((current) => {
         const next = new Set(current);

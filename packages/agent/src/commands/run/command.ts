@@ -1,4 +1,5 @@
 import { buildCommand } from '@stricli/core';
+
 import type { LocalContext } from '../../context';
 
 export interface RunFlags {
@@ -6,25 +7,11 @@ export interface RunFlags {
   readonly insecure?: boolean;
 }
 
-export const runCommand = buildCommand<RunFlags, [], LocalContext>({
-  loader: () => import('./impl'),
-  parameters: {
-    flags: {
-      config: {
-        kind: 'parsed',
-        parse: String,
-        brief: 'Config file to use instead of searching for one',
-        placeholder: 'path',
-        optional: true,
-      },
-      insecure: {
-        kind: 'boolean',
-        brief:
-          'Allow a plain http:// print server that is not on localhost',
-        optional: true,
-      },
-    },
-  },
+export const runCommand = buildCommand<
+  RunFlags,
+  [],
+  LocalContext
+>({
   docs: {
     brief: 'Connect to the print server and print its jobs',
     fullDescription: [
@@ -34,5 +21,23 @@ export const runCommand = buildCommand<RunFlags, [], LocalContext>({
       '/etc/uwacwy-print-agent.env is used. At a terminal, missing settings are prompted for',
       'and saved so the next run needs no prompts.',
     ].join('\n'),
+  },
+  loader: () => import('./impl'),
+  parameters: {
+    flags: {
+      config: {
+        brief: 'Config file to use instead of searching for one',
+        kind: 'parsed',
+        optional: true,
+        parse: String,
+        placeholder: 'path',
+      },
+      insecure: {
+        brief:
+          'Allow a plain http:// print server that is not on localhost',
+        kind: 'boolean',
+        optional: true,
+      },
+    },
   },
 });

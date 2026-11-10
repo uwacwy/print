@@ -1,11 +1,18 @@
-import { Component, input, signal } from '@angular/core';
 import type { SetupCommand } from '@uwacwy/print-shared';
+
+import { Component, input, signal } from '@angular/core';
 
 let nextId = 0;
 
 /** Copyable shell commands and snippets, one per `SetupCommand`. */
 @Component({
   selector: 'app-setup-commands',
+  styles: `
+    .setup-command {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+  `,
   template: `
     <ul class="list-unstyled d-flex flex-column gap-3 mb-0">
       @for (item of commands(); track item.id) {
@@ -32,18 +39,12 @@ let nextId = 0;
       announcement()
     }}</span>
   `,
-  styles: `
-    .setup-command {
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-    }
-  `,
 })
 export class SetupCommandsComponent {
   readonly commands = input.required<readonly SetupCommand[]>();
-  protected readonly prefix = `setup-command-${nextId++}-`;
-  protected readonly copied = signal<string | null>(null);
   protected readonly announcement = signal('');
+  protected readonly copied = signal<null | string>(null);
+  protected readonly prefix = `setup-command-${nextId++}-`;
 
   protected copy(item: SetupCommand): void {
     // `navigator.clipboard` is undefined outside secure contexts.

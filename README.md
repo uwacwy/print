@@ -38,10 +38,10 @@ services:
     environment:
       UPLOAD_TOKEN_SECRET: ${UPLOAD_TOKEN_SECRET:?set UPLOAD_TOKEN_SECRET} # openssl rand -base64 48
       PUBLIC_URL: https://print.example.org
-      TRUST_PROXY: "true" # only behind a reverse proxy
+      TRUST_PROXY: 'true' # only behind a reverse proxy
       TIME_ZONE: America/Denver
     ports:
-      - "8080:8080"
+      - '8080:8080'
     volumes:
       - print-data:/data
 

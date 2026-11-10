@@ -1,5 +1,6 @@
 export const PIN_DIGITS = 9;
-export const PIN_HINT = 'Enter the 9-digit PIN posted at the printer.';
+export const PIN_HINT =
+  'Enter the 9-digit PIN posted at the printer.';
 /** Matches the formatted PIN, e.g. `123-456-789`. */
 export const PIN_PATTERN = /^\d{3}-\d{3}-\d{3}$/;
 /** The formatted length, so typing stops at ###-###-###. */

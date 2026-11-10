@@ -1,10 +1,11 @@
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
 import {
   agentJobFilePath,
   agentJobStatusPath,
 } from '@uwacwy/print-shared';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { describe, expect, it } from 'vitest';
+
 import { addPrinter } from '../../../realtime/test-support';
 import { uploadForm, useApiServer } from '../../test-support';
 
@@ -21,14 +22,14 @@ describe('agent router', () => {
     );
     expect(response.status).toBe(201);
     const body = (await response.json()) as {
-      jobId: string;
       agentOnline: boolean;
+      jobId: string;
     };
     expect(body.agentOnline).toBe(true);
 
     await expect(agent.next()).resolves.toEqual({
-      type: 'jobs',
       jobs: [{ id: body.jobId, title: 'Intake packet' }],
+      type: 'jobs',
     });
 
     const unauthorized = await fetch(
@@ -43,7 +44,9 @@ describe('agent router', () => {
       },
     );
     expect(file.status).toBe(200);
-    expect(file.headers.get('content-type')).toBe('application/pdf');
+    expect(file.headers.get('content-type')).toBe(
+      'application/pdf',
+    );
     expect(
       Buffer.from(await file.arrayBuffer())
         .subarray(0, 5)
@@ -53,28 +56,28 @@ describe('agent router', () => {
     const report = await fetch(
       `http://${api.host}${agentJobStatusPath(body.jobId)}`,
       {
-        method: 'POST',
+        body: JSON.stringify({ status: 'printed' }),
         headers: {
           authorization: `Bearer ${token}`,
           'content-type': 'application/json',
         },
-        body: JSON.stringify({ status: 'printed' }),
+        method: 'POST',
       },
     );
     expect(report.status).toBe(200);
-    expect(existsSync(join(api.jobsDir, `${body.jobId}.pdf`))).toBe(
-      false,
-    );
+    expect(
+      existsSync(join(api.jobsDir, `${body.jobId}.pdf`)),
+    ).toBe(false);
 
     const again = await fetch(
       `http://${api.host}${agentJobStatusPath(body.jobId)}`,
       {
-        method: 'POST',
+        body: JSON.stringify({ status: 'printed' }),
         headers: {
           authorization: `Bearer ${token}`,
           'content-type': 'application/json',
         },
-        body: JSON.stringify({ status: 'printed' }),
+        method: 'POST',
       },
     );
     expect(again.status).toBe(404);
@@ -88,26 +91,33 @@ describe('agent router', () => {
     const response = await api.postUpload(
       await uploadForm({ job__title: 'Intake packet' }),
     );
-    const { jobId } = (await response.json()) as { jobId: string };
+    const { jobId } = (await response.json()) as {
+      jobId: string;
+    };
     await agent.next();
 
     const report = await fetch(
       `http://${api.host}${agentJobStatusPath(jobId)}`,
       {
-        method: 'POST',
+        body: JSON.stringify({
+          error: 'jammed',
+          status: 'failed',
+        }),
         headers: {
           authorization: `Bearer ${token}`,
           'content-type': 'application/json',
         },
-        body: JSON.stringify({ status: 'failed', error: 'jammed' }),
+        method: 'POST',
       },
     );
     expect(report.status).toBe(200);
-    expect(existsSync(join(api.jobsDir, `${jobId}.pdf`))).toBe(true);
+    expect(existsSync(join(api.jobsDir, `${jobId}.pdf`))).toBe(
+      true,
+    );
     expect(
       api.db
         .prepare('SELECT status, error FROM jobs WHERE id = ?')
         .get(jobId),
-    ).toEqual({ status: 'failed', error: 'jammed' });
+    ).toEqual({ error: 'jammed', status: 'failed' });
   });
 });

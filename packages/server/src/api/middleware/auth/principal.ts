@@ -1,20 +1,7 @@
 import type { Request, Response } from 'express';
+
 import type { PrinterRow } from '../../helpers/database/database';
 import type { UploadTokenSource } from './upload-token/upload-token';
-
-/** Who a request was authenticated as; set on `req.user` by `authenticate()`. */
-export type Principal =
-  | { kind: 'entraUser'; id: string; roles: string[] }
-  | {
-      kind: 'uploadToken';
-      printer: PrinterRow;
-      source: UploadTokenSource;
-      notBefore: Date;
-      expiresAt: Date;
-    }
-  | { kind: 'pin'; printer: PrinterRow }
-  | { kind: 'agent'; printer: PrinterRow }
-  | { kind: 'enroll'; expiresAt: Date };
 
 /**
  * Why a strategy declined. `presented` is true when the request carried this strategy's kind
@@ -22,13 +9,27 @@ export type Principal =
  */
 export interface AuthChallenge {
   code: string;
+  details?: Record<string, unknown>;
   error: string;
-  status: 401 | 403 | 503;
   presented: boolean;
   /** WWW-Authenticate challenge for 401 responses. */
   scheme?: string;
-  details?: Record<string, unknown>;
+  status: 401 | 403 | 503;
 }
+
+/** Who a request was authenticated as; set on `req.user` by `authenticate()`. */
+export type Principal =
+  | { expiresAt: Date; kind: 'enroll' }
+  | {
+      expiresAt: Date;
+      kind: 'uploadToken';
+      notBefore: Date;
+      printer: PrinterRow;
+      source: UploadTokenSource;
+    }
+  | { id: string; kind: 'entraUser'; roles: string[] }
+  | { kind: 'agent'; printer: PrinterRow }
+  | { kind: 'pin'; printer: PrinterRow };
 
 export const isAuthChallenge = (
   value: unknown,
@@ -38,17 +39,19 @@ export const isAuthChallenge = (
   'code' in value &&
   'presented' in value;
 
-export function principal(request: Request): Principal {
-  if (!request.user) {
-    throw new Error('authenticate() must run before this handler.');
-  }
-  return request.user as Principal;
-}
-
 export function optionalPrincipal(
   request: Request,
 ): Principal | undefined {
   return request.user as Principal | undefined;
+}
+
+export function principal(request: Request): Principal {
+  if (!request.user) {
+    throw new Error(
+      'authenticate() must run before this handler.',
+    );
+  }
+  return request.user as Principal;
 }
 
 /** The printer loaded for the `:slug` route parameter, if any. */
@@ -60,15 +63,15 @@ export const routePrinter = (
 /** Records which credential submitted a job. */
 export function submittedBy(who: Principal): string {
   switch (who.kind) {
-    case 'entraUser':
-      return `entra:${who.id}`;
-    case 'uploadToken':
-      return `${who.source}:${who.notBefore.toISOString()}/${who.expiresAt.toISOString()}`;
-    case 'pin':
-      return 'pin';
     case 'agent':
       return 'agent';
     case 'enroll':
       return 'enroll';
+    case 'entraUser':
+      return `entra:${who.id}`;
+    case 'pin':
+      return 'pin';
+    case 'uploadToken':
+      return `${who.source}:${who.notBefore.toISOString()}/${who.expiresAt.toISOString()}`;
   }
 }

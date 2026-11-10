@@ -1,3 +1,5 @@
+import type { AddressInfo } from 'node:net';
+
 import express from 'express';
 import {
   lstatSync,
@@ -6,10 +8,10 @@ import {
   readlinkSync,
   rmSync,
 } from 'node:fs';
-import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
+
 import {
   type AccessLogEntry,
   accessLogMiddleware,
@@ -18,13 +20,13 @@ import {
 } from './access-log';
 
 const serve = (app: express.Express) =>
-  new Promise<{ url: string; close: () => Promise<void> }>(
+  new Promise<{ close: () => Promise<void>; url: string }>(
     (resolve) => {
       const server = app.listen(0, '127.0.0.1', () =>
         resolve({
-          url: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
           close: () =>
             new Promise((done) => server.close(() => done())),
+          url: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
         }),
       );
     },
@@ -50,10 +52,12 @@ describe('redactUrl', () => {
     expect(redactUrl('/printer/abc_DEF-1/install', false)).toBe(
       '/printer/REDACTED/install',
     );
-    expect(redactUrl('/printer/abc/install?token=x', false)).toBe(
-      '/printer/REDACTED/install?token=REDACTED',
+    expect(
+      redactUrl('/printer/abc/install?token=x', false),
+    ).toBe('/printer/REDACTED/install?token=REDACTED');
+    expect(redactUrl('/print/lobby', false)).toBe(
+      '/print/lobby',
     );
-    expect(redactUrl('/print/lobby', false)).toBe('/print/lobby');
   });
 
   it('redacts credential query values and keeps everything else', () => {
@@ -69,7 +73,10 @@ describe('redactUrl', () => {
       'https://print.example.org/auth/callback?code=REDACTED&state=y#frag',
     );
     expect(
-      redactUrl('/a?TOKEN=1&%74oken=2&Pin=3&access_token=4', false),
+      redactUrl(
+        '/a?TOKEN=1&%74oken=2&Pin=3&access_token=4',
+        false,
+      ),
     ).toBe(
       '/a?TOKEN=REDACTED&token=REDACTED&Pin=REDACTED&access_token=REDACTED',
     );
@@ -109,22 +116,24 @@ describe('accessLogMiddleware', () => {
 
     expect(entries).toHaveLength(2);
     expect(entries[0]).toMatchObject({
+      bytes: 12,
+      httpVersion: '1.1',
       ip: '127.0.0.1',
       method: 'GET',
-      url: '/print/lobby?token=REDACTED',
-      httpVersion: '1.1',
-      status: 200,
-      bytes: 12,
       referrer: `${server.url}/print/lobby?token=REDACTED`,
+      status: 200,
+      url: '/print/lobby?token=REDACTED',
       userAgent: 'vitest',
     });
     expect(entries[0]?.durationMs).toBeGreaterThanOrEqual(0);
     expect(entries[0]).not.toHaveProperty('aborted');
     expect(entries[1]).toMatchObject({
-      url: '/missing',
       status: 404,
+      url: '/missing',
     });
-    expect(JSON.stringify(entries)).not.toContain('secret-token');
+    expect(JSON.stringify(entries)).not.toContain(
+      'secret-token',
+    );
     expect(JSON.stringify(entries)).not.toContain('older-token');
   });
 });
@@ -135,7 +144,7 @@ describe('openAccessLog', () => {
     dirs
       .splice(0)
       .forEach((dir) =>
-        rmSync(dir, { recursive: true, force: true }),
+        rmSync(dir, { force: true, recursive: true }),
       ),
   );
 
@@ -164,11 +173,13 @@ describe('openAccessLog', () => {
     expect(JSON.parse(lines[0] ?? '')).toMatchObject({
       level: 'info',
       method: 'GET',
-      url: '/print/lobby?token=REDACTED',
       status: 200,
       timestamp: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
+      url: '/print/lobby?token=REDACTED',
     });
-    expect(openAccessLog({ dir, maxDays: 3 })).not.toBe(accessLog);
+    expect(openAccessLog({ dir, maxDays: 3 })).not.toBe(
+      accessLog,
+    );
     await openAccessLog({ dir, maxDays: 3 }).close();
   });
 });

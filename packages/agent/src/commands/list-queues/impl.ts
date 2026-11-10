@@ -1,4 +1,6 @@
 import type { LocalContext } from '../../context';
+import type { ListQueuesFlags } from './command';
+
 import {
   CliError,
   EXIT_USAGE,
@@ -8,12 +10,11 @@ import {
   formatDiscovery,
   type PrinterKind,
 } from '../../helpers/discovery/discovery';
-import type { ListQueuesFlags } from './command';
 
 export default async function listQueues(
   this: LocalContext,
   { cups, ipp, json, timeout }: ListQueuesFlags,
-): Promise<void | Error> {
+): Promise<Error | void> {
   if (!(timeout > 0 && timeout <= 60)) {
     return new CliError(
       '--timeout must be between 0 and 60 seconds.',

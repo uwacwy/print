@@ -1,37 +1,40 @@
 import { existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { beforeEach, describe, expect, it } from 'vitest';
-import {
-  inspectUploadToken,
-  verifyUploadToken,
-} from '../../middleware/auth/upload-token/upload-token';
+
 import {
   addPrinter,
   testEntra,
   testUploadConfig,
 } from '../../../realtime/test-support';
+import { getPrinterByToken } from '../../helpers/database/database';
+import { enqueueJob } from '../../helpers/database/jobs';
+import {
+  inspectUploadToken,
+  verifyUploadToken,
+} from '../../middleware/auth/upload-token/upload-token';
 import {
   testPublicUrl,
   uploadForm,
   useApiServer,
 } from '../../test-support';
-import { getPrinterByToken } from '../../helpers/database/database';
-import { enqueueJob } from '../../helpers/database/jobs';
 
 describe('printers router', () => {
-  const { entra, bearer } = testEntra({ adminRole: 'PrintAdmin' });
+  const { bearer, entra } = testEntra({
+    adminRole: 'PrintAdmin',
+  });
   const api = useApiServer({ entra });
   const roleAdmin = () =>
     bearer({
-      sub: 'role-admin',
       roles: ['PrintAdmin'],
       scp: 'Printers.Manage',
+      sub: 'role-admin',
     });
   const adminBearer = () =>
     bearer({
-      sub: 'admin',
       roles: ['PrintAdmin'],
       scp: 'Printers.Manage',
+      sub: 'admin',
     });
 
   describe('printer CRUD', () => {
@@ -46,22 +49,22 @@ describe('printers router', () => {
       const createdResponse = await fetch(
         `${api.baseUrl}/api/printers`,
         {
-          method: 'POST',
-          headers: json,
           body: JSON.stringify({
-            slug: 'front-office',
+            coverPage: true,
             name: 'Front Office',
             queue: 'cups://Front_Office',
-            coverPage: true,
+            slug: 'front-office',
           }),
+          headers: json,
+          method: 'POST',
         },
       );
       const created = await createdResponse.json();
       expect(createdResponse.status).toBe(201);
       expect(created.printer).toMatchObject({
-        slug: 'front-office',
-        name: 'Front Office',
         coverPage: true,
+        name: 'Front Office',
+        slug: 'front-office',
       });
       expect(created.agentToken).toBeTruthy();
       expect(created.printer).not.toHaveProperty('token');
@@ -71,18 +74,18 @@ describe('printers router', () => {
       );
       expect(publicResponse.status).toBe(200);
       expect(await publicResponse.json()).toEqual({
-        slug: 'front-office',
-        name: 'Front Office',
-        coverPage: true,
         access: {
-          signedIn: false,
           pinEnabled: false,
+          signedIn: false,
           token: null,
           tokenExpiresAt: null,
         },
+        coverPage: true,
+        name: 'Front Office',
+        slug: 'front-office',
         upload: {
-          maxDocuments: testUploadConfig.maxDocumentsPerJob,
           maxCopies: testUploadConfig.maxCopies,
+          maxDocuments: testUploadConfig.maxDocumentsPerJob,
           maxUploadBytes: testUploadConfig.maxUploadBytes,
         },
       });
@@ -92,9 +95,9 @@ describe('printers router', () => {
         { headers: { authorization } },
       );
       expect(await managed.json()).toMatchObject({
+        access: { signedIn: true, token: null },
         id: created.printer.id,
         queue: 'cups://Front_Office',
-        access: { signedIn: true, token: null },
       });
 
       const list = await (
@@ -104,27 +107,27 @@ describe('printers router', () => {
       ).json();
       expect(list).toHaveLength(1);
       expect(list[0]).toMatchObject({
-        queue: 'cups://Front_Office',
         online: false,
+        queue: 'cups://Front_Office',
       });
 
       const updateResponse = await fetch(
         `${api.baseUrl}/api/printers/front-office`,
         {
-          method: 'PATCH',
-          headers: json,
           body: JSON.stringify({
-            slug: 'front-office',
+            coverPage: false,
             name: 'Reception',
             queue: 'cups://Front_Office',
-            coverPage: false,
+            slug: 'front-office',
           }),
+          headers: json,
+          method: 'PATCH',
         },
       );
       expect(updateResponse.status).toBe(200);
       expect(await updateResponse.json()).toMatchObject({
-        name: 'Reception',
         coverPage: false,
+        name: 'Reception',
       });
 
       const anonymousDelete = await fetch(
@@ -135,8 +138,8 @@ describe('printers router', () => {
       const deleteResponse = await fetch(
         `${api.baseUrl}/api/printers/front-office`,
         {
-          method: 'DELETE',
           headers: { authorization },
+          method: 'DELETE',
         },
       );
       expect(deleteResponse.status).toBe(204);
@@ -154,7 +157,9 @@ describe('printers router', () => {
 
     beforeEach(async () => {
       await api.start();
-      ({ id: printerId, token: agentToken } = addPrinter(api.db));
+      ({ id: printerId, token: agentToken } = addPrinter(
+        api.db,
+      ));
       admin = { authorization: await roleAdmin() };
     });
 
@@ -170,12 +175,16 @@ describe('printers router', () => {
     const post = (
       path: string,
       body?: unknown,
-      method: 'POST' | 'DELETE' = 'POST',
+      method: 'DELETE' | 'POST' = 'POST',
     ) =>
       fetch(`${api.baseUrl}/api/printers/front-office/${path}`, {
+        body:
+          body === undefined ? undefined : JSON.stringify(body),
+        headers: {
+          ...admin,
+          'content-type': 'application/json',
+        },
         method,
-        headers: { ...admin, 'content-type': 'application/json' },
-        body: body === undefined ? undefined : JSON.stringify(body),
       });
     const printer = () =>
       api.db
@@ -184,8 +193,8 @@ describe('printers router', () => {
         )
         .get(printerId) as {
         id: number;
-        slug: string;
         qr_epoch: number;
+        slug: string;
       };
 
     it('requires admin auth and 404s unknown printers', async () => {
@@ -207,8 +216,8 @@ describe('printers router', () => {
         const response = await fetch(
           `${api.baseUrl}/api/printers/missing/${path}`,
           {
-            method,
             headers: admin,
+            method,
           },
         );
         expect(response.status, `${method} ${path}`).toBe(404);
@@ -239,52 +248,56 @@ describe('printers router', () => {
       const notBefore = new Date(Date.now() + 3_600_000);
       const expiresAt = new Date(Date.now() + 5 * 3_600_000);
       const response = await post('qr-token', {
-        notBefore: notBefore.toISOString(),
         expiresAt: expiresAt.toISOString(),
+        notBefore: notBefore.toISOString(),
       });
       expect(response.status).toBe(201);
       const body = (await response.json()) as {
-        token: string;
-        path: string;
-        url: string;
-        notBefore: string;
         expiresAt: string;
+        notBefore: string;
+        path: string;
+        token: string;
+        url: string;
       };
       expect(body.path).toBe(
         `/print/front-office?token=${body.token}`,
       );
-      expect(body.url).toBe(`${testPublicUrl.origin}${body.path}`);
+      expect(body.url).toBe(
+        `${testPublicUrl.origin}${body.path}`,
+      );
       expect(body.token).toMatch(/^[A-Za-z0-9_-]{42}$/);
       expect(
         inspectUploadToken(testUploadConfig.access, body.token),
       ).toEqual({
-        source: 'qr',
-        printerId,
         epoch: 0,
-        notBefore: new Date(
-          Math.floor(notBefore.getTime() / 60_000) * 60_000,
-        ),
         expiresAt: new Date(
           Math.ceil(expiresAt.getTime() / 60_000) * 60_000,
         ),
+        notBefore: new Date(
+          Math.floor(notBefore.getTime() / 60_000) * 60_000,
+        ),
+        printerId,
+        source: 'qr',
       });
 
       const defaults = (await (
         await post('qr-token', {})
       ).json()) as {
-        notBefore: string;
         expiresAt: string;
+        notBefore: string;
       };
       // Tokens store whole minutes, so the window is rounded outward by up to a minute.
       const window =
         Date.parse(defaults.expiresAt) -
         Date.parse(defaults.notBefore);
       expect(window).toBeGreaterThanOrEqual(24 * 3_600_000);
-      expect(window).toBeLessThanOrEqual(24 * 3_600_000 + 60_000);
+      expect(window).toBeLessThanOrEqual(
+        24 * 3_600_000 + 60_000,
+      );
 
       const backwards = await post('qr-token', {
-        notBefore: expiresAt.toISOString(),
         expiresAt: notBefore.toISOString(),
+        notBefore: expiresAt.toISOString(),
       });
       expect(backwards.status).toBe(400);
     });
@@ -335,7 +348,7 @@ describe('printers router', () => {
 
       const disabled = (await (
         await post('pin', undefined, 'DELETE')
-      ).json()) as { pin: string | null };
+      ).json()) as { pin: null | string };
       expect(disabled.pin).toBeNull();
       const row = api.db
         .prepare('SELECT pin FROM printers WHERE id = ?')
@@ -347,14 +360,14 @@ describe('printers router', () => {
       const response = await fetch(
         `${api.baseUrl}/api/printers/front-office/qr-print`,
         {
-          method: 'POST',
           headers: admin,
+          method: 'POST',
         },
       );
       expect(response.status).toBe(202);
       const body = (await response.json()) as {
-        jobId: string;
         agentOnline: boolean;
+        jobId: string;
       };
       expect(body.agentOnline).toBe(false);
       const job = api.db
@@ -373,8 +386,8 @@ describe('printers router', () => {
       const response = await fetch(
         `${api.baseUrl}/api/printers/front-office/agent-token`,
         {
-          method: 'POST',
           headers: admin,
+          method: 'POST',
         },
       );
       expect(response.status).toBe(200);
@@ -384,20 +397,22 @@ describe('printers router', () => {
       };
       expect(body.printer.id).toBe(printerId);
       expect(body.agentToken).not.toBe(agentToken);
-      expect(getPrinterByToken(api.db, agentToken)).toBeUndefined();
-      expect(getPrinterByToken(api.db, body.agentToken)?.id).toBe(
-        printerId,
-      );
+      expect(
+        getPrinterByToken(api.db, agentToken),
+      ).toBeUndefined();
+      expect(
+        getPrinterByToken(api.db, body.agentToken)?.id,
+      ).toBe(printerId);
     });
 
     it('deletes every job and its file for one printer', async () => {
       const pdf = new TextEncoder().encode('%PDF-1.4');
       const job = {
-        printerId,
-        title: 'Return',
         copies: 1,
         originalName: 'return.pdf',
+        printerId,
         submittedBy: null,
+        title: 'Return',
         uploaderIp: '127.0.0.1',
       };
       const ids = [
@@ -409,8 +424,8 @@ describe('printers router', () => {
       const response = await fetch(
         `${api.baseUrl}/api/printers/front-office/jobs`,
         {
-          method: 'DELETE',
           headers: admin,
+          method: 'DELETE',
         },
       );
       expect(response.status).toBe(200);
@@ -431,11 +446,11 @@ describe('printers router', () => {
     it('requeues failed jobs that still have their document', async () => {
       const pdf = new TextEncoder().encode('%PDF-1.4');
       const job = {
-        printerId,
-        title: 'Return',
         copies: 1,
         originalName: 'return.pdf',
+        printerId,
         submittedBy: null,
+        title: 'Return',
         uploaderIp: '127.0.0.1',
       };
       const [kept, gone, queued] = [
@@ -452,7 +467,7 @@ describe('printers router', () => {
       const status = (id: string) =>
         api.db
           .prepare('SELECT status, error FROM jobs WHERE id = ?')
-          .get(id) as { status: string; error: string | null };
+          .get(id) as { error: null | string; status: string };
 
       const list = (await (
         await fetch(`${api.baseUrl}/api/printers`, {
@@ -465,8 +480,8 @@ describe('printers router', () => {
         fetch(
           `${api.baseUrl}/api/printers/front-office/jobs/retry`,
           {
-            method: 'POST',
             headers: admin,
+            method: 'POST',
           },
         );
       expect(
@@ -481,8 +496,8 @@ describe('printers router', () => {
       const response = await retry();
       expect(response.status).toBe(200);
       const body = (await response.json()) as {
-        retried: number;
         printer: { activeJobs: number; failedJobs: number };
+        retried: number;
       };
       expect(body.retried).toBe(1);
       expect(body.printer).toMatchObject({
@@ -490,12 +505,12 @@ describe('printers router', () => {
         failedJobs: 0,
       });
       expect(status(kept)).toEqual({
-        status: 'queued',
         error: null,
+        status: 'queued',
       });
       expect(status(gone)).toEqual({
-        status: 'expired',
         error: 'jammed',
+        status: 'expired',
       });
       expect(status(queued).status).toBe('queued');
     });
@@ -508,16 +523,16 @@ describe('printers router', () => {
 
       const response = await api.postUpload(await uploadForm());
       expect(response.status).toBe(201);
-      const { jobId, agentOnline } = (await response.json()) as {
-        jobId: string;
+      const { agentOnline, jobId } = (await response.json()) as {
         agentOnline: boolean;
+        jobId: string;
       };
       expect(agentOnline).toBe(false);
 
       const agent = await api.connectAgent(token);
       await expect(agent.next()).resolves.toEqual({
-        type: 'jobs',
         jobs: [{ id: jobId, title: 'intake' }],
+        type: 'jobs',
       });
     });
 
@@ -530,7 +545,9 @@ describe('printers router', () => {
         await adminBearer(),
       );
       expect(response.status).toBe(201);
-      const { jobId } = (await response.json()) as { jobId: string };
+      const { jobId } = (await response.json()) as {
+        jobId: string;
+      };
       expect(
         api.db
           .prepare('SELECT submitted_by FROM jobs WHERE id = ?')

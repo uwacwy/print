@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-import { createRequire } from "node:module";
-import { resolve } from "node:path";
+import { createRequire } from 'node:module';
+import { resolve } from 'node:path';
 
 const usage = `Usage: uwacwy-print-server [env-file]
 
@@ -9,13 +9,13 @@ Settings come from the environment, or from env-file (default: ./.env when prese
 existing environment variables win. See .env.example in this package.`;
 
 const [argument] = process.argv.slice(2);
-if (argument === "--help" || argument === "-h") {
+if (argument === '--help' || argument === '-h') {
   console.log(usage);
   process.exit(0);
 }
-if (argument === "--version" || argument === "-v") {
+if (argument === '--version' || argument === '-v') {
   console.log(
-    createRequire(import.meta.url)("../package.json").version,
+    createRequire(import.meta.url)('../package.json').version,
   );
   process.exit(0);
 }
@@ -25,5 +25,5 @@ if (argument) {
 
 // The npm bin is a symlink, so the server cannot detect it is the entry point on its own.
 globalThis.uwacwyPrintServerMain = true;
-process.env.NODE_ENV ??= "production";
-await import("../dist/server/server.mjs");
+process.env.NODE_ENV ??= 'production';
+await import('../dist/server/server.mjs');

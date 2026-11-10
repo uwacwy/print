@@ -12,13 +12,16 @@
     }
 
     @switch (mode()) {
-      @case ("upload") {
+      @case ('upload') {
         <p class="text-muted">
           @if (printingAs(); as username) {
             Printing as {{ username }}.
-          } @else if (printer.access.tokenExpiresAt; as expiresAt) {
+          } @else if (
+            printer.access.tokenExpiresAt;
+            as expiresAt
+          ) {
             This link works until
-            {{ expiresAt | date: "short" }}.
+            {{ expiresAt | date: 'short' }}.
           }
         </p>
 
@@ -42,7 +45,7 @@
           (removeDocument)="removeDocument($event)"
         />
       }
-      @case ("pin") {
+      @case ('pin') {
         <app-print-pin-form [pinForm]="pinForm" />
       }
       @default {

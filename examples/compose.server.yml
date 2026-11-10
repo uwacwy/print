@@ -24,7 +24,7 @@ services:
       TRUST_PROXY: ${TRUST_PROXY:-false}
       TIME_ZONE: ${TIME_ZONE:-America/Denver}
     ports:
-      - "8080:8080"
+      - '8080:8080'
     volumes:
       # print.db and queued jobs
       - print-data:/data

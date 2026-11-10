@@ -1,6 +1,14 @@
-import { firstValueFrom, from, Subject, take, toArray } from 'rxjs';
+import {
+  firstValueFrom,
+  from,
+  Subject,
+  take,
+  toArray,
+} from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
+
 import type { PrintRequest } from '../../types';
+
 import { printInOrder } from './print-queue';
 
 const job = (id: string) => ({ id, title: `Job ${id}` });
@@ -28,7 +36,7 @@ describe('printInOrder', () => {
 
     expect(await results).toEqual([
       { job: job('a'), status: 'printed' },
-      { job: job('b'), status: 'failed', error: 'jammed' },
+      { error: 'jammed', job: job('b'), status: 'failed' },
       { job: job('c'), status: 'printed' },
     ]);
     expect(print).toHaveBeenCalledTimes(3);
@@ -40,15 +48,16 @@ describe('printInOrder', () => {
       Promise.reject('nope'),
     );
     expect(await firstValueFrom(results$)).toEqual({
+      error: 'Unknown print error',
       job: job('a'),
       status: 'failed',
-      error: 'Unknown print error',
     });
   });
 
   it('finishes the current job, drops waiting ones, and completes when jobs$ completes', async () => {
     const print = vi.fn(
-      () => new Promise<void>((resolve) => setTimeout(resolve, 5)),
+      () =>
+        new Promise<void>((resolve) => setTimeout(resolve, 5)),
     );
     const jobs$ = new Subject<PrintRequest>();
     const results = firstValueFrom(

@@ -1,7 +1,12 @@
 import type { LiveServerEvents } from '@uwacwy/print-shared';
 import type { Namespace } from 'socket.io';
-import { handshake, type SocketData } from '../handshake/handshake';
+
 import type { WebSocketOptions } from '../sockets';
+
+import {
+  handshake,
+  type SocketData,
+} from '../handshake/handshake';
 
 export type LiveNamespace = Namespace<
   Record<string, never>,
@@ -20,8 +25,8 @@ export const liveNamespace = (
     .on('connection', (socket) => {
       const hub = getHub();
       socket.emit('live', {
-        type: 'snapshot',
         onlinePrinterIds: hub.onlinePrinterIds(),
+        type: 'snapshot',
       });
       // When the hub is replaced (dev reload) the client reconnects for a fresh snapshot.
       const unsubscribe = hub.subscribe(

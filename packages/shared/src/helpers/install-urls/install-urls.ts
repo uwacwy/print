@@ -4,4 +4,5 @@ import { installScriptPath } from '../paths/paths';
 export const installUrl = (
   serverUrl: string,
   enrollToken?: string,
-): string => new URL(installScriptPath(enrollToken), serverUrl).href;
+): string =>
+  new URL(installScriptPath(enrollToken), serverUrl).href;

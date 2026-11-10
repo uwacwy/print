@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import {
   inspectUploadToken,
   signUploadToken,
@@ -8,21 +9,22 @@ import {
 
 const secret = 'a-test-secret-that-is-at-least-32-characters';
 const clientId = '22222222-2222-4222-8222-222222222222';
-const key = { tokenSecret: secret, tokenIssuer: clientId };
+const key = { tokenIssuer: clientId, tokenSecret: secret };
 const printer = { id: 7, qr_epoch: 0 };
 const now = new Date('2026-10-29T12:00:00Z');
-const hours = (n: number) => new Date(now.getTime() + n * 3_600_000);
+const hours = (n: number) =>
+  new Date(now.getTime() + n * 3_600_000);
 const maxLifetimeMs = 365 * 86_400_000;
 
 const sign = (
   overrides: Partial<Parameters<typeof signUploadToken>[2]> = {},
 ) =>
   signUploadToken(key, printer, {
-    source: 'qr',
-    notBefore: now,
     expiresAt: hours(24),
     maxLifetimeMs,
+    notBefore: now,
     now,
+    source: 'qr',
     ...overrides,
   });
 
@@ -37,19 +39,19 @@ describe('upload tokens', () => {
     const issued = await sign();
     expect(issued.token).toMatch(/^[A-Za-z0-9_-]{42}$/);
     expect(inspectUploadToken(key, issued.token)).toEqual({
-      source: 'qr',
-      printerId: 7,
       epoch: 0,
-      notBefore: now,
       expiresAt: hours(24),
+      notBefore: now,
+      printerId: 7,
+      source: 'qr',
     });
     await expect(
       verifyUploadToken(key, printer, issued.token, hours(1)),
     ).resolves.toEqual({
-      status: 'valid',
-      source: 'qr',
-      notBefore: now,
       expiresAt: hours(24),
+      notBefore: now,
+      source: 'qr',
+      status: 'valid',
     });
   });
 
@@ -71,8 +73,8 @@ describe('upload tokens', () => {
 
   it('rounds the window outward to whole minutes', async () => {
     const issued = await sign({
-      notBefore: new Date(now.getTime() + 30_500),
       expiresAt: new Date(hours(1).getTime() + 1_000),
+      notBefore: new Date(now.getTime() + 30_500),
     });
     expect(issued.notBefore).toEqual(now);
     expect(issued.expiresAt).toEqual(
@@ -82,28 +84,32 @@ describe('upload tokens', () => {
 
   it('reports expired and not-yet-valid windows with clock tolerance', async () => {
     const issued = await sign({
-      notBefore: hours(2),
       expiresAt: hours(4),
+      notBefore: hours(2),
     });
     const status = async (at: Date) =>
       (await verifyUploadToken(key, printer, issued.token, at))
         .status;
     expect(await status(now)).toBe('not-yet-valid');
-    expect(await status(new Date(hours(2).getTime() - 20_000))).toBe(
-      'valid',
-    );
+    expect(
+      await status(new Date(hours(2).getTime() - 20_000)),
+    ).toBe('valid');
     expect(await status(hours(3))).toBe('valid');
-    expect(await status(new Date(hours(4).getTime() + 20_000))).toBe(
-      'valid',
-    );
+    expect(
+      await status(new Date(hours(4).getTime() + 20_000)),
+    ).toBe('valid');
     expect(await status(hours(5))).toBe('expired');
   });
 
   it('rejects tokens for another printer, a revoked epoch, or a different key', async () => {
     const { token } = await sign();
     const at = hours(1);
-    const status = async (target: typeof printer, verifyKey = key) =>
-      (await verifyUploadToken(verifyKey, target, token, at)).status;
+    const status = async (
+      target: typeof printer,
+      verifyKey = key,
+    ) =>
+      (await verifyUploadToken(verifyKey, target, token, at))
+        .status;
     expect(await status({ ...printer, id: 8 })).toBe('invalid');
     expect(await status({ ...printer, qr_epoch: 1 })).toBe(
       'invalid',
@@ -115,7 +121,10 @@ describe('upload tokens', () => {
       }),
     ).toBe('invalid');
     expect(
-      await status(printer, { ...key, tokenIssuer: 'another-app' }),
+      await status(printer, {
+        ...key,
+        tokenIssuer: 'another-app',
+      }),
     ).toBe('invalid');
   });
 
@@ -144,22 +153,22 @@ describe('upload tokens', () => {
         key,
         { id: 7, qr_epoch: 0x10000 },
         {
-          source: 'qr',
-          notBefore: now,
           expiresAt: hours(1),
           maxLifetimeMs,
+          notBefore: now,
           now,
+          source: 'qr',
         },
       ),
     ).rejects.toBeInstanceOf(RangeError);
   });
 
   it('validates the requested window', async () => {
-    await expect(sign({ expiresAt: now })).rejects.toBeInstanceOf(
-      UploadTokenWindowError,
-    );
     await expect(
-      sign({ notBefore: hours(-5), expiresAt: hours(-1) }),
+      sign({ expiresAt: now }),
+    ).rejects.toBeInstanceOf(UploadTokenWindowError);
+    await expect(
+      sign({ expiresAt: hours(-1), notBefore: hours(-5) }),
     ).rejects.toThrow('future');
     await expect(
       sign({ expiresAt: hours(24 * 400) }),

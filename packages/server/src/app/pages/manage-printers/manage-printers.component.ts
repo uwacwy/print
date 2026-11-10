@@ -11,13 +11,14 @@ import {
 } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom, type Observable } from 'rxjs';
+
+import { AlertComponent } from '../../components/alert/alert.component';
 import { apiErrorMessage } from '../../helpers/api-error/api-error';
 import { LiveEventsService } from '../../services/live-events/live-events.service';
 import {
   PrinterService,
   type PrinterSummary,
 } from '../../services/printer/printer.service';
-import { AlertComponent } from '../../components/alert/alert.component';
 import { PrinterListItemComponent } from './components/printer-list-item/printer-list-item.component';
 import {
   applyLiveEventToList,
@@ -37,8 +38,12 @@ import {
 } from './helpers/printer-messages/printer-messages';
 
 @Component({
+  imports: [
+    AlertComponent,
+    PrinterListItemComponent,
+    RouterLink,
+  ],
   selector: 'app-manage-printers',
-  imports: [AlertComponent, PrinterListItemComponent, RouterLink],
   styles: `
     :host {
       display: block;
@@ -115,13 +120,17 @@ import {
   `,
 })
 export class ManagePrintersComponent {
-  readonly #printersApi = inject(PrinterService);
-  readonly #document = inject(DOCUMENT);
-  readonly serverUrl = this.#document.location?.origin ?? '';
-
+  readonly announcement = signal('');
   protected readonly printersResource = rxResource({
     stream: () => this.#printersApi.listAdminPrinters(),
   });
+  readonly error = linkedSignal<string>(() =>
+    this.printersResource.error()
+      ? 'Unable to load printers.'
+      : '',
+  );
+
+  readonly notice = signal('');
   /** Loaded printers, patched in place by live events and actions. */
   readonly printers = linkedSignal<PrinterSummary[]>(() =>
     this.printersResource.hasValue()
@@ -129,13 +138,13 @@ export class ManagePrintersComponent {
       : [],
   );
 
-  readonly error = linkedSignal<string>(() =>
-    this.printersResource.error() ? 'Unable to load printers.' : '',
-  );
-  readonly notice = signal('');
-  readonly announcement = signal('');
+  readonly #document = inject(DOCUMENT);
+  readonly serverUrl = this.#document.location?.origin ?? '';
   readonly tokens = signal<Readonly<Record<number, string>>>({});
-  protected readonly busyIds = signal<ReadonlySet<number>>(new Set());
+  protected readonly busyIds = signal<ReadonlySet<number>>(
+    new Set(),
+  );
+  readonly #printersApi = inject(PrinterService);
 
   constructor() {
     inject(LiveEventsService)
@@ -151,7 +160,30 @@ export class ManagePrintersComponent {
       });
   }
 
-  printQr({ id, slug, name }: PrinterSummary): void {
+  deleteAllJobs({ id, name, slug }: PrinterSummary): void {
+    if (!this.#confirm(deleteJobsPrompt(name))) {
+      return;
+    }
+    this.#run(
+      id,
+      this.#printersApi.deleteAllJobs(slug),
+      ({ deleted }) => {
+        this.printers.update((printers) =>
+          patchPrinter(printers, id, {
+            activeJobs: 0,
+            failedJobs: 0,
+          }),
+        );
+        this.notice.set(jobsDeletedNotice(name, deleted));
+      },
+    );
+  }
+
+  dismissToken(id: number): void {
+    this.tokens.update(({ [id]: _removed, ...rest }) => rest);
+  }
+
+  printQr({ id, name, slug }: PrinterSummary): void {
     this.#run(
       id,
       this.#printersApi.printQrPoster(slug),
@@ -160,7 +192,37 @@ export class ManagePrintersComponent {
     );
   }
 
-  rotateToken({ id, slug, name }: PrinterSummary): void {
+  removePrinter({ id, name, slug }: PrinterSummary): void {
+    if (!this.#confirm(removePrinterPrompt(name))) {
+      return;
+    }
+    this.#run(
+      id,
+      this.#printersApi.deleteAdminPrinter(slug),
+      () => {
+        this.printers.update((printers) =>
+          withoutPrinter(printers, id),
+        );
+        this.dismissToken(id);
+        this.notice.set(printerRemovedNotice(name));
+      },
+    );
+  }
+
+  retryFailedJobs({ id, name, slug }: PrinterSummary): void {
+    this.#run(
+      id,
+      this.#printersApi.retryFailedJobs(slug),
+      ({ printer: { activeJobs, failedJobs }, retried }) => {
+        this.printers.update((printers) =>
+          patchPrinter(printers, id, { activeJobs, failedJobs }),
+        );
+        this.notice.set(retriedNotice(name, retried));
+      },
+    );
+  }
+
+  rotateToken({ id, name, slug }: PrinterSummary): void {
     if (!this.#confirm(rotateTokenPrompt(name))) {
       return;
     }
@@ -177,48 +239,8 @@ export class ManagePrintersComponent {
     );
   }
 
-  retryFailedJobs({ id, slug, name }: PrinterSummary): void {
-    this.#run(
-      id,
-      this.#printersApi.retryFailedJobs(slug),
-      ({ retried, printer: { activeJobs, failedJobs } }) => {
-        this.printers.update((printers) =>
-          patchPrinter(printers, id, { activeJobs, failedJobs }),
-        );
-        this.notice.set(retriedNotice(name, retried));
-      },
-    );
-  }
-
-  deleteAllJobs({ id, slug, name }: PrinterSummary): void {
-    if (!this.#confirm(deleteJobsPrompt(name))) {
-      return;
-    }
-    this.#run(
-      id,
-      this.#printersApi.deleteAllJobs(slug),
-      ({ deleted }) => {
-        this.printers.update((printers) =>
-          patchPrinter(printers, id, { activeJobs: 0, failedJobs: 0 }),
-        );
-        this.notice.set(jobsDeletedNotice(name, deleted));
-      },
-    );
-  }
-
-  removePrinter({ id, slug, name }: PrinterSummary): void {
-    if (!this.#confirm(removePrinterPrompt(name))) {
-      return;
-    }
-    this.#run(id, this.#printersApi.deleteAdminPrinter(slug), () => {
-      this.printers.update((printers) => withoutPrinter(printers, id));
-      this.dismissToken(id);
-      this.notice.set(printerRemovedNotice(name));
-    });
-  }
-
-  dismissToken(id: number): void {
-    this.tokens.update(({ [id]: _removed, ...rest }) => rest);
+  #confirm(message: string): boolean {
+    return this.#document.defaultView?.confirm(message) ?? false;
   }
 
   #run<T>(
@@ -243,13 +265,12 @@ export class ManagePrintersComponent {
       (error: unknown) => {
         done();
         this.error.set(
-          apiErrorMessage(error, 'Request failed. Please try again.'),
+          apiErrorMessage(
+            error,
+            'Request failed. Please try again.',
+          ),
         );
       },
     );
-  }
-
-  #confirm(message: string): boolean {
-    return this.#document.defaultView?.confirm(message) ?? false;
   }
 }

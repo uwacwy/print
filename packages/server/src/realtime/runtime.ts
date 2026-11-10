@@ -1,16 +1,19 @@
 import type { Server } from 'node:http';
+import type { Server as SocketServer } from 'socket.io';
+
 import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { Server as SocketServer } from 'socket.io';
+
+import type { ServerConfig } from '../api/helpers/server-config/server-config';
+import type { WebSocketOptions } from '../api/sockets/sockets';
+
 import {
   expireStaleJobs,
   openDatabase,
-  purgeFinishedJobs,
   type PrintDatabase,
+  purgeFinishedJobs,
 } from '../api/helpers/database/database';
-import type { ServerConfig } from '../api/helpers/server-config/server-config';
 import { AgentHub } from '../api/sockets/agent-hub/agent-hub';
-import type { WebSocketOptions } from '../api/sockets/sockets';
 
 /**
  * Process-wide state for the print server.
@@ -20,18 +23,18 @@ import type { WebSocketOptions } from '../api/sockets/sockets';
  * dropping connected agents. In production the module is evaluated once, so this is a no-op.
  */
 export interface PrintRuntime {
+  cleanupTimer?: NodeJS.Timeout;
   readonly dataDir: string;
   readonly db: PrintDatabase;
-  readonly jobsDir: string;
+  devSockets?: {
+    io: SocketServer;
+    options: Pick<WebSocketOptions, 'verify'>;
+    port: number;
+    server: Server;
+  };
   hub: AgentHub;
   hubSource: string;
-  cleanupTimer?: NodeJS.Timeout;
-  devSockets?: {
-    server: Server;
-    io: SocketServer;
-    port: number;
-    options: Pick<WebSocketOptions, 'verify'>;
-  };
+  readonly jobsDir: string;
 }
 
 const RUNTIME_KEY = Symbol.for('uwacwy.print.runtime');
@@ -62,39 +65,28 @@ export function getPrintRuntime(
   const runtime: PrintRuntime = {
     dataDir: config.dataDir,
     db,
-    jobsDir,
     hub: new AgentHub(db),
     hubSource: AgentHub.toString(),
+    jobsDir,
   };
   store[RUNTIME_KEY] = runtime;
   return runtime;
 }
 
-/** (Re)starts the periodic job expiry/purge, replacing any timer from an earlier evaluation. */
-export function startJobCleanup(
-  runtime: PrintRuntime,
-  config: Pick<ServerConfig, 'jobTtlMs' | 'retentionMs'>,
-): void {
+export function shutdownPrintRuntime(): void {
+  const runtime = store[RUNTIME_KEY];
+  if (!runtime) {
+    return;
+  }
+  store[RUNTIME_KEY] = undefined;
   if (runtime.cleanupTimer) {
     clearInterval(runtime.cleanupTimer);
   }
-  runtime.cleanupTimer = setInterval(() => {
-    const now = Date.now();
-    const expired = expireStaleJobs(
-      runtime.db,
-      new Date(now - config.jobTtlMs).toISOString(),
-    );
-    const removed = purgeFinishedJobs(
-      runtime.db,
-      new Date(now - config.retentionMs).toISOString(),
-    );
-    void Promise.all(
-      [...expired, ...removed].map((id) =>
-        rm(join(runtime.jobsDir, `${id}.pdf`), { force: true }),
-      ),
-    );
-  }, 10 * 60_000);
-  runtime.cleanupTimer.unref();
+  runtime.hub.dispose();
+  if (runtime.devSockets) {
+    void runtime.devSockets.io.close();
+  }
+  runtime.db.close();
 }
 
 /**
@@ -147,18 +139,29 @@ export function startJobCleanup(
 //   );
 // }
 
-export function shutdownPrintRuntime(): void {
-  const runtime = store[RUNTIME_KEY];
-  if (!runtime) {
-    return;
-  }
-  store[RUNTIME_KEY] = undefined;
+/** (Re)starts the periodic job expiry/purge, replacing any timer from an earlier evaluation. */
+export function startJobCleanup(
+  runtime: PrintRuntime,
+  config: Pick<ServerConfig, 'jobTtlMs' | 'retentionMs'>,
+): void {
   if (runtime.cleanupTimer) {
     clearInterval(runtime.cleanupTimer);
   }
-  runtime.hub.dispose();
-  if (runtime.devSockets) {
-    void runtime.devSockets.io.close();
-  }
-  runtime.db.close();
+  runtime.cleanupTimer = setInterval(() => {
+    const now = Date.now();
+    const expired = expireStaleJobs(
+      runtime.db,
+      new Date(now - config.jobTtlMs).toISOString(),
+    );
+    const removed = purgeFinishedJobs(
+      runtime.db,
+      new Date(now - config.retentionMs).toISOString(),
+    );
+    void Promise.all(
+      [...expired, ...removed].map((id) =>
+        rm(join(runtime.jobsDir, `${id}.pdf`), { force: true }),
+      ),
+    );
+  }, 10 * 60_000);
+  runtime.cleanupTimer.unref();
 }

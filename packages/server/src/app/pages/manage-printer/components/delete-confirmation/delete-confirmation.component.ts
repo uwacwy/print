@@ -24,6 +24,6 @@ import { Component, output } from '@angular/core';
   `,
 })
 export class DeleteConfirmationComponent {
-  readonly confirmed = output();
   readonly cancelled = output();
+  readonly confirmed = output();
 }

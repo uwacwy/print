@@ -1,50 +1,51 @@
 import { describe, expect, it } from 'vitest';
+
 import { serviceToPrinter } from './mdns';
 
 describe('serviceToPrinter', () => {
   it('builds an IPP Everywhere URI from the DNS-SD record', () => {
     expect(
       serviceToPrinter({
-        name: 'HP LaserJet MFP M130fw (D8F5EC)',
-        type: 'ipp',
         host: 'NPID8F5EC.local.',
+        name: 'HP LaserJet MFP M130fw (D8F5EC)',
         port: 631,
         txt: {
+          note: Buffer.from('Front desk'),
           rp: 'ipp/print',
           ty: 'HP LaserJet MFP M129-M134',
-          note: Buffer.from('Front desk'),
         },
+        type: 'ipp',
       }),
     ).toEqual({
-      uri: 'ipp://NPID8F5EC.local:631/ipp/print',
-      name: 'HP LaserJet MFP M130fw (D8F5EC)',
       detail:
         'HP LaserJet MFP M129-M134 · Front desk · NPID8F5EC.local',
+      name: 'HP LaserJet MFP M130fw (D8F5EC)',
+      uri: 'ipp://NPID8F5EC.local:631/ipp/print',
     });
   });
 
   it('defaults the resource path and keeps ipps', () => {
     expect(
       serviceToPrinter({
-        name: '',
-        type: 'ipps',
         host: 'p.local',
+        name: '',
         port: 443,
+        type: 'ipps',
       }),
     ).toEqual({
-      uri: 'ipps://p.local:443/ipp/print',
-      name: 'p.local',
       detail: 'p.local',
+      name: 'p.local',
+      uri: 'ipps://p.local:443/ipp/print',
     });
   });
 
   it('ignores other services', () => {
     expect(
       serviceToPrinter({
-        name: 'x',
-        type: 'http',
         host: 'p.local',
+        name: 'x',
         port: 80,
+        type: 'http',
       }),
     ).toBeUndefined();
   });

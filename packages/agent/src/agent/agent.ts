@@ -1,14 +1,14 @@
-import { setTimeout as delay } from 'node:timers/promises';
 import {
   AGENT_NAMESPACE,
+  type AgentJob,
   agentJobFilePath,
   agentJobStatusPath,
+  type JobReport,
   parseAgentJobs,
   SOCKET_PATH,
   SYNC_INTERVAL_MS,
-  type AgentJob,
-  type JobReport,
 } from '@uwacwy/print-shared';
+import { setTimeout as delay } from 'node:timers/promises';
 import {
   catchError,
   concatMap,
@@ -22,6 +22,17 @@ import {
   tap,
 } from 'rxjs';
 import { io } from 'socket.io-client';
+
+import type { AgentConfig } from '../helpers/config/config';
+import type {
+  AgentSocket,
+  IPrinter,
+  PrintRequest,
+  PrintResult,
+} from '../types';
+
+import { createPrinter } from '../helpers/create-printer/create-printer';
+import { reportQueue } from '../helpers/enroll-client/enroll-client';
 import {
   checkDownloadedDocument,
   checkDownloadHeaders,
@@ -37,15 +48,6 @@ import {
   withJitter,
 } from '../helpers/reconnect/reconnect';
 import { errorMessage } from '../helpers/text/text';
-import { createPrinter } from '../helpers/create-printer/create-printer';
-import { reportQueue } from '../helpers/enroll-client/enroll-client';
-import type { AgentConfig } from '../helpers/config/config';
-import type {
-  AgentSocket,
-  IPrinter,
-  PrintRequest,
-  PrintResult,
-} from '../types';
 import { AGENT_VERSION } from '../version';
 
 /**
@@ -75,12 +77,12 @@ export function startAgent(config: AgentConfig): Promise<void> {
         const response = await fetch(
           new URL(agentJobStatusPath(jobId), apiOrigin),
           {
-            method: 'POST',
+            body: JSON.stringify(result),
             headers: {
               authorization: `Bearer ${config.PRINT_AGENT_TOKEN}`,
               'content-type': 'application/json',
             },
-            body: JSON.stringify(result),
+            method: 'POST',
             signal: AbortSignal.timeout(15_000),
           },
         );
@@ -122,13 +124,15 @@ export function startAgent(config: AgentConfig): Promise<void> {
       },
     );
     if (!response.ok) {
-      throw new Error(`Job download failed (${response.status}).`);
+      throw new Error(
+        `Job download failed (${response.status}).`,
+      );
     }
     const contentType = response.headers.get('content-type');
     checkDownloadHeaders(
       {
-        contentType,
         contentLength: response.headers.get('content-length'),
+        contentType,
       },
       options,
     );
@@ -140,7 +144,9 @@ export function startAgent(config: AgentConfig): Promise<void> {
   }
 
   /** Reports a result; if that fails, reconnecting makes the server offer the job again. */
-  async function acknowledge(result: PrintResult): Promise<void> {
+  async function acknowledge(
+    result: PrintResult,
+  ): Promise<void> {
     const { job, ...outcome } = result;
     if (outcome.status === 'failed') {
       log(`[job:${job.id}] Failed: ${outcome.error}`);
@@ -166,16 +172,21 @@ export function startAgent(config: AgentConfig): Promise<void> {
 
     incoming
       .pipe(
-        filter((job) => isJobId(job.id) && !activeJobs.has(job.id)),
+        filter(
+          (job) => isJobId(job.id) && !activeJobs.has(job.id),
+        ),
         tap((job) => activeJobs.add(job.id)),
         concatMap((job) =>
           defer(() => download(job, printer)).pipe(
             map((pdf) => ({ job, pdf })),
             catchError((error: unknown) => {
               downloadFailures.next({
+                error: errorMessage(
+                  error,
+                  'Unknown download error',
+                ),
                 job,
                 status: 'failed',
-                error: errorMessage(error, 'Unknown download error'),
               });
               return EMPTY;
             }),
@@ -220,11 +231,11 @@ export function startAgent(config: AgentConfig): Promise<void> {
     const socket: AgentSocket = io(
       new URL(AGENT_NAMESPACE, config.PRINT_SERVER_URL).href,
       {
-        path: SOCKET_PATH,
-        transports: ['websocket'],
         auth: { token: config.PRINT_AGENT_TOKEN },
+        path: SOCKET_PATH,
         // Retries are scheduled below so each one can report its delay.
         reconnection: false,
+        transports: ['websocket'],
       },
     );
     currentSocket = socket;
@@ -251,7 +262,9 @@ export function startAgent(config: AgentConfig): Promise<void> {
         ),
       )
       .on('jobs', (value) => {
-        parseAgentJobs(value)?.forEach((job) => incoming.next(job));
+        parseAgentJobs(value)?.forEach((job) =>
+          incoming.next(job),
+        );
       })
       .on('connect_error', (error) => {
         if (stopping) {

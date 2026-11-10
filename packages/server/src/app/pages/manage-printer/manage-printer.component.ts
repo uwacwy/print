@@ -6,7 +6,10 @@ import {
   linkedSignal,
   signal,
 } from '@angular/core';
-import { rxResource, takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import {
+  rxResource,
+  takeUntilDestroyed,
+} from '@angular/core/rxjs-interop';
 import {
   form,
   maxLength,
@@ -15,19 +18,28 @@ import {
   type TreeValidationResult,
 } from '@angular/forms/signals';
 import { Title } from '@angular/platform-browser';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { firstValueFrom, map, tap, type Observable } from 'rxjs';
+import {
+  ActivatedRoute,
+  Router,
+  RouterLink,
+} from '@angular/router';
+import { firstValueFrom, map, type Observable, tap } from 'rxjs';
+
 import { CLIENT_ENVIRONMENT } from '../../auth/client-environment';
+import { AlertComponent } from '../../components/alert/alert.component';
 import { apiErrorMessage } from '../../helpers/api-error/api-error';
+import {
+  applyLiveEvent,
+  type PrinterLiveStatus,
+} from '../../helpers/printer-live-status/printer-live-status';
 import { LiveEventsService } from '../../services/live-events/live-events.service';
 import {
-  PrinterService,
   type CreatedPrinter,
+  PrinterService,
 } from '../../services/printer/printer.service';
-import { AlertComponent } from '../../components/alert/alert.component';
 import {
-  AddModeChoiceComponent,
   type AddMode,
+  AddModeChoiceComponent,
 } from './components/add-mode-choice/add-mode-choice.component';
 import { CreatedPrinterComponent } from './components/created-printer/created-printer.component';
 import { EnrollSetupComponent } from './components/enroll-setup/enroll-setup.component';
@@ -40,13 +52,8 @@ import {
   SLUG_PATTERN,
   toPrinterModel,
 } from './helpers/printer-form/printer-form';
-import {
-  applyLiveEvent,
-  type PrinterLiveStatus,
-} from '../../helpers/printer-live-status/printer-live-status';
 
 @Component({
-  selector: 'app-manage-printer',
   imports: [
     RouterLink,
     AlertComponent,
@@ -56,6 +63,7 @@ import {
     PrinterFormComponent,
     PrinterStatusComponent,
   ],
+  selector: 'app-manage-printer',
   template: `
     <main class="container py-4">
       <a routerLink="/manage" class="link-secondary"
@@ -106,23 +114,22 @@ import {
   `,
 })
 export class ManagePrinterComponent {
-  readonly #route = inject(ActivatedRoute);
-  readonly #router = inject(Router);
-  readonly #printersApi = inject(PrinterService);
-  readonly #title = inject(Title);
-
-  readonly slug = this.#route.snapshot.paramMap.get('slug') ?? '';
-  readonly isNew = this.slug === 'new';
+  readonly created = signal<CreatedPrinter | null>(null);
   /** The server has `PUBLIC_URL`, so printers can enroll from their own computers. */
   readonly enrollment =
     inject(CLIENT_ENVIRONMENT).enrollment ?? false;
+  readonly #route = inject(ActivatedRoute);
+  readonly slug =
+    this.#route.snapshot.paramMap.get('slug') ?? '';
+
+  readonly isNew = this.slug === 'new';
   readonly mode = signal<AddMode>(
     this.enrollment ? 'enroll' : 'manual',
   );
-
   protected readonly printerResource = rxResource({
     params: () => (this.isNew ? undefined : this.slug),
-    stream: ({ params }) => this.#printersApi.getAdminPrinter(params),
+    stream: ({ params }) =>
+      this.#printersApi.getAdminPrinter(params),
   });
   readonly printer = computed(() =>
     this.printerResource.hasValue()
@@ -130,20 +137,11 @@ export class ManagePrinterComponent {
       : undefined,
   );
 
-  /** Live events update the status; a reload of the printer resets it. */
-  protected readonly status = linkedSignal<PrinterLiveStatus>(() => {
-    const printer = this.printer();
-    return {
-      online: printer?.online ?? false,
-      activeJobs: printer?.activeJobs ?? 0,
-      failedJobs: printer?.failedJobs ?? 0,
-      lastSeenAt: printer?.lastSeenAt ?? null,
-    };
-  });
-
   readonly #model = linkedSignal(() => {
     const printer = this.printer();
-    return printer ? toPrinterModel(printer) : emptyPrinterModel();
+    return printer
+      ? toPrinterModel(printer)
+      : emptyPrinterModel();
   });
   readonly printerForm = form(
     this.#model,
@@ -165,26 +163,24 @@ export class ManagePrinterComponent {
     { submission: { action: () => this.#save() } },
   );
 
-  readonly created = signal<CreatedPrinter | null>(null);
-
-  readonly #enrollRequests = signal(0);
   protected readonly enrollResource = rxResource({
     params: () => this.#enrollRequests() || undefined,
     stream: () => this.#printersApi.createEnrollToken(),
   });
+
   protected readonly enrollToken = computed(() =>
     this.enrollResource.hasValue()
       ? this.enrollResource.value()
       : undefined,
   );
-
-  readonly #deleteRequests = signal(0);
   readonly #deleteResource = rxResource({
     params: () => this.#deleteRequests() || undefined,
     stream: () =>
       this.#printersApi
         .deleteAdminPrinter(this.slug)
-        .pipe(tap(() => void this.#router.navigate(['/manage']))),
+        .pipe(
+          tap(() => void this.#router.navigate(['/manage'])),
+        ),
   });
 
   /** The first failure from loading, enrolling, deleting, or saving. */
@@ -197,6 +193,26 @@ export class ManagePrinterComponent {
       ? apiErrorMessage(failure)
       : (this.printerForm().errors()[0]?.message ?? '');
   });
+
+  /** Live events update the status; a reload of the printer resets it. */
+  protected readonly status = linkedSignal<PrinterLiveStatus>(
+    () => {
+      const printer = this.printer();
+      return {
+        activeJobs: printer?.activeJobs ?? 0,
+        failedJobs: printer?.failedJobs ?? 0,
+        lastSeenAt: printer?.lastSeenAt ?? null,
+        online: printer?.online ?? false,
+      };
+    },
+  );
+  readonly #deleteRequests = signal(0);
+  readonly #enrollRequests = signal(0);
+
+  readonly #printersApi = inject(PrinterService);
+  readonly #router = inject(Router);
+
+  readonly #title = inject(Title);
 
   constructor() {
     effect(() => {
@@ -228,6 +244,12 @@ export class ManagePrinterComponent {
     this.#deleteRequests.update((count) => count + 1);
   }
 
+  #create(): Observable<void> {
+    return this.#printersApi
+      .createAdminPrinter(this.#model())
+      .pipe(map((created) => void this.created.set(created)));
+  }
+
   #save(): Promise<TreeValidationResult> {
     return firstValueFrom(
       this.isNew ? this.#create() : this.#update(),
@@ -238,12 +260,6 @@ export class ManagePrinterComponent {
         message: apiErrorMessage(error),
       }),
     );
-  }
-
-  #create(): Observable<void> {
-    return this.#printersApi
-      .createAdminPrinter(this.#model())
-      .pipe(map((created) => void this.created.set(created)));
   }
 
   #update(): Observable<void> {

@@ -1,6 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { Component, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
+
 import type {
   IssuedQrToken,
   PrinterSummary,
@@ -8,8 +9,8 @@ import type {
 
 /** An issued QR code with its link and poster actions. */
 @Component({
-  selector: 'app-qr-issued',
   imports: [DatePipe, RouterLink],
+  selector: 'app-qr-issued',
   styles: `
     .qr-image {
       width: 16rem;
@@ -26,7 +27,8 @@ import type {
           class="qr-image border rounded"
           [src]="qrImage()"
           [alt]="
-            'QR code linking to the print page for ' + printer().name
+            'QR code linking to the print page for ' +
+            printer().name
           "
         />
       }
@@ -44,13 +46,19 @@ import type {
             rel="noopener"
           >
             Open print page
-            <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
-            <span class="visually-hidden">(opens in new tab)</span>
+            <i
+              class="bi bi-box-arrow-up-right"
+              aria-hidden="true"
+            ></i>
+            <span class="visually-hidden"
+              >(opens in new tab)</span
+            >
           </a>
         </p>
-        <code class="d-block small text-break user-select-all mb-3">{{
-          issued().url
-        }}</code>
+        <code
+          class="d-block small text-break user-select-all mb-3"
+          >{{ issued().url }}</code
+        >
         <div class="d-flex flex-wrap gap-2">
           <button
             type="button"
@@ -66,9 +74,14 @@ import type {
             [disabled]="busy()"
             (click)="openPoster.emit()"
           >
-            <i class="bi bi-file-earmark-pdf" aria-hidden="true"></i>
+            <i
+              class="bi bi-file-earmark-pdf"
+              aria-hidden="true"
+            ></i>
             Open poster PDF
-            <span class="visually-hidden">(opens in new tab)</span>
+            <span class="visually-hidden"
+              >(opens in new tab)</span
+            >
           </button>
           <button
             type="button"
@@ -85,12 +98,12 @@ import type {
   `,
 })
 export class QrIssuedComponent {
-  readonly printer = input.required<PrinterSummary>();
-  readonly issued = input.required<IssuedQrToken>();
-  /** Data URI of the QR image; empty while it is still being drawn. */
-  readonly qrImage = input('');
   readonly busy = input(false);
   readonly copyLink = output();
+  readonly issued = input.required<IssuedQrToken>();
   readonly openPoster = output();
+  readonly printer = input.required<PrinterSummary>();
   readonly printPoster = output();
+  /** Data URI of the QR image; empty while it is still being drawn. */
+  readonly qrImage = input('');
 }

@@ -9,13 +9,15 @@ import {
   share,
   tap,
 } from 'rxjs';
+
 import type {
   PrintFn,
   PrintRequest,
   PrintResult,
 } from '../../types';
-import { errorMessage } from '../text/text';
+
 import { log } from '../logging';
+import { errorMessage } from '../text/text';
 
 /**
  * Prints requests one at a time and emits one result per request, in order.
@@ -38,18 +40,18 @@ export function printInOrder(
         defer(() => (stopped ? EMPTY : print(pdf, job))).pipe(
           map((): PrintResult => ({ job, status: 'printed' })),
           tap({
-            next: () =>
-              log(`[job:${job.id}] Printed: '${job.title}'`),
             error: (e) =>
               log(
                 `[job:${job.id}] Error: ${errorMessage(e, 'Print error')}`,
               ),
+            next: () =>
+              log(`[job:${job.id}] Printed: '${job.title}'`),
           }),
           catchError((error: unknown) =>
             of<PrintResult>({
+              error: errorMessage(error, 'Unknown print error'),
               job,
               status: 'failed',
-              error: errorMessage(error, 'Unknown print error'),
             }),
           ),
         ),

@@ -11,8 +11,8 @@ What this means is "return it to a promise and await it".
 
 ```typescript
 class MyComponent {
-  error = signal("");
-  notice = signal("");
+  error = signal('');
+  notice = signal('');
   result = signal(null);
 
   async updateAlphabet() {

@@ -16,7 +16,7 @@ services:
       PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8080}
       TIME_ZONE: ${TIME_ZONE:-America/Denver}
     ports:
-      - "8080:8080"
+      - '8080:8080'
     volumes:
       - print-data:/data
 

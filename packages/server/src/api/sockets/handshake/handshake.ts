@@ -1,9 +1,11 @@
 import type { SocketAuthError } from '@uwacwy/print-shared';
 import type { Socket } from 'socket.io';
+
 import type {
   Authenticate,
   StrategyName,
 } from '../../middleware/auth/passport/passport';
+
 import {
   isAuthChallenge,
   type Principal,
@@ -19,7 +21,10 @@ export interface SocketData {
  * same Passport strategies the HTTP routes use. Rejections reach the client as `connect_error`.
  */
 export const handshake =
-  (verify: Authenticate['verify'], ...strategies: StrategyName[]) =>
+  (
+    verify: Authenticate['verify'],
+    ...strategies: StrategyName[]
+  ) =>
   (
     socket: Pick<Socket, 'handshake'> & {
       data: Partial<SocketData>;

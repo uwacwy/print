@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import {
   configCandidates,
   configErrors,
@@ -14,8 +15,8 @@ import {
 
 const token = 'a'.repeat(43);
 const complete = {
-  PRINT_SERVER_URL: 'https://print.example.org',
   PRINT_AGENT_TOKEN: token,
+  PRINT_SERVER_URL: 'https://print.example.org',
   PRINTER_URI: 'cups://Front_Desk',
 };
 
@@ -27,11 +28,17 @@ describe('config', () => {
       '/etc/uwacwy-print-agent.env',
     ]);
     expect(
-      configCandidates({ XDG_CONFIG_HOME: '/xdg' }, '/home/pi')[0],
+      configCandidates(
+        { XDG_CONFIG_HOME: '/xdg' },
+        '/home/pi',
+      )[0],
     ).toBe('/xdg/uwacwy-print-agent.env');
     // Relative XDG paths are invalid per the spec.
     expect(
-      configCandidates({ XDG_CONFIG_HOME: 'xdg' }, '/home/pi')[0],
+      configCandidates(
+        { XDG_CONFIG_HOME: 'xdg' },
+        '/home/pi',
+      )[0],
     ).toBe('/home/pi/.config/uwacwy-print-agent.env');
   });
 
@@ -75,7 +82,10 @@ describe('config', () => {
     expect(text).toContain(`PRINT_AGENT_TOKEN='${token}'`);
     expect(parseConfigFile(text)).toEqual(config);
     expect(() =>
-      serializeConfig({ ...complete, PRINTER_URI: "cups://it's" }),
+      serializeConfig({
+        ...complete,
+        PRINTER_URI: "cups://it's",
+      }),
     ).toThrow('quotes');
   });
 
@@ -83,12 +93,14 @@ describe('config', () => {
     expect(configErrors(complete)).toEqual([]);
     expect(
       configErrors({
-        PRINT_SERVER_URL: 'http://print.example.org',
         PRINT_AGENT_TOKEN: 'short',
+        PRINT_SERVER_URL: 'http://print.example.org',
         PRINTER_URI: 'lpd://x',
       }),
     ).toEqual([
-      expect.stringContaining('PRINT_SERVER_URL must use https://'),
+      expect.stringContaining(
+        'PRINT_SERVER_URL must use https://',
+      ),
       expect.stringContaining(
         'PRINT_AGENT_TOKEN must be the 43-character',
       ),

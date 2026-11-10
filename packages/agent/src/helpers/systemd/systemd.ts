@@ -42,34 +42,36 @@ export const isEphemeralInstall = (cliPath: string): boolean =>
  */
 export const stableNodePath = ({
   execPath,
+  execRealpath,
   pathNode,
   pathNodeRealpath,
-  execRealpath,
 }: {
   execPath: string;
+  execRealpath: string;
   pathNode?: string;
   pathNodeRealpath?: string;
-  execRealpath: string;
 }): string =>
   pathNode && pathNodeRealpath === execRealpath
     ? pathNode
     : execPath;
 
-/** One ExecStart word: `%` and `$` are systemd specifiers; quote anything with spaces. */
-export function systemdArg(value: string): string {
-  const escaped = value.replace(/%/g, '%%').replace(/\$/g, '$$$$');
-  return /[\s"'\\;]/.test(escaped)
-    ? `"${escaped.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
-    : escaped;
-}
-
 export interface UnitOptions {
-  scope: ServiceScope;
-  nodePath: string;
   cliPath: string;
   configPath: string;
   /** Passes `--insecure` to `run` (plain http:// server off localhost). */
   insecure?: boolean;
+  nodePath: string;
+  scope: ServiceScope;
+}
+
+/** One ExecStart word: `%` and `$` are systemd specifiers; quote anything with spaces. */
+export function systemdArg(value: string): string {
+  const escaped = value
+    .replace(/%/g, '%%')
+    .replace(/\$/g, '$$$$');
+  return /[\s"'\\;]/.test(escaped)
+    ? `"${escaped.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
+    : escaped;
 }
 
 const underHome = (path: string) =>
@@ -77,11 +79,11 @@ const underHome = (path: string) =>
 
 /** The agent's systemd unit; `run --config` reads the file itself, so no `EnvironmentFile=`. */
 export function renderUnit({
-  scope,
-  nodePath,
   cliPath,
   configPath,
   insecure = false,
+  nodePath,
+  scope,
 }: UnitOptions): string {
   const execStart = [
     nodePath,

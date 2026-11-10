@@ -1,17 +1,20 @@
 import type { Request } from 'express';
+
 import { Strategy } from 'passport-strategy';
+
 import type { PrinterRow } from '../../../helpers/database/database';
-import {
-  verifyUploadToken,
-  type UploadTokenKey,
-  type UploadTokenVerification,
-} from './upload-token';
+
 import { bearer, isJwtShaped } from '../credentials';
 import {
-  routePrinter,
   type AuthChallenge,
   type Principal,
+  routePrinter,
 } from '../principal';
+import {
+  type UploadTokenKey,
+  type UploadTokenVerification,
+  verifyUploadToken,
+} from './upload-token';
 
 const SCHEME = 'Bearer realm="print-upload"';
 
@@ -29,7 +32,7 @@ export async function uploadTokenStatus(
   key: UploadTokenKey,
   printer: PrinterRow,
   request: Request,
-): Promise<UploadTokenVerification | null> {
+): Promise<null | UploadTokenVerification> {
   const token = uploadBearer(request);
   return token ? verifyUploadToken(key, printer, token) : null;
 }
@@ -38,15 +41,15 @@ const DENIED: Record<
   Exclude<UploadTokenVerification['status'], 'valid'>,
   Pick<AuthChallenge, 'code' | 'error'>
 > = {
-  invalid: {
-    code: 'token_invalid',
-    error:
-      'This print link is not valid. Scan the QR code again or enter the PIN.',
-  },
   expired: {
     code: 'token_expired',
     error:
       'This print link has expired. Scan the QR code again or enter the PIN.',
+  },
+  invalid: {
+    code: 'token_invalid',
+    error:
+      'This print link is not valid. Scan the QR code again or enter the PIN.',
   },
   'not-yet-valid': {
     code: 'token_not_yet_valid',
@@ -71,9 +74,9 @@ export class UploadTokenStrategy extends Strategy {
           code: 'token_required',
           error:
             "Scan the printer's QR code or enter its PIN to print.",
-          status: 401,
           presented: false,
           scheme: SCHEME,
+          status: 401,
         } satisfies AuthChallenge,
         401,
       );
@@ -81,21 +84,21 @@ export class UploadTokenStrategy extends Strategy {
     verifyUploadToken(this.key, printer, token).then(
       (verification) => {
         if (verification.status === 'valid') {
-          const { source, notBefore, expiresAt } = verification;
+          const { expiresAt, notBefore, source } = verification;
           return this.success({
+            expiresAt,
             kind: 'uploadToken',
+            notBefore,
             printer,
             source,
-            notBefore,
-            expiresAt,
           } satisfies Principal);
         }
         this.fail(
           {
             ...DENIED[verification.status],
-            status: 401,
             presented: true,
             scheme: SCHEME,
+            status: 401,
           } satisfies AuthChallenge,
           401,
         );

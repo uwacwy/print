@@ -1,10 +1,26 @@
 import ipp from 'ipp';
+
 import type {
   PrintDocumentFormat,
   PrintDocumentOptions,
   PrintJob,
 } from '../../types';
+
 import { jobTitle } from '../text/text';
+
+export function chooseDocumentFormat(
+  supported: readonly string[],
+): PrintDocumentFormat {
+  if (supported.includes('application/pdf')) {
+    return 'application/pdf';
+  }
+  if (supported.includes('application/PCLm')) {
+    return 'application/PCLm';
+  }
+  throw new Error(
+    `Printer does not advertise application/pdf or application/PCLm (supports: ${supported.join(', ') || 'none'}).`,
+  );
+}
 
 export async function getSupportedDocumentFormats(
   uri: URL,
@@ -17,8 +33,8 @@ export async function getSupportedDocumentFormats(
       'Get-Printer-Attributes',
       {
         'operation-attributes-tag': {
-          'requesting-user-name': 'omega-print-agent',
           'requested-attributes': ['document-format-supported'],
+          'requesting-user-name': 'omega-print-agent',
         },
       },
       (error, result) => {
@@ -40,7 +56,9 @@ export async function getSupportedDocumentFormats(
     response['printer-attributes-tag']?.[
       'document-format-supported'
     ];
-  return typeof formats === 'string' ? [formats] : (formats ?? []);
+  return typeof formats === 'string'
+    ? [formats]
+    : (formats ?? []);
 }
 
 export function makePrinter(uri: URL, timeoutMs: number) {
@@ -69,6 +87,47 @@ export function makePrinter(uri: URL, timeoutMs: number) {
   return printer;
 }
 
+export async function printDocument(
+  uri: URL,
+  data: Buffer,
+  job: PrintJob,
+  format: PrintDocumentFormat,
+  { quality, timeoutMs = 120_000 }: PrintDocumentOptions = {},
+): Promise<void> {
+  const printer = makePrinter(uri, timeoutMs);
+  await new Promise<void>((resolve, reject) => {
+    printer.execute(
+      'Print-Job',
+      {
+        'operation-attributes-tag': {
+          'document-format': format,
+          'job-name': jobTitle(job),
+          'requesting-user-name': 'omega-print-agent',
+        },
+        ...(quality
+          ? {
+              'job-attributes-tag': { 'print-quality': quality },
+            }
+          : {}),
+        data,
+      },
+      (error, response) => {
+        if (error) {
+          return reject(error);
+        }
+        if (!response?.statusCode?.startsWith('successful-')) {
+          return reject(
+            new Error(
+              `IPP Print-Job failed: ${response?.statusCode ?? 'no status'}`,
+            ),
+          );
+        }
+        resolve();
+      },
+    );
+  });
+}
+
 export function validateIppPrinterUri(value: string): URL {
   let uri: URL;
   try {
@@ -94,57 +153,4 @@ export function validateIppPrinterUri(value: string): URL {
     );
   }
   return uri;
-}
-
-export function chooseDocumentFormat(
-  supported: readonly string[],
-): PrintDocumentFormat {
-  if (supported.includes('application/pdf')) {
-    return 'application/pdf';
-  }
-  if (supported.includes('application/PCLm')) {
-    return 'application/PCLm';
-  }
-  throw new Error(
-    `Printer does not advertise application/pdf or application/PCLm (supports: ${supported.join(', ') || 'none'}).`,
-  );
-}
-
-export async function printDocument(
-  uri: URL,
-  data: Buffer,
-  job: PrintJob,
-  format: PrintDocumentFormat,
-  { quality, timeoutMs = 120_000 }: PrintDocumentOptions = {},
-): Promise<void> {
-  const printer = makePrinter(uri, timeoutMs);
-  await new Promise<void>((resolve, reject) => {
-    printer.execute(
-      'Print-Job',
-      {
-        'operation-attributes-tag': {
-          'requesting-user-name': 'omega-print-agent',
-          'job-name': jobTitle(job),
-          'document-format': format,
-        },
-        ...(quality
-          ? { 'job-attributes-tag': { 'print-quality': quality } }
-          : {}),
-        data,
-      },
-      (error, response) => {
-        if (error) {
-          return reject(error);
-        }
-        if (!response?.statusCode?.startsWith('successful-')) {
-          return reject(
-            new Error(
-              `IPP Print-Job failed: ${response?.statusCode ?? 'no status'}`,
-            ),
-          );
-        }
-        resolve();
-      },
-    );
-  });
 }

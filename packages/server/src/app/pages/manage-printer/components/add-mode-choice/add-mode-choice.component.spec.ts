@@ -1,10 +1,13 @@
 import { TestBed } from '@angular/core/testing';
 import { describe, expect, it } from 'vitest';
+
 import { AddModeChoiceComponent } from './add-mode-choice.component';
 
 describe('AddModeChoiceComponent', () => {
   const create = (enrollment: boolean) => {
-    const fixture = TestBed.createComponent(AddModeChoiceComponent);
+    const fixture = TestBed.createComponent(
+      AddModeChoiceComponent,
+    );
     fixture.componentRef.setInput('enrollment', enrollment);
     fixture.componentRef.setInput('mode', 'manual');
     fixture.detectChanges();
@@ -14,7 +17,8 @@ describe('AddModeChoiceComponent', () => {
   it('disables enrollment when unavailable', () => {
     const el: HTMLElement = create(false).nativeElement;
     expect(
-      el.querySelector<HTMLInputElement>('#add-mode-enroll')!.disabled,
+      el.querySelector<HTMLInputElement>('#add-mode-enroll')!
+        .disabled,
     ).toBe(true);
     expect(el.textContent).toContain('PUBLIC_URL');
   });

@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Service } from '@angular/core';
 import { createRouting } from 'ts-routes';
+
 import { root } from '../../../shared/routes/routes';
 
 /** Public server status from `GET /api/status`. */

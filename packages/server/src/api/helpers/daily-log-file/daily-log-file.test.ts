@@ -1,3 +1,4 @@
+import { once } from 'node:events';
 import {
   existsSync,
   mkdtempSync,
@@ -9,8 +10,8 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { once } from 'node:events';
 import { afterEach, describe, expect, it } from 'vitest';
+
 import { DailyLogFile, formatLogDate } from './daily-log-file';
 
 describe('DailyLogFile', () => {
@@ -19,7 +20,7 @@ describe('DailyLogFile', () => {
     dirs
       .splice(0)
       .forEach((dir) =>
-        rmSync(dir, { recursive: true, force: true }),
+        rmSync(dir, { force: true, recursive: true }),
       ),
   );
   const tempDir = () => {
@@ -39,9 +40,9 @@ describe('DailyLogFile', () => {
     const clock = { now: new Date(2026, 10, 2, 23, 59) };
     const file = new DailyLogFile({
       dir,
-      prefix: 'access',
       maxDays: 3,
       now: () => clock.now,
+      prefix: 'access',
     });
     // Created by an earlier run: one inside the window, two outside, one unrelated.
     for (const name of [
@@ -94,9 +95,9 @@ describe('DailyLogFile', () => {
     for (const text of ['first\n', 'second\n']) {
       const file = new DailyLogFile({
         dir,
-        prefix: 'access',
         maxDays: 1,
         now,
+        prefix: 'access',
       });
       await write(file, text);
       file.end();

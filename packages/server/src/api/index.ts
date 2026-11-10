@@ -1,29 +1,32 @@
 import type { ClientConfig } from '@uwacwy/print-shared';
+
 import express from 'express';
 import { createRouting } from 'ts-routes';
-import { api } from '../shared/routes/api.routes';
+
 import type { PrintDatabase } from './helpers/database/database';
 import type {
   EnrollmentConfig,
   UploadConfig,
 } from './helpers/server-config/server-config';
 import type { EntraUserOptions } from './middleware/auth/entra-user/entra-user.strategy';
+import type { AgentHub } from './sockets/agent-hub/agent-hub';
+
+import { api } from '../shared/routes/api.routes';
 import { createAuthenticate } from './middleware/auth/passport/passport';
 import agentRouter from './routers/agent/agent.router';
 import printersRouter from './routers/printers/printers.router';
 import sessionRouter from './routers/session/session.router';
-import type { AgentHub } from './sockets/agent-hub/agent-hub';
 
 export interface ApiRootOptions {
-  entra: EntraUserOptions;
+  client?: ClientConfig;
   db: PrintDatabase;
-  jobsDir: string;
-  getHub: () => AgentHub;
-  upload: UploadConfig;
-  publicUrl: URL;
   /** Enrollment and install commands; disabled when absent. */
   enrollment?: EnrollmentConfig;
-  client?: ClientConfig;
+  entra: EntraUserOptions;
+  getHub: () => AgentHub;
+  jobsDir: string;
+  publicUrl: URL;
+  upload: UploadConfig;
 }
 const routes = createRouting(api);
 
@@ -42,7 +45,8 @@ export default (options: ApiRootOptions) => {
     )
     .get(routes.status.pattern, (_request, response) => {
       response.set('cache-control', 'no-store').json({
-        printersOnline: options.getHub().onlinePrinterIds().length,
+        printersOnline: options.getHub().onlinePrinterIds()
+          .length,
       });
     })
     .get(routes.clientConfig.pattern, (_request, response) => {

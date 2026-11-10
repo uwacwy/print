@@ -1,3 +1,4 @@
+import { locatePath } from 'locate-path';
 import { constants } from 'node:fs';
 import {
   access,
@@ -9,15 +10,15 @@ import {
   rm,
   stat,
 } from 'node:fs/promises';
-import { dirname, join, basename } from 'node:path';
-import { locatePath } from 'locate-path';
+import { basename, dirname, join } from 'node:path';
+
 import { CliError, EXIT_USAGE } from '../cli-error/cli-error';
 import {
+  type AgentConfig,
   parseConfigFile,
+  type PartialAgentConfig,
   permissionWarning,
   serializeConfig,
-  type AgentConfig,
-  type PartialAgentConfig,
 } from '../config/config';
 
 /** The first candidate that exists as a file. */
@@ -51,6 +52,22 @@ const exists = (path: string) =>
     () => true,
     () => false,
   );
+
+/** `preferred` when writable, else the first writable candidate. */
+export async function firstWritable(
+  preferred: string,
+  candidates: readonly string[],
+): Promise<string | undefined> {
+  for (const path of [
+    preferred,
+    ...candidates.filter((c) => c !== preferred),
+  ]) {
+    if (await canWrite(path)) {
+      return path;
+    }
+  }
+  return undefined;
+}
 
 /** `--config` when given (it must exist), else the first config found among `candidates`. */
 export async function loadConfigFile(
@@ -86,29 +103,13 @@ async function canWrite(path: string): Promise<boolean> {
   );
 }
 
-/** `preferred` when writable, else the first writable candidate. */
-export async function firstWritable(
-  preferred: string,
-  candidates: readonly string[],
-): Promise<string | undefined> {
-  for (const path of [
-    preferred,
-    ...candidates.filter((c) => c !== preferred),
-  ]) {
-    if (await canWrite(path)) {
-      return path;
-    }
-  }
-  return undefined;
-}
-
 export const configExists = exists;
 
 export interface WriteOptions {
-  /** File mode; 0600 for a user's config, 0640 for host-wide config readable by the service group. */
-  mode: number;
   /** Group that may read the file (host-wide installs). */
   gid?: number;
+  /** File mode; 0600 for a user's config, 0640 for host-wide config readable by the service group. */
+  mode: number;
   /** Keep an existing file's mode and group instead. */
   preserve?: boolean;
 }
@@ -117,7 +118,7 @@ export interface WriteOptions {
 export async function writeConfig(
   path: string,
   config: AgentConfig,
-  { mode: newMode, gid: newGid, preserve = false }: WriteOptions,
+  { gid: newGid, mode: newMode, preserve = false }: WriteOptions,
 ): Promise<void> {
   const existing = preserve
     ? await stat(path).catch(() => undefined)
@@ -126,8 +127,11 @@ export async function writeConfig(
   const gid =
     existing && process.getuid?.() === 0 ? existing.gid : newGid;
   const dir = dirname(path);
-  await mkdir(dir, { recursive: true, mode: 0o700 });
-  const temp = join(dir, `.${basename(path)}.${process.pid}.tmp`);
+  await mkdir(dir, { mode: 0o700, recursive: true });
+  const temp = join(
+    dir,
+    `.${basename(path)}.${process.pid}.tmp`,
+  );
   const handle = await open(temp, 'w', mode);
   try {
     await handle.writeFile(serializeConfig(config));

@@ -1,12 +1,17 @@
 import { Component, computed, input } from '@angular/core';
-import { FormField, type FieldTree } from '@angular/forms/signals';
+import {
+  type FieldTree,
+  FormField,
+} from '@angular/forms/signals';
 
 /** A labelled text input bound to a signal form field, with a hint and its first error once touched. */
 @Component({
-  selector: 'app-text-field',
   imports: [FormField],
+  selector: 'app-text-field',
   template: `
-    <label class="form-label" [for]="inputId()">{{ label() }}</label>
+    <label class="form-label" [for]="inputId()">{{
+      label()
+    }}</label>
     <input
       class="form-control"
       [id]="inputId()"
@@ -14,7 +19,9 @@ import { FormField, type FieldTree } from '@angular/forms/signals';
       [attr.autocomplete]="autocomplete()"
       [attr.aria-describedby]="describedBy()"
       [attr.aria-invalid]="error() ? 'true' : null"
-      [attr.aria-errormessage]="error() ? inputId() + '-error' : null"
+      [attr.aria-errormessage]="
+        error() ? inputId() + '-error' : null
+      "
     />
     @if (hint()) {
       <div class="form-text" [id]="inputId() + '-hint'">
@@ -33,18 +40,20 @@ import { FormField, type FieldTree } from '@angular/forms/signals';
   `,
 })
 export class TextFieldComponent {
-  readonly inputId = input.required<string>();
-  readonly label = input.required<string>();
+  readonly autocomplete = input('off');
   readonly field = input.required<FieldTree<string>>();
   readonly hint = input('');
-  readonly autocomplete = input('off');
+  readonly inputId = input.required<string>();
+  readonly label = input.required<string>();
+
+  protected readonly describedBy = computed(() =>
+    this.hint() ? `${this.inputId()}-hint` : null,
+  );
 
   protected readonly error = computed(() => {
     const state = this.field()();
-    return state.touched() ? (state.errors()[0]?.message ?? '') : '';
+    return state.touched()
+      ? (state.errors()[0]?.message ?? '')
+      : '';
   });
-
-  protected readonly describedBy = computed(
-    () => (this.hint() ? `${this.inputId()}-hint` : null),
-  );
 }

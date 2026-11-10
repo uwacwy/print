@@ -1,4 +1,5 @@
 import type { Request } from 'express';
+
 import { decodeJwt, decodeProtectedHeader } from 'jose';
 import jwksClient from 'jwks-rsa';
 import {
@@ -6,21 +7,22 @@ import {
   type SecretOrKeyProvider,
 } from 'passport-jwt';
 import { Strategy } from 'passport-strategy';
+
 import { bearer, isJwtShaped } from '../credentials';
 import {
-  isAuthChallenge,
   type AuthChallenge,
+  isAuthChallenge,
   type Principal,
 } from '../principal';
 
 export interface EntraUserOptions {
-  tenantId?: string;
-  audience?: string | string[];
-  requiredScope?: string;
-  adminRole?: string;
   adminGroupIds: string[];
+  adminRole?: string;
+  audience?: string | string[];
   /** Overrides the Entra JWKS lookup; tests use it to supply a local signing key. */
   keyProvider?: SecretOrKeyProvider<Request>;
+  requiredScope?: string;
+  tenantId?: string;
 }
 
 const challenge = (
@@ -31,14 +33,14 @@ const challenge = (
   details?: Record<string, unknown>,
 ): AuthChallenge => ({
   code,
+  details,
   error,
-  status,
   presented,
   scheme:
     presented && status === 401
       ? 'Bearer error="invalid_token"'
       : 'Bearer',
-  details,
+  status,
 });
 
 const MISSING = challenge(
@@ -70,13 +72,13 @@ function entraKeyProvider(
   const base = `https://login.microsoftonline.com/${tenantId}`;
   const clients = {
     v1: jwksClient({
-      jwksUri: `${base}/discovery/keys`,
       cache: true,
+      jwksUri: `${base}/discovery/keys`,
       rateLimit: true,
     }),
     v2: jwksClient({
-      jwksUri: `${base}/discovery/v2.0/keys`,
       cache: true,
+      jwksUri: `${base}/discovery/v2.0/keys`,
       rateLimit: true,
     }),
   };
@@ -99,6 +101,18 @@ const stringClaims = (value: unknown): string[] =>
       )
     : [];
 
+/** Stands in for Entra when no tenant/audience is configured. */
+class EntraNotConfiguredStrategy extends Strategy {
+  name = 'entraUser';
+
+  override authenticate(request: Request): void {
+    const challenge = isJwtShaped(bearer(request))
+      ? NOT_CONFIGURED
+      : MISSING;
+    this.fail(challenge, challenge.status);
+  }
+}
+
 /**
  * Delegated Microsoft Entra users with the management scope and, when configured, the admin
  * app role or one of the admin groups. Only JWT-shaped bearer tokens are considered, so upload
@@ -106,28 +120,29 @@ const stringClaims = (value: unknown): string[] =>
  */
 class EntraUserStrategy extends JwtStrategy {
   constructor(
-    options: Required<
-      Pick<EntraUserOptions, 'tenantId' | 'audience'>
-    > &
-      EntraUserOptions,
+    options: EntraUserOptions &
+      Required<Pick<EntraUserOptions, 'audience' | 'tenantId'>>,
   ) {
-    const requiredScope = options.requiredScope ?? 'Printers.Manage';
+    const requiredScope =
+      options.requiredScope ?? 'Printers.Manage';
     const restricted =
-      Boolean(options.adminRole) || options.adminGroupIds.length > 0;
+      Boolean(options.adminRole) ||
+      options.adminGroupIds.length > 0;
     super(
       {
+        algorithms: ['RS256'],
+        audience: options.audience,
+        issuer: [
+          `https://sts.windows.net/${options.tenantId}/`,
+          `https://login.microsoftonline.com/${options.tenantId}/v2.0`,
+        ],
         jwtFromRequest: (request: Request) => {
           const token = bearer(request);
           return isJwtShaped(token) ? token : null;
         },
         secretOrKeyProvider:
-          options.keyProvider ?? entraKeyProvider(options.tenantId),
-        issuer: [
-          `https://sts.windows.net/${options.tenantId}/`,
-          `https://login.microsoftonline.com/${options.tenantId}/v2.0`,
-        ],
-        audience: options.audience,
-        algorithms: ['RS256'],
+          options.keyProvider ??
+          entraKeyProvider(options.tenantId),
       },
       (claims: Record<string, unknown>, done) => {
         const id =
@@ -178,8 +193,8 @@ class EntraUserStrategy extends JwtStrategy {
           );
         }
         done(null, {
-          kind: 'entraUser',
           id,
+          kind: 'entraUser',
           roles,
         } satisfies Principal);
       },
@@ -188,7 +203,10 @@ class EntraUserStrategy extends JwtStrategy {
   }
 
   /** passport-jwt fails with bare Errors; translate them into JSON-ready challenges. */
-  override authenticate(request: Request, options?: object): void {
+  override authenticate(
+    request: Request,
+    options?: object,
+  ): void {
     const fail = this.fail.bind(this);
     this.fail = (info?: unknown) => {
       const translated = isAuthChallenge(info)
@@ -202,23 +220,11 @@ class EntraUserStrategy extends JwtStrategy {
   }
 }
 
-/** Stands in for Entra when no tenant/audience is configured. */
-class EntraNotConfiguredStrategy extends Strategy {
-  name = 'entraUser';
-
-  override authenticate(request: Request): void {
-    const challenge = isJwtShaped(bearer(request))
-      ? NOT_CONFIGURED
-      : MISSING;
-    this.fail(challenge, challenge.status);
-  }
-}
-
 export function createEntraUserStrategy(
   options: EntraUserOptions,
 ): Strategy {
-  const { tenantId, audience } = options;
+  const { audience, tenantId } = options;
   return tenantId && audience
-    ? new EntraUserStrategy({ ...options, tenantId, audience })
+    ? new EntraUserStrategy({ ...options, audience, tenantId })
     : new EntraNotConfiguredStrategy();
 }

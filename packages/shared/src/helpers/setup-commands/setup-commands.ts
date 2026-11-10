@@ -5,9 +5,9 @@ export const AGENT_PACKAGE = '@uwacwy/print-agent';
 export const AGENT_IMAGE = 'ghcr.io/uwacwy/print-agent';
 
 export interface AgentCredentials {
-  serverUrl: string;
   agentToken: string;
   printerUri: string;
+  serverUrl: string;
 }
 
 export interface AgentServiceOptions extends AgentCredentials {
@@ -16,7 +16,9 @@ export interface AgentServiceOptions extends AgentCredentials {
 }
 
 const flags = (pairs: [flag: string, value: string][]): string =>
-  pairs.map(([flag, value]) => `${flag} ${shArg(value)}`).join(' ');
+  pairs
+    .map(([flag, value]) => `${flag} ${shArg(value)}`)
+    .join(' ');
 
 /** Interactive enrollment through the server-rendered script. */
 export const curlEnrollCommand = (
@@ -55,16 +57,17 @@ export const npxInstallCommand = (
   ])}`;
 
 /** YAML double-quoted scalar; JSON string escaping is a valid subset. */
-const yamlString = (value: string): string => JSON.stringify(value);
+const yamlString = (value: string): string =>
+  JSON.stringify(value);
 
 const isCups = (printerUri: string): boolean =>
   printerUri.startsWith('cups://');
 
 /** A `docker compose` service; CUPS queues get the host's CUPS socket. */
 export const dockerComposeSnippet = ({
-  serverUrl,
   agentToken,
   printerUri,
+  serverUrl,
   slug,
 }: AgentServiceOptions): string =>
   [
@@ -89,9 +92,9 @@ export const dockerComposeSnippet = ({
 
 /** `docker run` equivalent of `dockerComposeSnippet`. */
 export const dockerRunCommand = ({
-  serverUrl,
   agentToken,
   printerUri,
+  serverUrl,
 }: AgentCredentials): string =>
   [
     'docker run -d --restart unless-stopped --init',
@@ -109,9 +112,9 @@ export const dockerRunCommand = ({
 
 /** A titled, copyable setup command for the management UI. */
 export interface SetupCommand {
+  command: string;
   id: string;
   label: string;
-  command: string;
 }
 
 /** Commands that enroll a new printer from its computer with an enrollment token. */
@@ -120,14 +123,14 @@ export const enrollSetupCommands = (
   enrollToken: string,
 ): SetupCommand[] => [
   {
+    command: curlEnrollCommand(serverUrl, enrollToken),
     id: 'curl',
     label: 'One line (installs Node.js if needed)',
-    command: curlEnrollCommand(serverUrl, enrollToken),
   },
   {
+    command: npxEnrollCommand(serverUrl, enrollToken),
     id: 'npx',
     label: 'With Node.js 20.17 or newer already installed',
-    command: npxEnrollCommand(serverUrl, enrollToken),
   },
 ];
 
@@ -136,18 +139,18 @@ export const agentSetupCommands = (
   options: AgentServiceOptions,
 ): SetupCommand[] => [
   {
+    command: curlInstallCommand(options),
     id: 'curl',
     label: 'One line (installs Node.js if needed)',
-    command: curlInstallCommand(options),
   },
   {
+    command: npxInstallCommand(options),
     id: 'npx',
     label: 'With Node.js 20.17 or newer already installed',
-    command: npxInstallCommand(options),
   },
   {
+    command: dockerComposeSnippet(options),
     id: 'compose',
     label: 'Docker Compose service',
-    command: dockerComposeSnippet(options),
   },
 ];

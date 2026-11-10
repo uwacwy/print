@@ -1,11 +1,13 @@
 import type { Observable } from 'rxjs';
-import { CupsPrinter } from '../../printer/cups-printer/cups-printer';
-import { IppPrinter } from '../../printer/ipp-printer/ipp-printer';
+
 import type {
-  PrintRequest,
   IPrinter,
   PrinterConstructor,
+  PrintRequest,
 } from '../../types';
+
+import { CupsPrinter } from '../../printer/cups-printer/cups-printer';
+import { IppPrinter } from '../../printer/ipp-printer/ipp-printer';
 
 /** Picks the driver from the connection string's scheme. */
 

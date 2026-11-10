@@ -13,7 +13,9 @@
     "importHelpers": true,
     "target": "ES2022",
     "module": "preserve",
-    "paths": { "@uwacwy/print-shared": ["./packages/shared/src/index.ts"] }
+    "paths": {
+      "@uwacwy/print-shared": ["./packages/shared/src/index.ts"]
+    }
   },
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,

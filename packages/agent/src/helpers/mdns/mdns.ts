@@ -2,11 +2,11 @@ import type { DiscoveredPrinter } from '../discovery/discovery';
 
 /** The parts of a DNS-SD `_ipp._tcp` / `_ipps._tcp` record a printer URI is built from. */
 export interface IppService {
-  name: string;
-  type: string;
   host: string;
+  name: string;
   port: number;
   txt?: Record<string, unknown>;
+  type: string;
 }
 
 const txtValue = (
@@ -21,36 +21,6 @@ const txtValue = (
     ? text.trim()
     : undefined;
 };
-
-/**
- * An IPP printer URI per the IPP Everywhere DNS-SD conventions: `rp` is the resource path
- * (usually `ipp/print`), `ty` the make and model, `note` the location.
- */
-export function serviceToPrinter(
-  service: IppService,
-): DiscoveredPrinter | undefined {
-  const scheme =
-    service.type === 'ipps'
-      ? 'ipps'
-      : service.type === 'ipp'
-        ? 'ipp'
-        : undefined;
-  const host = service.host.replace(/\.$/, '');
-  if (!scheme || !host || !Number.isInteger(service.port)) {
-    return undefined;
-  }
-  const path = (txtValue(service.txt, 'rp') ?? 'ipp/print').replace(
-    /^\/+/,
-    '',
-  );
-  const model = txtValue(service.txt, 'ty');
-  const location = txtValue(service.txt, 'note');
-  return {
-    uri: new URL(`${scheme}://${host}:${service.port}/${path}`).href,
-    name: service.name.trim() || model || host,
-    detail: [model, location, host].filter(Boolean).join(' · '),
-  };
-}
 
 /** Browses the local network for IPP printers for `timeoutMs`. */
 export async function browseIpp(
@@ -75,4 +45,34 @@ export async function browseIpp(
   return [...found.values()].sort((a, b) =>
     a.name.localeCompare(b.name),
   );
+}
+
+/**
+ * An IPP printer URI per the IPP Everywhere DNS-SD conventions: `rp` is the resource path
+ * (usually `ipp/print`), `ty` the make and model, `note` the location.
+ */
+export function serviceToPrinter(
+  service: IppService,
+): DiscoveredPrinter | undefined {
+  const scheme =
+    service.type === 'ipps'
+      ? 'ipps'
+      : service.type === 'ipp'
+        ? 'ipp'
+        : undefined;
+  const host = service.host.replace(/\.$/, '');
+  if (!scheme || !host || !Number.isInteger(service.port)) {
+    return undefined;
+  }
+  const path = (
+    txtValue(service.txt, 'rp') ?? 'ipp/print'
+  ).replace(/^\/+/, '');
+  const model = txtValue(service.txt, 'ty');
+  const location = txtValue(service.txt, 'note');
+  return {
+    detail: [model, location, host].filter(Boolean).join(' · '),
+    name: service.name.trim() || model || host,
+    uri: new URL(`${scheme}://${host}:${service.port}/${path}`)
+      .href,
+  };
 }

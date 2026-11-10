@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { describe, expect, it } from 'vitest';
+
 import { AgentBadgeComponent } from './agent-badge.component';
 
 describe('AgentBadgeComponent', () => {

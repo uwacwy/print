@@ -1,6 +1,7 @@
-import type { PrinterSummary } from '../../../../services/printer/printer.service';
-import { applyLiveEvent } from '../../../../helpers/printer-live-status/printer-live-status';
 import type { LiveEvent } from '../../../../services/live-events/live-events.service';
+import type { PrinterSummary } from '../../../../services/printer/printer.service';
+
+import { applyLiveEvent } from '../../../../helpers/printer-live-status/printer-live-status';
 
 export const patchPrinter = (
   printers: readonly PrinterSummary[],
@@ -14,14 +15,17 @@ export const patchPrinter = (
 export const withoutPrinter = (
   printers: readonly PrinterSummary[],
   id: number,
-): PrinterSummary[] => printers.filter((printer) => printer.id !== id);
+): PrinterSummary[] =>
+  printers.filter((printer) => printer.id !== id);
 
 /** Applies a live event to every printer it concerns. */
 export const applyLiveEventToList = (
   printers: readonly PrinterSummary[],
   event: LiveEvent,
 ): PrinterSummary[] =>
-  printers.map((printer) => applyLiveEvent(printer, event, printer.id));
+  printers.map((printer) =>
+    applyLiveEvent(printer, event, printer.id),
+  );
 
 /** Screen reader text for events worth announcing, or '' for the rest. */
 export function liveEventAnnouncement(
@@ -31,7 +35,9 @@ export function liveEventAnnouncement(
   if (event.type === 'snapshot') {
     return '';
   }
-  const name = printers.find(({ id }) => id === event.printerId)?.name;
+  const name = printers.find(
+    ({ id }) => id === event.printerId,
+  )?.name;
   if (!name) {
     return '';
   }
@@ -39,7 +45,8 @@ export function liveEventAnnouncement(
     case 'agent':
       return `${name} agent ${event.online ? 'connected' : 'disconnected'}.`;
     case 'job':
-      return event.status === 'printed' || event.status === 'failed'
+      return event.status === 'printed' ||
+        event.status === 'failed'
         ? `A job ${event.status} on ${name}.`
         : '';
     case 'jobs-deleted':

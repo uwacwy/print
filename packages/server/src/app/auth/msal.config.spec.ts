@@ -1,5 +1,6 @@
 import { InteractionType } from '@azure/msal-browser';
 import { describe, expect, it } from 'vitest';
+
 import { environment as developmentEnvironment } from '../../environments/environment.development';
 import {
   getApiScope,
@@ -25,7 +26,9 @@ describe('MSAL configuration', () => {
 
   it('requests the registered API scope with OIDC scopes and protects API requests', () => {
     const scope = getApiScope(developmentEnvironment);
-    const guard = getMsalGuardConfiguration(developmentEnvironment);
+    const guard = getMsalGuardConfiguration(
+      developmentEnvironment,
+    );
     const interceptor = getMsalInterceptorConfiguration(
       developmentEnvironment,
     );

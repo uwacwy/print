@@ -1,20 +1,34 @@
-import { Component, computed, input, output, signal } from '@angular/core';
-import { FormField, FormRoot, type FieldTree } from '@angular/forms/signals';
+import {
+  Component,
+  computed,
+  input,
+  output,
+  signal,
+} from '@angular/core';
+import {
+  type FieldTree,
+  FormField,
+  FormRoot,
+} from '@angular/forms/signals';
+
 import { TextFieldComponent } from '../../../../components/text-field/text-field.component';
 import { type PrinterModel } from '../../helpers/printer-form/printer-form';
 import { DeleteConfirmationComponent } from '../delete-confirmation/delete-confirmation.component';
 
 /** The printer's editable fields with save and, for existing printers, delete. */
 @Component({
-  selector: 'app-printer-form',
   imports: [
     FormField,
     FormRoot,
     TextFieldComponent,
     DeleteConfirmationComponent,
   ],
+  selector: 'app-printer-form',
   template: `
-    <form [formRoot]="printerForm()" class="d-flex flex-column gap-3">
+    <form
+      [formRoot]="printerForm()"
+      class="d-flex flex-column gap-3"
+    >
       <div>
         <app-text-field
           inputId="printer-name"
@@ -27,7 +41,9 @@ import { DeleteConfirmationComponent } from '../delete-confirmation/delete-confi
           inputId="printer-slug"
           label="Upload slug"
           [field]="printerForm().slug"
-          [hint]="'Public upload URL: /print/' + (slug() || 'slug')"
+          [hint]="
+            'Public upload URL: /print/' + (slug() || 'slug')
+          "
         />
       </div>
       <div>
@@ -45,7 +61,9 @@ import { DeleteConfirmationComponent } from '../delete-confirmation/delete-confi
           type="checkbox"
           [formField]="printerForm().coverPage"
         />
-        <span class="form-check-label">Print a privacy cover page</span>
+        <span class="form-check-label"
+          >Print a privacy cover page</span
+        >
       </label>
       <div class="d-flex gap-2">
         <button
@@ -82,10 +100,11 @@ import { DeleteConfirmationComponent } from '../delete-confirmation/delete-confi
   `,
 })
 export class PrinterFormComponent {
-  readonly printerForm = input.required<FieldTree<PrinterModel>>();
   readonly isNew = input.required<boolean>();
-  readonly saving = input(false);
+  readonly printerForm =
+    input.required<FieldTree<PrinterModel>>();
   readonly remove = output();
+  readonly saving = input(false);
 
   protected readonly confirmingDelete = signal(false);
   protected readonly slug = computed(() =>

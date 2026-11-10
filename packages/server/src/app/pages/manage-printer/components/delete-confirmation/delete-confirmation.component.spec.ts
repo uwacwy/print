@@ -1,10 +1,13 @@
 import { TestBed } from '@angular/core/testing';
 import { describe, expect, it } from 'vitest';
+
 import { DeleteConfirmationComponent } from './delete-confirmation.component';
 
 describe('DeleteConfirmationComponent', () => {
   it('emits confirm and cancel', () => {
-    const fixture = TestBed.createComponent(DeleteConfirmationComponent);
+    const fixture = TestBed.createComponent(
+      DeleteConfirmationComponent,
+    );
     const events: string[] = [];
     fixture.componentInstance.confirmed.subscribe(() =>
       events.push('confirmed'),

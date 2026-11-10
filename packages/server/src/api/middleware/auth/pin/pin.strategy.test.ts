@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
+
 import { addPrinter } from '../../../../realtime/test-support';
-import { uploadForm, useApiServer } from '../../../test-support';
 import { setPrinterPin } from '../../../helpers/database/database';
+import { uploadForm, useApiServer } from '../../../test-support';
 
 describe('pin strategy', () => {
   const api = useApiServer();
@@ -32,13 +33,15 @@ describe('pin strategy', () => {
 
     const issued = await api.exchangePin('123 456 789');
     expect(issued.status).toBe(201);
-    const { token, expiresAt } = (await issued.json()) as {
-      token: string;
+    const { expiresAt, token } = (await issued.json()) as {
       expiresAt: string;
+      token: string;
     };
     expect(
       new Date(expiresAt).getTime() - Date.now(),
-    ).toBeLessThanOrEqual(api.upload.access.pinTokenTtlMs + 60_000);
+    ).toBeLessThanOrEqual(
+      api.upload.access.pinTokenTtlMs + 60_000,
+    );
 
     const job = await api.postUpload(
       await uploadForm(),
@@ -98,6 +101,8 @@ describe('pin strategy', () => {
         )
       ).status,
     ).toBe(429);
-    expect((await api.exchangePin('123-456-789')).status).toBe(429);
+    expect((await api.exchangePin('123-456-789')).status).toBe(
+      429,
+    );
   });
 });

@@ -1,11 +1,14 @@
 import type { Request } from 'express';
+
 import { Strategy } from 'passport-strategy';
+
+import type { AuthChallenge, Principal } from '../principal';
+
 import {
   getPrinterByToken,
   type PrintDatabase,
 } from '../../../helpers/database/database';
 import { bearer } from '../credentials';
-import type { AuthChallenge, Principal } from '../principal';
 
 /** Print agents authenticate with their per-printer bearer token. */
 export class AgentTokenStrategy extends Strategy {
@@ -28,11 +31,13 @@ export class AgentTokenStrategy extends Strategy {
     }
     this.fail(
       {
-        code: token ? 'agent_token_invalid' : 'agent_token_required',
+        code: token
+          ? 'agent_token_invalid'
+          : 'agent_token_required',
         error: 'Unauthorized',
-        status: 401,
         presented: !!token,
         scheme: 'Bearer realm="print-agent"',
+        status: 401,
       } satisfies AuthChallenge,
       401,
     );

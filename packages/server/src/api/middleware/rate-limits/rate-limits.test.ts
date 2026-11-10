@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
+
 import { addPrinter } from '../../../realtime/test-support';
-import { useApiServer } from '../../test-support';
 import { setPrinterPin } from '../../helpers/database/database';
+import { useApiServer } from '../../test-support';
 
 describe('rate limits', () => {
   const api = useApiServer();
@@ -16,7 +17,9 @@ describe('rate limits', () => {
       attempt < api.upload.access.pinMaxFailures;
       attempt++
     ) {
-      expect((await api.exchangePin('000000000')).status).toBe(401);
+      expect((await api.exchangePin('000000000')).status).toBe(
+        401,
+      );
     }
     const locked = await api.exchangePin('123456789');
     expect(locked.status).toBe(429);

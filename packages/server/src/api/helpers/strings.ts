@@ -8,7 +8,9 @@ export function cleanFileName(name: string): string {
 }
 
 /** Parses a positive integer route parameter, or undefined when it is not one. */
-export function parsePositiveInt(value: string): number | undefined {
+export function parsePositiveInt(
+  value: string,
+): number | undefined {
   if (!/^[1-9]\d*$/.test(value)) {
     return undefined;
   }

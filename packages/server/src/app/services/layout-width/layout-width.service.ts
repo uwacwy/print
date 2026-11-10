@@ -1,4 +1,9 @@
-import { computed, inject, Service, signal } from '@angular/core';
+import {
+  computed,
+  inject,
+  Service,
+  signal,
+} from '@angular/core';
 import {
   takeUntilDestroyed,
   toSignal,
@@ -9,24 +14,18 @@ import {
   Router,
 } from '@angular/router';
 import { catchError, filter, map, of } from 'rxjs';
+
 import { ColWidths } from '../../../api/helpers/zod';
-
-
 
 @Service()
 export class LayoutWidthService {
   readonly #widths = signal<ColWidths>({
-    xs: null,
-    sm: null,
-    md: null,
     lg: null,
+    md: null,
+    sm: null,
     xl: null,
+    xs: null,
   });
-  readonly #route = inject(ActivatedRoute);
-  readonly #router = inject(Router);
-
-  readonly width = this.#widths.asReadonly();
-
   readonly class = computed(() => {
     const widths = this.#widths();
 
@@ -50,10 +49,15 @@ export class LayoutWidthService {
 
     return classesToApply.join(' ') || 'col';
   });
+  readonly #route = inject(ActivatedRoute);
 
   readonly paramMap = toSignal(this.#route.paramMap, {
     requireSync: true,
   });
+
+  readonly width = this.#widths.asReadonly();
+
+  readonly #router = inject(Router);
 
   readonly #leafRoute$ = this.#router.events.pipe(
     filter((e) => e instanceof NavigationEnd),
@@ -73,11 +77,11 @@ export class LayoutWidthService {
       map((data) => ColWidths.parse(data['width'])),
       catchError(() =>
         of({
-          xs: null,
-          sm: null,
-          md: null,
           lg: null,
+          md: null,
+          sm: null,
           xl: null,
+          xs: null,
         }),
       ),
     )

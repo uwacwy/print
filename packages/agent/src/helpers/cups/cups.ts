@@ -1,9 +1,11 @@
 import { spawn } from 'node:child_process';
+
 import type {
   CupsJobOutcome,
   CupsQueueState,
   CupsWaitOptions,
 } from '../../types';
+
 import { log as defaultLog } from '../logging';
 import {
   formatSeconds,
@@ -25,6 +27,29 @@ const LP_OPTION_NAME = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$/;
 // eslint-disable-next-line no-control-regex
 const LP_OPTION_VALUE = /^[^\s\0-\x1f\x7f]{0,256}$/;
 const CUPS_QUEUE = /^[A-Za-z0-9_.-]{1,128}$/;
+
+/** The queue name from a bare `cups://<queue_name>` URI (options already removed). */
+export function parseCupsQueue(uri: URL): string {
+  if (
+    uri.protocol !== 'cups:' ||
+    uri.username ||
+    uri.password ||
+    uri.port ||
+    uri.hash ||
+    uri.pathname ||
+    !uri.hostname
+  ) {
+    throw new Error(
+      `CUPS destination must be cups://<queue_name>. Was ${uri.href}`,
+    );
+  }
+  if (!CUPS_QUEUE.test(uri.hostname)) {
+    throw new Error(
+      'CUPS queue contains unsupported characters.',
+    );
+  }
+  return uri.hostname;
+}
 
 /**
  * Pulls `option_<name>=<value>` pairs out of a CUPS connection string so they can be
@@ -58,34 +83,15 @@ export function takeLpOptions(conn: string | URL): {
       );
     }
     if (seen.has(name)) {
-      throw new Error(`PRINTER_URI option "${key}" is repeated.`);
+      throw new Error(
+        `PRINTER_URI option "${key}" is repeated.`,
+      );
     }
     seen.add(name);
     lpOptions.push(value ? `${name}=${value}` : name);
     uri.searchParams.delete(key);
   }
   return { conn: uri, lpOptions };
-}
-
-/** The queue name from a bare `cups://<queue_name>` URI (options already removed). */
-export function parseCupsQueue(uri: URL): string {
-  if (
-    uri.protocol !== 'cups:' ||
-    uri.username ||
-    uri.password ||
-    uri.port ||
-    uri.hash ||
-    uri.pathname ||
-    !uri.hostname
-  ) {
-    throw new Error(
-      `CUPS destination must be cups://<queue_name>. Was ${uri.href}`,
-    );
-  }
-  if (!CUPS_QUEUE.test(uri.hostname)) {
-    throw new Error('CUPS queue contains unsupported characters.');
-  }
-  return uri.hostname;
 }
 
 /** Untranslated CUPS output, and `cupsenable` from sbin even when PATH omits it. */
@@ -97,6 +103,57 @@ const CUPS_ENV = {
     .filter(Boolean)
     .join(':'),
 };
+
+/** Finds one job's block in `lpstat -l -o` output. */
+export function parseJobOutcome(
+  output: string,
+  jobId: string,
+): CupsJobOutcome | undefined {
+  const lines = output.split('\n');
+  const start = lines.findIndex((line) =>
+    line.startsWith(`${jobId} `),
+  );
+  if (start < 0) {
+    return undefined;
+  }
+  const block: string[] = [];
+  for (const line of lines.slice(start + 1)) {
+    if (!/^\s/.test(line)) {
+      break;
+    }
+    block.push(line.trim());
+  }
+  const field = (name: string) =>
+    block
+      .find((line) => line.startsWith(`${name}:`))
+      ?.slice(name.length + 1)
+      .trim() ?? '';
+  return {
+    alerts: field('Alerts')
+      .split(/[\s,]+/)
+      .filter(Boolean),
+    status: field('Status'),
+  };
+}
+
+/** Parses `lpstat -p <queue>`: `printer Q disabled since …\n\t<reason>` or `printer Q is idle.  enabled since …`. */
+export function parseQueueState(output: string): CupsQueueState {
+  const [first = '', ...rest] = output.split('\n');
+  return {
+    enabled: !/\bdisabled\b/.test(first),
+    reason: rest
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .join(' '),
+  };
+}
+
+/** `lp` prints `request id is Queue-42 (1 file(s))`. */
+export function parseRequestId(
+  output: string,
+): string | undefined {
+  return /request id is (\S+)/.exec(output)?.[1];
+}
 
 /** Runs a CUPS client command and resolves with its stdout. */
 export function runCups(
@@ -140,55 +197,6 @@ export function runCups(
       }
     });
   });
-}
-
-/** Parses `lpstat -p <queue>`: `printer Q disabled since …\n\t<reason>` or `printer Q is idle.  enabled since …`. */
-export function parseQueueState(output: string): CupsQueueState {
-  const [first = '', ...rest] = output.split('\n');
-  return {
-    enabled: !/\bdisabled\b/.test(first),
-    reason: rest
-      .map((line) => line.trim())
-      .filter(Boolean)
-      .join(' '),
-  };
-}
-
-/** Finds one job's block in `lpstat -l -o` output. */
-export function parseJobOutcome(
-  output: string,
-  jobId: string,
-): CupsJobOutcome | undefined {
-  const lines = output.split('\n');
-  const start = lines.findIndex((line) =>
-    line.startsWith(`${jobId} `),
-  );
-  if (start < 0) {
-    return undefined;
-  }
-  const block: string[] = [];
-  for (const line of lines.slice(start + 1)) {
-    if (!/^\s/.test(line)) {
-      break;
-    }
-    block.push(line.trim());
-  }
-  const field = (name: string) =>
-    block
-      .find((line) => line.startsWith(`${name}:`))
-      ?.slice(name.length + 1)
-      .trim() ?? '';
-  return {
-    alerts: field('Alerts')
-      .split(/[\s,]+/)
-      .filter(Boolean),
-    status: field('Status'),
-  };
-}
-
-/** `lp` prints `request id is Queue-42 (1 file(s))`. */
-export function parseRequestId(output: string): string | undefined {
-  return /request id is (\S+)/.exec(output)?.[1];
 }
 
 /** `lpstat -e`: one destination per line, including driverless printers CUPS can create on demand. */
@@ -235,18 +243,18 @@ export class CupsClient {
     readonly timeoutMs: number,
   ) {}
 
-  queueState(): Promise<CupsQueueState> {
-    return runCups(
-      'lpstat',
-      ['-p', this.queue],
-      this.timeoutMs,
-    ).then(parseQueueState);
+  cancel(jobId: string): Promise<void> {
+    return runCups('cancel', [jobId], this.timeoutMs).then(
+      () => undefined,
+    );
   }
 
   enable(): Promise<void> {
-    return runCups('cupsenable', [this.queue], this.timeoutMs).then(
-      () => undefined,
-    );
+    return runCups(
+      'cupsenable',
+      [this.queue],
+      this.timeoutMs,
+    ).then(() => undefined);
   }
 
   /** Re-enables the queue if CUPS stopped it after an earlier printer error. */
@@ -260,6 +268,45 @@ export class CupsClient {
         `CUPS queue ${this.queue} is stopped (${state.reason || 'no reason given'}) and could not be re-enabled: ${error instanceof Error ? error.message : String(error)}`,
       );
     });
+  }
+
+  isPending(jobId: string): Promise<boolean> {
+    return runCups(
+      'lpstat',
+      ['-W', 'not-completed', '-o', this.queue],
+      this.timeoutMs,
+    ).then((stdout) =>
+      stdout
+        .split('\n')
+        .some((line) => line.startsWith(`${jobId} `)),
+    );
+  }
+
+  /** The `Status:` line of a job still pending, e.g. "Unable to add document to print job." */
+  jobStatus(jobId: string): Promise<string> {
+    return runCups(
+      'lpstat',
+      ['-W', 'not-completed', '-l', '-o', this.queue],
+      this.timeoutMs,
+    ).then(
+      (stdout) => parseJobOutcome(stdout, jobId)?.status ?? '',
+    );
+  }
+
+  outcome(jobId: string): Promise<CupsJobOutcome | undefined> {
+    return runCups(
+      'lpstat',
+      ['-W', 'completed', '-l', '-o', this.queue],
+      this.timeoutMs,
+    ).then((stdout) => parseJobOutcome(stdout, jobId));
+  }
+
+  queueState(): Promise<CupsQueueState> {
+    return runCups(
+      'lpstat',
+      ['-p', this.queue],
+      this.timeoutMs,
+    ).then(parseQueueState);
   }
 
   /**
@@ -301,41 +348,6 @@ export class CupsClient {
     });
   }
 
-  isPending(jobId: string): Promise<boolean> {
-    return runCups(
-      'lpstat',
-      ['-W', 'not-completed', '-o', this.queue],
-      this.timeoutMs,
-    ).then((stdout) =>
-      stdout
-        .split('\n')
-        .some((line) => line.startsWith(`${jobId} `)),
-    );
-  }
-
-  outcome(jobId: string): Promise<CupsJobOutcome | undefined> {
-    return runCups(
-      'lpstat',
-      ['-W', 'completed', '-l', '-o', this.queue],
-      this.timeoutMs,
-    ).then((stdout) => parseJobOutcome(stdout, jobId));
-  }
-
-  /** The `Status:` line of a job still pending, e.g. "Unable to add document to print job." */
-  jobStatus(jobId: string): Promise<string> {
-    return runCups(
-      'lpstat',
-      ['-W', 'not-completed', '-l', '-o', this.queue],
-      this.timeoutMs,
-    ).then((stdout) => parseJobOutcome(stdout, jobId)?.status ?? '');
-  }
-
-  cancel(jobId: string): Promise<void> {
-    return runCups('cancel', [jobId], this.timeoutMs).then(
-      () => undefined,
-    );
-  }
-
   /**
    * Resolves once CUPS finishes `jobId` successfully.
    *
@@ -347,10 +359,10 @@ export class CupsClient {
   async waitForJob(
     jobId: string,
     {
-      waitMs,
+      log = defaultLog,
       pollMs,
       retryDelaysMs = CUPS_RETRY_DELAYS_MS,
-      log = defaultLog,
+      waitMs,
     }: CupsWaitOptions,
   ): Promise<void> {
     const deadline = Date.now() + waitMs;
@@ -365,7 +377,10 @@ export class CupsClient {
           state.reason ||
           'printer error';
         const delay = retryDelaysMs[retries];
-        if (delay === undefined || Date.now() + delay >= deadline) {
+        if (
+          delay === undefined ||
+          Date.now() + delay >= deadline
+        ) {
           await this.cancel(jobId).catch(() => undefined);
           await this.enable().catch(() => undefined);
           throw new Error(

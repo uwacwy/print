@@ -1,5 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ipp from 'ipp';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import {
   chooseDocumentFormat,
   getSupportedDocumentFormats,
@@ -10,8 +11,8 @@ import {
 vi.mock('ipp', () => ({ default: { Printer: vi.fn() } }));
 
 const printer = {
-  url: {} as { signal?: AbortSignal },
   execute: vi.fn(),
+  url: {} as { signal?: AbortSignal },
 };
 
 beforeEach(() => {
@@ -52,26 +53,31 @@ describe('IPP printing', () => {
     printer.execute.mockImplementation(
       (_operation, _message, callback) =>
         callback(null, {
-          statusCode: 'successful-ok',
           'printer-attributes-tag': {
             'document-format-supported': [
               'application/PCLm',
               'application/pdf',
             ],
           },
+          statusCode: 'successful-ok',
         }),
     );
     const uri = new URL('ipp://printer.local:631/ipp/print');
     const formats = await getSupportedDocumentFormats(uri);
 
-    expect(formats).toEqual(['application/PCLm', 'application/pdf']);
-    expect(chooseDocumentFormat(formats)).toBe('application/pdf');
+    expect(formats).toEqual([
+      'application/PCLm',
+      'application/pdf',
+    ]);
+    expect(chooseDocumentFormat(formats)).toBe(
+      'application/pdf',
+    );
     expect(printer.execute).toHaveBeenCalledWith(
       'Get-Printer-Attributes',
       {
         'operation-attributes-tag': {
-          'requesting-user-name': 'omega-print-agent',
           'requested-attributes': ['document-format-supported'],
+          'requesting-user-name': 'omega-print-agent',
         },
       },
       expect.any(Function),
@@ -112,12 +118,12 @@ describe('IPP printing', () => {
     expect(printer.execute).toHaveBeenCalledWith(
       'Print-Job',
       {
-        'operation-attributes-tag': {
-          'requesting-user-name': 'omega-print-agent',
-          'job-name': 'Tax document',
-          'document-format': 'application/PCLm',
-        },
         data: pdf,
+        'operation-attributes-tag': {
+          'document-format': 'application/PCLm',
+          'job-name': 'Tax document',
+          'requesting-user-name': 'omega-print-agent',
+        },
       },
       expect.any(Function),
     );
@@ -127,7 +133,8 @@ describe('IPP printing', () => {
     printer.execute.mockImplementation(
       (_operation, _message, callback) =>
         callback(null, {
-          statusCode: 'client-error-document-format-not-supported',
+          statusCode:
+            'client-error-document-format-not-supported',
         }),
     );
     await expect(
@@ -139,6 +146,8 @@ describe('IPP printing', () => {
         },
         'application/pdf',
       ),
-    ).rejects.toThrow(/client-error-document-format-not-supported/);
+    ).rejects.toThrow(
+      /client-error-document-format-not-supported/,
+    );
   });
 });

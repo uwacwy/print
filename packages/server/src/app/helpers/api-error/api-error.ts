@@ -28,7 +28,9 @@ const causeOf = (error: unknown): unknown =>
     : error;
 
 /** The machine-readable `{ error: { code } }` of a failed HTTP response. */
-export function apiErrorCode(error: unknown): string | undefined {
+export function apiErrorCode(
+  error: unknown,
+): string | undefined {
   const source = causeOf(error);
   return typeof source === 'object' &&
     source !== null &&

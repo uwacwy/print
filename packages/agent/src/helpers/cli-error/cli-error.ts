@@ -25,7 +25,10 @@ export function expectedFailure(error: unknown): Error {
   if (error instanceof CliError) {
     return error;
   }
-  if (error instanceof Error && error.name === 'ExitPromptError') {
+  if (
+    error instanceof Error &&
+    error.name === 'ExitPromptError'
+  ) {
     return new CliError('Cancelled.', EXIT_CANCELLED);
   }
   if (

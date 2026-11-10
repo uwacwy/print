@@ -1,34 +1,37 @@
-import { beforeEach, describe, expect, it } from 'vitest';
 import {
   AGENT_ENROLL_PATH,
   AGENT_PRINTER_PATH,
   ENROLL_TOKEN_PATH,
-  installUrl,
   type EnrollResponse,
   type EnrollTokenResponse,
+  installUrl,
 } from '@uwacwy/print-shared';
+import { beforeEach, describe, expect, it } from 'vitest';
+
 import {
   addPrinter,
   testEntra,
   testUploadConfig,
 } from '../../../realtime/test-support';
-import { testPublicUrl, useApiServer } from '../../test-support';
-import { signEnrollToken } from '../../helpers/enroll-token/enroll-token';
 import { getPrinterBySlug } from '../../helpers/database/database';
+import { signEnrollToken } from '../../helpers/enroll-token/enroll-token';
+import { testPublicUrl, useApiServer } from '../../test-support';
 
 const serverUrl = 'https://print.example.org';
 
 describe('agent enrollment', () => {
-  const { entra, bearer } = testEntra({ adminRole: 'PrintAdmin' });
+  const { bearer, entra } = testEntra({
+    adminRole: 'PrintAdmin',
+  });
   const api = useApiServer({
-    entra,
     enrollment: { serverUrl, tokenTtlMinutes: 30 },
+    entra,
   });
   const admin = async () => ({
     authorization: await bearer({
-      sub: 'admin',
       roles: ['PrintAdmin'],
       scp: 'Printers.Manage',
+      sub: 'admin',
     }),
   });
 
@@ -36,8 +39,8 @@ describe('agent enrollment', () => {
     const response = await fetch(
       `${api.baseUrl}${ENROLL_TOKEN_PATH}`,
       {
-        method: 'POST',
         headers: await admin(),
+        method: 'POST',
       },
     );
     expect(response.status).toBe(201);
@@ -46,18 +49,18 @@ describe('agent enrollment', () => {
 
   const enroll = (token: string, body: unknown) =>
     fetch(`${api.baseUrl}${AGENT_ENROLL_PATH}`, {
-      method: 'POST',
+      body: JSON.stringify(body),
       headers: {
         authorization: `Bearer ${token}`,
         'content-type': 'application/json',
       },
-      body: JSON.stringify(body),
+      method: 'POST',
     });
 
   const front = {
     name: 'Front Desk',
-    slug: 'front-desk',
     queue: 'cups://Front_Desk',
+    slug: 'front-desk',
   };
 
   beforeEach(() => api.start());
@@ -71,7 +74,7 @@ describe('agent enrollment', () => {
     );
     expect(anonymous.status).toBe(401);
 
-    const { token, expiresAt, serverUrl: url } = await mint();
+    const { expiresAt, serverUrl: url, token } = await mint();
     expect(token).toMatch(/^[\w-]{44}$/);
     expect(url).toBe(serverUrl);
     expect(Date.parse(expiresAt) - Date.now()).toBeGreaterThan(
@@ -84,8 +87,8 @@ describe('agent enrollment', () => {
     const response = await fetch(
       `${api.baseUrl}${ENROLL_TOKEN_PATH}`,
       {
-        method: 'POST',
         headers: await admin(),
+        method: 'POST',
       },
     );
     expect(response.status).toBe(503);
@@ -93,8 +96,13 @@ describe('agent enrollment', () => {
       code: 'public_url_required',
     });
     expect(
-      await (await fetch(`${api.baseUrl}/api/client-config`)).json(),
-    ).toEqual({ enrollment: false, publicUrl: testPublicUrl.href });
+      await (
+        await fetch(`${api.baseUrl}/api/client-config`)
+      ).json(),
+    ).toEqual({
+      enrollment: false,
+      publicUrl: testPublicUrl.href,
+    });
   });
 
   it('enrolls a printer, rejects a taken slug, and lets the agent report its queue', async () => {
@@ -109,7 +117,9 @@ describe('agent enrollment', () => {
     // Multi-use within its lifetime.
     const again = await enroll(token, front);
     expect(again.status).toBe(409);
-    expect(await again.json()).toMatchObject({ code: 'slug_taken' });
+    expect(await again.json()).toMatchObject({
+      code: 'slug_taken',
+    });
 
     const invalid = await enroll(token, {
       ...front,
@@ -119,12 +129,12 @@ describe('agent enrollment', () => {
 
     const patch = (authorization: string, queue: unknown) =>
       fetch(`${api.baseUrl}${AGENT_PRINTER_PATH}`, {
-        method: 'PATCH',
+        body: JSON.stringify({ queue }),
         headers: {
           authorization,
           'content-type': 'application/json',
         },
-        body: JSON.stringify({ queue }),
+        method: 'PATCH',
       });
     expect(
       (await patch(`Bearer ${token}`, 'cups://Other')).status,
@@ -178,12 +188,12 @@ describe('agent enrollment', () => {
 
   it('includes the server URL when an admin creates a printer', async () => {
     const response = await fetch(`${api.baseUrl}/api/printers`, {
-      method: 'POST',
+      body: JSON.stringify(front),
       headers: {
         ...(await admin()),
         'content-type': 'application/json',
       },
-      body: JSON.stringify(front),
+      method: 'POST',
     });
     expect(await response.json()).toMatchObject({ serverUrl });
   });
@@ -193,12 +203,20 @@ describe('agent enrollment', () => {
 
     it('serves the enrollment script for a valid token', async () => {
       const { token } = await mint();
-      const response = await fetch(installUrl(api.baseUrl, token));
+      const response = await fetch(
+        installUrl(api.baseUrl, token),
+      );
       expect(response.status).toBe(200);
-      expect(response.headers.get('content-type')).toBe(shellscript);
-      expect(response.headers.get('cache-control')).toBe('no-store');
+      expect(response.headers.get('content-type')).toBe(
+        shellscript,
+      );
+      expect(response.headers.get('cache-control')).toBe(
+        'no-store',
+      );
       const script = await response.text();
-      expect(script).toContain(`PRINT_SERVER_URL='${serverUrl}'`);
+      expect(script).toContain(
+        `PRINT_SERVER_URL='${serverUrl}'`,
+      );
       expect(script).toContain(`PRINT_ENROLL_TOKEN='${token}'`);
       expect(script).toContain(
         'AGENT_VERSION="${AGENT_VERSION:-9.9.9}"',
@@ -217,8 +235,12 @@ describe('agent enrollment', () => {
         installUrl(api.baseUrl, 'x'.repeat(44)),
       );
       expect(invalid.status).toBe(401);
-      expect(invalid.headers.get('content-type')).toBe(shellscript);
-      expect(await invalid.text()).toMatch(/not valid[\s\S]*exit 1/);
+      expect(invalid.headers.get('content-type')).toBe(
+        shellscript,
+      );
+      expect(await invalid.text()).toMatch(
+        /not valid[\s\S]*exit 1/,
+      );
 
       const { token: expired } = signEnrollToken(
         testUploadConfig.access,

@@ -85,7 +85,7 @@ You are an expert in TypeScript, Angular, and scalable web application developme
         error:
           error instanceof Error
             ? error.message
-            : "Unable to read upload.",
+            : 'Unable to read upload.',
       });
       return;
     }
@@ -102,7 +102,7 @@ You are an expert in TypeScript, Angular, and scalable web application developme
           ? res.status(e.status).json({ error: e.message })
           : res
               .status(400)
-              .json({ error: "Unable to read upload." }),
+              .json({ error: 'Unable to read upload.' }),
       );
   ```
 

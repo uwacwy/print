@@ -1,5 +1,10 @@
 import { Component, computed, input } from '@angular/core';
-import { FormField, FormRoot, type FieldTree } from '@angular/forms/signals';
+import {
+  type FieldTree,
+  FormField,
+  FormRoot,
+} from '@angular/forms/signals';
+
 import { formatPinInput } from '../../helpers/print-pin/print-pin';
 
 export interface PinModel {
@@ -8,15 +13,20 @@ export interface PinModel {
 
 /** Asks for the printer PIN, formatting it as ###-###-### while typing. */
 @Component({
-  selector: 'app-print-pin-form',
   imports: [FormField, FormRoot],
+  selector: 'app-print-pin-form',
   template: `
     <p class="text-muted">
       Enter the PIN posted at the printer, or scan its QR code.
     </p>
-    <form [formRoot]="pinForm()" class="d-flex flex-column gap-3">
+    <form
+      [formRoot]="pinForm()"
+      class="d-flex flex-column gap-3"
+    >
       <div>
-        <label class="form-label" for="printer-pin">Printer PIN</label>
+        <label class="form-label" for="printer-pin"
+          >Printer PIN</label
+        >
         <input
           id="printer-pin"
           class="form-control form-control-lg font-monospace"
@@ -27,10 +37,14 @@ export interface PinModel {
           placeholder="123-456-789"
           aria-describedby="printer-pin-help"
           [attr.aria-invalid]="!!error()"
-          [attr.aria-errormessage]="error() ? 'printer-pin-error' : null"
+          [attr.aria-errormessage]="
+            error() ? 'printer-pin-error' : null
+          "
           (input)="format()"
         />
-        <div id="printer-pin-help" class="form-text">9 digits</div>
+        <div id="printer-pin-help" class="form-text">
+          9 digits
+        </div>
         @if (error()) {
           <div
             id="printer-pin-error"
@@ -47,7 +61,9 @@ export interface PinModel {
           type="submit"
           [disabled]="pinForm()().submitting()"
         >
-          {{ pinForm()().submitting() ? 'Checking...' : 'Continue' }}
+          {{
+            pinForm()().submitting() ? 'Checking...' : 'Continue'
+          }}
         </button>
       </div>
     </form>
@@ -59,7 +75,9 @@ export class PinFormComponent {
   /** The first message once the user has interacted with the field. */
   protected readonly error = computed(() => {
     const state = this.pinForm().pin();
-    return state.touched() ? (state.errors()[0]?.message ?? '') : '';
+    return state.touched()
+      ? (state.errors()[0]?.message ?? '')
+      : '';
   });
 
   protected format(): void {

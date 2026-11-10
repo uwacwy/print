@@ -9,20 +9,54 @@ import {
   startWith,
   switchMap,
 } from 'rxjs';
+
 import { StatusService } from '../../services/status/status.service';
 
 /** How often the status indicator re-checks the server. */
 export const STATUS_POLL_MS = 30_000;
 
-type ServiceState = 'checking' | 'online' | 'idle' | 'down';
+type ServiceState = 'checking' | 'down' | 'idle' | 'online';
 
 @Component({
   selector: 'app-welcome',
-  templateUrl: './welcome.component.html',
   styleUrl: './welcome.component.scss',
+  templateUrl: './welcome.component.html',
 })
 export class WelcomeComponent {
-  readonly #status = inject(StatusService);
+  protected readonly faqs = [
+    {
+      answer:
+        'No. Everything happens in your phone’s web browser — there is nothing to install and no sign-in.',
+      question: 'Do I need an app or an account?',
+    },
+    {
+      answer:
+        'PDFs and photos (JPEG, PNG, and iPhone HEIC). You can send several documents at once and choose how many copies of each.',
+      question: 'What can I print?',
+    },
+    {
+      answer:
+        'Your document goes only to the printer you chose and is deleted as soon as it prints. Some printers also add a cover sheet on top so others can’t see your pages in the tray.',
+      question: 'Is my document private?',
+    },
+    {
+      answer:
+        'Each printed code only works for the dates shown under it. Ask a staff member or volunteer for a current one.',
+      question:
+        'The QR code says it has expired or is not active yet.',
+    },
+    {
+      answer:
+        'If the poster shows a web address and PIN, open that address in your browser and enter the 9-digit PIN when asked. Otherwise, ask for help at the front desk.',
+      question:
+        'I can’t scan the code. Can I type the address instead?',
+    },
+    {
+      answer:
+        'Check the status above to make sure printers are online, then ask a staff member or volunteer — they can see your job and send it to the printer again.',
+      question: 'My document didn’t print. What should I do?',
+    },
+  ] as const;
 
   /** Printers online, or null while the server is unreachable. */
   protected readonly statusResource = rxResource({
@@ -31,7 +65,9 @@ export class WelcomeComponent {
         startWith(0),
         switchMap(() =>
           this.#status.getStatus().pipe(
-            map((status): number | null => status.printersOnline),
+            map(
+              (status): null | number => status.printersOnline,
+            ),
             catchError(() => of(null)),
           ),
         ),
@@ -43,7 +79,11 @@ export class WelcomeComponent {
       return this.statusResource.error() ? 'down' : 'checking';
     }
     const count = this.statusResource.value();
-    return count === null ? 'down' : count > 0 ? 'online' : 'idle';
+    return count === null
+      ? 'down'
+      : count > 0
+        ? 'online'
+        : 'idle';
   });
 
   protected readonly summary = computed(() => {
@@ -53,45 +93,14 @@ export class WelcomeComponent {
     switch (this.state()) {
       case 'checking':
         return 'Checking printers…';
-      case 'online':
-        return `${count} ${inflect(count, 'printer', 'printers')} online`;
-      case 'idle':
-        return 'No printers online right now';
       case 'down':
         return 'The print service is unavailable';
+      case 'idle':
+        return 'No printers online right now';
+      case 'online':
+        return `${count} ${inflect(count, 'printer', 'printers')} online`;
     }
   });
 
-  protected readonly faqs = [
-    {
-      question: 'Do I need an app or an account?',
-      answer:
-        'No. Everything happens in your phone’s web browser — there is nothing to install and no sign-in.',
-    },
-    {
-      question: 'What can I print?',
-      answer:
-        'PDFs and photos (JPEG, PNG, and iPhone HEIC). You can send several documents at once and choose how many copies of each.',
-    },
-    {
-      question: 'Is my document private?',
-      answer:
-        'Your document goes only to the printer you chose and is deleted as soon as it prints. Some printers also add a cover sheet on top so others can’t see your pages in the tray.',
-    },
-    {
-      question: 'The QR code says it has expired or is not active yet.',
-      answer:
-        'Each printed code only works for the dates shown under it. Ask a staff member or volunteer for a current one.',
-    },
-    {
-      question: 'I can’t scan the code. Can I type the address instead?',
-      answer:
-        'If the poster shows a web address and PIN, open that address in your browser and enter the 9-digit PIN when asked. Otherwise, ask for help at the front desk.',
-    },
-    {
-      question: 'My document didn’t print. What should I do?',
-      answer:
-        'Check the status above to make sure printers are online, then ask a staff member or volunteer — they can see your job and send it to the printer again.',
-    },
-  ] as const;
+  readonly #status = inject(StatusService);
 }

@@ -1,12 +1,13 @@
 import { Component, inject, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { LayoutWidthService } from './services/layout-width/layout-width.service';
+
 import { CLIENT_ENVIRONMENT } from './auth/client-environment';
 import { SiteLogoComponent } from './components/site-logo/site-logo.component';
+import { LayoutWidthService } from './services/layout-width/layout-width.service';
 
 @Component({
-  selector: 'app-root',
   imports: [RouterOutlet, SiteLogoComponent],
+  selector: 'app-root',
   styleUrl: './app.scss',
   template: `
     <main class="container my-4">
@@ -30,8 +31,8 @@ import { SiteLogoComponent } from './components/site-logo/site-logo.component';
 })
 export class App {
   readonly #layout = inject(LayoutWidthService);
-  readonly config = inject(CLIENT_ENVIRONMENT);
   readonly class = this.#layout.class;
+  readonly config = inject(CLIENT_ENVIRONMENT);
 
   protected readonly title = signal('example-ui');
 }

@@ -1,22 +1,32 @@
-import { mkdtempSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
+import {
+  mkdtempSync,
+  rmSync,
+  utimesSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
+
 import { findLogo, logoSrc, pickLogoFile } from './logo';
 
 describe('pickLogoFile', () => {
   it('prefers svg, then png, then jpg', () => {
-    expect(pickLogoFile(['logo.jpg', 'logo.png', 'logo.svg'])).toBe(
-      'logo.svg',
+    expect(
+      pickLogoFile(['logo.jpg', 'logo.png', 'logo.svg']),
+    ).toBe('logo.svg');
+    expect(pickLogoFile(['logo.jpg', 'logo.png'])).toBe(
+      'logo.png',
     );
-    expect(pickLogoFile(['logo.jpg', 'logo.png'])).toBe('logo.png');
-    expect(pickLogoFile(['main.js', 'logo.jpeg'])).toBe('logo.jpeg');
+    expect(pickLogoFile(['main.js', 'logo.jpeg'])).toBe(
+      'logo.jpeg',
+    );
   });
 
   it('ignores other files', () => {
-    expect(pickLogoFile(['favicon.ico', 'Logo.PNG', 'logo.gif'])).toBe(
-      undefined,
-    );
+    expect(
+      pickLogoFile(['favicon.ico', 'Logo.PNG', 'logo.gif']),
+    ).toBe(undefined);
   });
 });
 
@@ -37,7 +47,7 @@ describe('findLogo', () => {
   };
   afterEach(() => {
     for (const dir of dirs.splice(0)) {
-      rmSync(dir, { recursive: true, force: true });
+      rmSync(dir, { force: true, recursive: true });
     }
   });
 
@@ -47,8 +57,8 @@ describe('findLogo', () => {
     const modified = new Date('2026-11-01T00:00:00Z');
     utimesSync(join(dir, 'logo.png'), modified, modified);
     expect(findLogo(dir, 'United Way')).toEqual({
-      src: logoSrc('logo.png', modified.getTime()),
       alt: 'United Way',
+      src: logoSrc('logo.png', modified.getTime()),
     });
   });
 

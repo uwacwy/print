@@ -1,5 +1,6 @@
 import { inflect } from '@uwacwy/print-shared';
 import { PDFDocument, StandardFonts } from 'pdf-lib';
+
 import {
   BLACK,
   drawCentered,
@@ -12,12 +13,12 @@ import {
 } from '../pdf-layout/pdf-layout';
 
 export interface CoverPageOptions {
-  siteTitle: string;
+  documents: { copies: number; titleOrFilename: string }[];
   printerName: string;
-  title: string;
+  siteTitle: string;
   submittedAt: Date;
   timeZone?: string;
-  documents: { titleOrFilename: string; copies: number }[];
+  title: string;
 }
 
 /** Returns the document with a confidential cover sheet as its first page. */
@@ -62,12 +63,19 @@ export async function addCoverPage(
     522,
   );
   cover.drawLine({
-    start: { x: MARGIN, y: 480 },
-    end: { x: PAGE_WIDTH - MARGIN, y: 480 },
-    thickness: 1,
     color: GRAY,
+    end: { x: PAGE_WIDTH - MARGIN, y: 480 },
+    start: { x: MARGIN, y: 480 },
+    thickness: 1,
   });
-  drawCentered(cover, 'DOCUMENT', helveticaRegular, 12, 440, GRAY);
+  drawCentered(
+    cover,
+    'DOCUMENT',
+    helveticaRegular,
+    12,
+    440,
+    GRAY,
+  );
   drawCentered(cover, options.title, helveticaBold, 30, 405);
   drawCentered(
     cover,
@@ -94,13 +102,13 @@ export async function addCoverPage(
         item.titleOrFilename,
         `${item.copies} ${inflect(item.copies, 'copy', 'copies')}`,
       ]),
-      { regular: helveticaRegular, bold: helveticaBold },
+      { bold: helveticaBold, regular: helveticaRegular },
       {
-        width: 400,
-        headingY: 292,
         firstRowY: 270,
-        rowHeight: 15,
         fontSize: 12,
+        headingY: 292,
+        rowHeight: 15,
+        width: 400,
       },
     );
     drawCentered(

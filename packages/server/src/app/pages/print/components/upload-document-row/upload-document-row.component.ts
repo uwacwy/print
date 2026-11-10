@@ -1,5 +1,14 @@
-import { Component, computed, input, output } from '@angular/core';
-import { FormField, type FieldTree } from '@angular/forms/signals';
+import {
+  Component,
+  computed,
+  input,
+  output,
+} from '@angular/core';
+import {
+  type FieldTree,
+  FormField,
+} from '@angular/forms/signals';
+
 import { FileInput } from '../../../../components/file-input/file-input.component';
 import {
   ACCEPTED_TYPES,
@@ -8,12 +17,15 @@ import {
 
 /** One document's file picker, copy count and remove button. */
 @Component({
-  selector: 'app-upload-document-row',
   imports: [FormField, FileInput],
+  selector: 'app-upload-document-row',
   template: `
     <div class="row g-2 align-items-end mb-3">
       <div class="col-sm-7">
-        <label class="form-label" [for]="'document-file-' + id()">
+        <label
+          class="form-label"
+          [for]="'document-file-' + id()"
+        >
           Document {{ index() + 1 }}
         </label>
         <input
@@ -30,7 +42,9 @@ import {
         />
       </div>
       <div class="col-6 col-sm-3">
-        <label class="form-label" [for]="'document-copies-' + id()"
+        <label
+          class="form-label"
+          [for]="'document-copies-' + id()"
           >Copies</label
         >
         <select
@@ -67,17 +81,21 @@ import {
   `,
 })
 export class UploadDocumentRowComponent {
+  readonly canRemove = input(true);
+  readonly copyOptions = input<readonly string[]>(['1']);
   readonly document = input.required<FieldTree<DocumentRow>>();
   readonly index = input.required<number>();
-  readonly copyOptions = input<readonly string[]>(['1']);
-  readonly canRemove = input(true);
   /** Emits the row's id. */
   readonly remove = output<number>();
 
   protected readonly acceptedTypes = ACCEPTED_TYPES;
-  protected readonly id = computed(() => this.document().id().value());
   protected readonly fileError = computed(() => {
     const state = this.document().file();
-    return state.touched() ? (state.errors()[0]?.message ?? '') : '';
+    return state.touched()
+      ? (state.errors()[0]?.message ?? '')
+      : '';
   });
+  protected readonly id = computed(() =>
+    this.document().id().value(),
+  );
 }

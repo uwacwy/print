@@ -1,6 +1,7 @@
+import type { SiteLogo } from '@uwacwy/print-shared';
+
 import { existsSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import type { SiteLogo } from '@uwacwy/print-shared';
 
 /** Logo file names, most preferred first. */
 export const LOGO_FILES = [
@@ -17,16 +18,23 @@ export const pickLogoFile = (
   LOGO_FILES.find((candidate) => names.includes(candidate));
 
 /** Static files are cached for a year, so the URL changes whenever the file does. */
-export const logoSrc = (name: string, modifiedMs: number): string =>
-  `/${name}?v=${Math.trunc(modifiedMs).toString(36)}`;
+export const logoSrc = (
+  name: string,
+  modifiedMs: number,
+): string => `/${name}?v=${Math.trunc(modifiedMs).toString(36)}`;
 
 /** The logo an operator dropped into the static `dir`, or undefined when there is none. */
 export function findLogo(
   dir: string,
   alt: string,
 ): SiteLogo | undefined {
-  const name = pickLogoFile(existsSync(dir) ? readdirSync(dir) : []);
+  const name = pickLogoFile(
+    existsSync(dir) ? readdirSync(dir) : [],
+  );
   return name
-    ? { src: logoSrc(name, statSync(join(dir, name)).mtimeMs), alt }
+    ? {
+        alt,
+        src: logoSrc(name, statSync(join(dir, name)).mtimeMs),
+      }
     : undefined;
 }

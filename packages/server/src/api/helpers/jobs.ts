@@ -2,8 +2,8 @@ import type { JobSubmission } from './multipart';
 
 /** The submitted title, else the single file's name, else a document count. */
 export function jobTitle({
-  title,
   documents,
+  title,
 }: JobSubmission): string {
   const submitted = (title ?? '').trim();
   const fromFiles =
@@ -19,5 +19,7 @@ export const copiesValid = (
 ) =>
   documents.every(
     ({ copies }) =>
-      Number.isInteger(copies) && copies >= 1 && copies <= maxCopies,
+      Number.isInteger(copies) &&
+      copies >= 1 &&
+      copies <= maxCopies,
   );

@@ -1,13 +1,17 @@
-import { isPlatformBrowser } from '@angular/common';
 import type {
   HttpEvent,
   HttpHandler,
   HttpInterceptor,
   HttpRequest,
 } from '@angular/common/http';
-import { Injectable, PLATFORM_ID, inject } from '@angular/core';
-import { MsalInterceptor, MsalService } from '@azure/msal-angular';
 import type { Observable } from 'rxjs';
+
+import { isPlatformBrowser } from '@angular/common';
+import { inject, Injectable, PLATFORM_ID } from '@angular/core';
+import {
+  MsalInterceptor,
+  MsalService,
+} from '@azure/msal-angular';
 
 /**
  * Adds the Entra access token only for signed-in users and only when the request carries no
@@ -17,8 +21,8 @@ import type { Observable } from 'rxjs';
 @Injectable()
 export class SignedInMsalInterceptor implements HttpInterceptor {
   readonly #browser = isPlatformBrowser(inject(PLATFORM_ID));
-  readonly #msal = inject(MsalService);
   readonly #inner = inject(MsalInterceptor);
+  readonly #msal = inject(MsalService);
 
   intercept(
     request: HttpRequest<unknown>,

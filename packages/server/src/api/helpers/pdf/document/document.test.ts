@@ -1,5 +1,4 @@
-import { describe, expect, it } from 'vitest';
-import { vi } from 'vitest';
+import heicConvert from 'heic-convert';
 import {
   decodePDFRawStream,
   PDFArray,
@@ -9,7 +8,9 @@ import {
   PDFRawStream,
 } from 'pdf-lib';
 import sharp from 'sharp';
-import heicConvert from 'heic-convert';
+import { describe, expect, it } from 'vitest';
+import { vi } from 'vitest';
+
 import { addCoverPage } from '../cover-page/cover-page';
 import {
   combineDocuments,
@@ -21,28 +22,13 @@ vi.mock('heic-convert', () => ({ default: vi.fn() }));
 
 const solid = (width: number, height: number) =>
   sharp({
-    create: { width, height, channels: 3, background: '#28a745' },
+    create: {
+      background: '#28a745',
+      channels: 3,
+      height,
+      width,
+    },
   });
-
-/** Pixel size of each image XObject embedded in a PDF. */
-async function embeddedImageSizes(pdf: Uint8Array) {
-  const document = await PDFDocument.load(pdf);
-  const number = (stream: PDFRawStream, key: string) =>
-    stream.dict.lookup(PDFName.of(key), PDFNumber).asNumber();
-  return document.context
-    .enumerateIndirectObjects()
-    .map(([, object]) => object)
-    .filter(
-      (object): object is PDFRawStream =>
-        object instanceof PDFRawStream &&
-        object.dict.get(PDFName.of('Subtype')) ===
-          PDFName.of('Image'),
-    )
-    .map((stream) => ({
-      width: number(stream, 'Width'),
-      height: number(stream, 'Height'),
-    }));
-}
 
 /** Where the image is drawn on the first page, in points, from its `cm` operators. */
 async function drawnImageBox(pdf: Uint8Array) {
@@ -59,13 +45,35 @@ async function drawnImageBox(pdf: Uint8Array) {
   ).toString('latin1');
   // pdf-lib's drawImage emits `1 0 0 1 x y cm` (position) then `w 0 0 h 0 0 cm` (size).
   const matrices = [
-    ...text.matchAll(/([\d.]+) 0 0 ([\d.]+) ([\d.]+) ([\d.]+) cm/g),
+    ...text.matchAll(
+      /([\d.]+) 0 0 ([\d.]+) ([\d.]+) ([\d.]+) cm/g,
+    ),
   ].map((match) => match.slice(1).map(Number));
   const [, , x, y] = matrices.find(([, , x, y]) => x || y)!;
   const [width, height] = matrices.find(
     ([w, h]) => w !== 1 || h !== 1,
   )!;
-  return { x, y, width, height };
+  return { height, width, x, y };
+}
+
+/** Pixel size of each image XObject embedded in a PDF. */
+async function embeddedImageSizes(pdf: Uint8Array) {
+  const document = await PDFDocument.load(pdf);
+  const number = (stream: PDFRawStream, key: string) =>
+    stream.dict.lookup(PDFName.of(key), PDFNumber).asNumber();
+  return document.context
+    .enumerateIndirectObjects()
+    .map(([, object]) => object)
+    .filter(
+      (object): object is PDFRawStream =>
+        object instanceof PDFRawStream &&
+        object.dict.get(PDFName.of('Subtype')) ===
+          PDFName.of('Image'),
+    )
+    .map((stream) => ({
+      height: number(stream, 'Height'),
+      width: number(stream, 'Width'),
+    }));
 }
 
 describe('document normalization', () => {
@@ -81,10 +89,10 @@ describe('document normalization', () => {
   it('converts JPEG uploads to a letter-sized PDF', async () => {
     const image = await sharp({
       create: {
-        width: 320,
-        height: 200,
-        channels: 3,
         background: '#28a745',
+        channels: 3,
+        height: 200,
+        width: 320,
       },
     })
       .jpeg()
@@ -94,15 +102,15 @@ describe('document normalization', () => {
     expect(result.mime).toBe('image/jpeg');
     expect(document.getPageCount()).toBe(1);
     expect(document.getPage(0).getSize()).toEqual({
-      width: 612,
       height: 792,
+      width: 612,
     });
   });
 
   it('caps images at 7.5 × 10 in worth of pixels, 150 dpi by default', async () => {
     expect(maxImagePixels(150)).toEqual({
-      width: 1125,
       height: 1500,
+      width: 1125,
     });
     const landscape = await solid(3000, 2000).jpeg().toBuffer();
     const portrait = await solid(2000, 4000).png().toBuffer();
@@ -111,12 +119,12 @@ describe('document normalization', () => {
       await embeddedImageSizes(
         (await normalizeDocument(landscape)).pdf,
       ),
-    ).toEqual([{ width: 1125, height: 750 }]);
+    ).toEqual([{ height: 750, width: 1125 }]);
     expect(
       await embeddedImageSizes(
         (await normalizeDocument(portrait)).pdf,
       ),
-    ).toEqual([{ width: 750, height: 1500 }]);
+    ).toEqual([{ height: 1500, width: 750 }]);
   });
 
   it('downsamples to a configurable DPI without enlarging small images', async () => {
@@ -127,12 +135,12 @@ describe('document normalization', () => {
       await embeddedImageSizes(
         (await normalizeDocument(large, { imageDpi: 100 })).pdf,
       ),
-    ).toEqual([{ width: 750, height: 500 }]);
+    ).toEqual([{ height: 500, width: 750 }]);
     expect(
       await embeddedImageSizes(
         (await normalizeDocument(small, { imageDpi: 300 })).pdf,
       ),
-    ).toEqual([{ width: 320, height: 200 }]);
+    ).toEqual([{ height: 200, width: 320 }]);
     await expect(
       normalizeDocument(small, { imageDpi: 0 }),
     ).rejects.toThrow(/DPI/);
@@ -144,10 +152,10 @@ describe('document normalization', () => {
     );
     // 7.5 in = 540 pt wide, so a 3:2 image is 360 pt tall, centered on 612 × 792 pt Letter.
     expect(await drawnImageBox(result.pdf)).toEqual({
+      height: 360,
+      width: 540,
       x: 36,
       y: 216,
-      width: 540,
-      height: 360,
     });
   });
 
@@ -161,8 +169,8 @@ describe('document normalization', () => {
       { imageDpi: 72 },
     );
     expect(await embeddedImageSizes(merged)).toEqual([
-      { width: 540, height: 360 },
-      { width: 540, height: 360 },
+      { height: 360, width: 540 },
+      { height: 360, width: 540 },
     ]);
   });
 
@@ -171,10 +179,10 @@ describe('document normalization', () => {
     first.addPage([300, 400]);
     const jpeg = await sharp({
       create: {
-        width: 320,
-        height: 200,
-        channels: 3,
         background: '#28a745',
+        channels: 3,
+        height: 200,
+        width: 320,
       },
     })
       .jpeg()
@@ -187,46 +195,46 @@ describe('document normalization', () => {
     const mergedDocument = await PDFDocument.load(merged);
     expect(mergedDocument.getPageCount()).toBe(3);
     expect(mergedDocument.getPage(0).getSize()).toEqual({
-      width: 300,
       height: 400,
+      width: 300,
     });
     expect(mergedDocument.getPage(1).getSize()).toEqual({
-      width: 300,
       height: 400,
+      width: 300,
     });
     expect(mergedDocument.getPage(2).getSize()).toEqual({
-      width: 612,
       height: 792,
+      width: 612,
     });
 
     const covered = await addCoverPage(merged, {
       documents: [
-        { titleOrFilename: 'first.pdf', copies: 2 },
-        { titleOrFilename: 'image.jpg', copies: 1 },
+        { copies: 2, titleOrFilename: 'first.pdf' },
+        { copies: 1, titleOrFilename: 'image.jpg' },
       ],
-      siteTitle: 'VITA Secure Print',
       printerName: 'Main Office',
-      title: 'Kovach documents',
+      siteTitle: 'VITA Secure Print',
       submittedAt: new Date('2026-10-27T18:00:00Z'),
       timeZone: 'America/Denver',
+      title: 'Kovach documents',
     });
     const coveredDocument = await PDFDocument.load(covered);
     expect(coveredDocument.getPageCount()).toBe(4);
     expect(coveredDocument.getPage(0).getSize()).toEqual({
-      width: 612,
       height: 792,
+      width: 612,
     });
     expect(coveredDocument.getPage(1).getSize()).toEqual({
-      width: 300,
       height: 400,
+      width: 300,
     });
     expect(coveredDocument.getPage(2).getSize()).toEqual({
-      width: 300,
       height: 400,
+      width: 300,
     });
     expect(coveredDocument.getPage(3).getSize()).toEqual({
-      width: 612,
       height: 792,
+      width: 612,
     });
   });
 
@@ -244,17 +252,17 @@ describe('document normalization', () => {
     ]);
     const covered = await addCoverPage(oversized, {
       documents: [
-        { titleOrFilename: 'first.pdf', copies: 1 },
-        { titleOrFilename: 'second.pdf', copies: 1 },
+        { copies: 1, titleOrFilename: 'first.pdf' },
+        { copies: 1, titleOrFilename: 'second.pdf' },
       ],
-      siteTitle: 'VITA Secure Print',
       printerName: 'Main Office',
-      title: 'A hundred pages',
+      siteTitle: 'VITA Secure Print',
       submittedAt: new Date(),
+      title: 'A hundred pages',
     });
-    expect((await PDFDocument.load(covered)).getPageCount()).toBe(
-      101,
-    );
+    expect(
+      (await PDFDocument.load(covered)).getPageCount(),
+    ).toBe(101);
   });
 
   it('converts HEIC uploads through JPEG before creating a letter-sized PDF', async () => {
@@ -266,10 +274,10 @@ describe('document normalization', () => {
     heic.write('heic', 20, 'ascii');
     const jpeg = await sharp({
       create: {
-        width: 320,
-        height: 200,
-        channels: 3,
         background: '#28a745',
+        channels: 3,
+        height: 200,
+        width: 320,
       },
     })
       .jpeg()
@@ -287,8 +295,8 @@ describe('document normalization', () => {
     });
     expect(document.getPageCount()).toBe(1);
     expect(document.getPage(0).getSize()).toEqual({
-      width: 612,
       height: 792,
+      width: 612,
     });
   });
 

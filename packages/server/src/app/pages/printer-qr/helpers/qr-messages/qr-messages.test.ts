@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import {
   disablePinPrompt,
   pinDisabledNotice,
@@ -11,8 +12,12 @@ import {
 
 describe('posterNotice', () => {
   it('words the result by agent state', () => {
-    expect(posterNotice('Front', true)).toBe('QR poster sent to Front.');
-    expect(posterNotice('Front', false)).toContain('QR poster queued');
+    expect(posterNotice('Front', true)).toBe(
+      'QR poster sent to Front.',
+    );
+    expect(posterNotice('Front', false)).toContain(
+      'QR poster queued',
+    );
   });
 });
 

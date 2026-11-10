@@ -12,56 +12,56 @@ import { WelcomeComponent } from './pages/welcome/welcome.component';
 export const routes: Routes = [
   { path: 'auth/callback', pathMatch: 'full', redirectTo: '' },
   {
-    path: '',
     component: WelcomeComponent,
-    title: 'Welcome',
     data: {
       width: {
-        xs: 12,
-        sm: 12,
+        lg: 8,
         md: 8,
-        lg: 8,
+        sm: 12,
         xl: 6,
+        xs: 12,
       },
     },
+    path: '',
+    title: 'Welcome',
   },
   {
-    path: 'print/:slug',
     component: PrintComponent,
-    title: 'Print Documents',
     data: {
       width: {
-        xs: 12,
-        sm: 12,
-        md: 12,
         lg: 8,
+        md: 12,
+        sm: 12,
         xl: 6,
+        xs: 12,
       },
     },
+    path: 'print/:slug',
+    title: 'Print Documents',
   },
   {
-    path: 'manage',
     canActivate: [MsalGuard],
     canActivateChild: [MsalGuard],
-    component: AuthenticatedComponent,
     children: [
       {
+        component: ManagePrintersComponent,
         path: '',
         pathMatch: 'full',
-        component: ManagePrintersComponent,
         title: 'Manage Printers',
       },
       {
-        path: ':slug/qr',
         component: PrinterQrComponent,
+        path: ':slug/qr',
         title: 'Printer QR Codes',
       },
       {
-        path: ':slug',
         component: ManagePrinterComponent,
+        path: ':slug',
         title: 'Manage Printer',
       },
     ],
+    component: AuthenticatedComponent,
+    path: 'manage',
   },
-  { path: '**', component: NotFound },
+  { component: NotFound, path: '**' },
 ];

@@ -8,7 +8,7 @@ import {
 import { homedir, userInfo } from 'node:os';
 import { dirname, join } from 'node:path';
 import { promisify } from 'node:util';
-import { AGENT_VERSION } from '../../version';
+
 import { CliError } from '../../helpers/cli-error/cli-error';
 import {
   isEphemeralInstall,
@@ -16,21 +16,28 @@ import {
   SERVICE_NAME,
   SERVICE_UNIT,
   SERVICE_USER,
+  type ServiceScope,
   stableNodePath,
   systemctlArgs,
   unitPath,
-  type ServiceScope,
 } from '../../helpers/systemd/systemd';
+import { AGENT_VERSION } from '../../version';
 
 const execFileAsync = promisify(execFile);
 const PACKAGE = '@uwacwy/print-agent';
 
-const exec = async (file: string, args: string[]): Promise<string> =>
+const exec = async (
+  file: string,
+  args: string[],
+): Promise<string> =>
   (
     await execFileAsync(file, args, { encoding: 'utf8' })
   ).stdout.trim();
 
-const succeeds = (file: string, args: string[]): Promise<boolean> =>
+const succeeds = (
+  file: string,
+  args: string[],
+): Promise<boolean> =>
   exec(file, args).then(
     () => true,
     () => false,
@@ -46,7 +53,17 @@ const exists = (path: string): Promise<boolean> =>
 export const systemdAvailable = (
   scope: ServiceScope,
 ): Promise<boolean> =>
-  succeeds('systemctl', systemctlArgs(scope, 'show-environment'));
+  succeeds(
+    'systemctl',
+    systemctlArgs(scope, 'show-environment'),
+  );
+
+export interface ServiceOptions {
+  configPath: string;
+  insecure?: boolean;
+  log: (line: string) => void;
+  scope: ServiceScope;
+}
 
 /** Creates the system account the host-wide service runs as; returns its group id. */
 export async function ensureServiceUser(): Promise<number> {
@@ -68,70 +85,12 @@ export async function ensureServiceUser(): Promise<number> {
   return Number(await exec('id', ['-g', SERVICE_USER]));
 }
 
-/** The npm that belongs to the running node, else whatever is on PATH. */
-async function npmPath(): Promise<string> {
-  const beside = join(dirname(process.execPath), 'npm');
-  return (await exists(beside)) ? beside : 'npm';
-}
-
-/**
- * The CLI a service should run. npx runs from a cache npm may prune, so in that case the same
- * version is installed for keeps: under ~/.local for a user, /usr/local for root.
- */
-async function permanentCli(
-  scope: ServiceScope,
-  log: (line: string) => void,
-): Promise<string> {
-  const cliPath = await realpath(process.argv[1]!);
-  if (!isEphemeralInstall(cliPath)) {
-    return cliPath;
-  }
-  const prefix =
-    scope === 'system' ? '/usr/local' : join(homedir(), '.local');
-  log(`Installing ${PACKAGE}@${AGENT_VERSION} under ${prefix}…`);
-  await exec(await npmPath(), [
-    'install',
-    '--global',
-    '--prefix',
-    prefix,
-    '--no-fund',
-    '--no-audit',
-    `${PACKAGE}@${AGENT_VERSION}`,
-  ]).catch((error: unknown) => {
-    throw new CliError(
-      `Could not install ${PACKAGE} under ${prefix}: ${error instanceof Error ? error.message : String(error)}`,
-    );
-  });
-  return join(prefix, 'lib/node_modules', PACKAGE, 'dist/cli.mjs');
-}
-
-async function nodePath(): Promise<string> {
-  const pathNode = await exec('sh', ['-c', 'command -v node']).catch(
-    () => undefined,
-  );
-  return stableNodePath({
-    execPath: process.execPath,
-    pathNode,
-    pathNodeRealpath: pathNode
-      ? await realpath(pathNode).catch(() => undefined)
-      : undefined,
-    execRealpath: await realpath(process.execPath),
-  });
-}
-
-export interface ServiceOptions {
-  scope: ServiceScope;
-  configPath: string;
-  insecure?: boolean;
-  log: (line: string) => void;
-}
-
 /** Installs, enables, and (re)starts the agent's systemd unit; returns the manual command otherwise. */
 export async function installService({
-  scope,
   configPath,
   insecure,
   log,
+  scope,
 }: ServiceOptions): Promise<void> {
   const cliPath = await permanentCli(scope, log);
   const node = await nodePath();
@@ -159,11 +118,11 @@ export async function installService({
   await writeFile(
     path,
     renderUnit({
-      scope,
-      nodePath: node,
       cliPath,
       configPath,
       insecure,
+      nodePath: node,
+      scope,
     }),
     { mode: 0o644 },
   );
@@ -186,6 +145,65 @@ export async function installService({
         `  sudo loginctl enable-linger ${userInfo().username}`,
     );
   }
+}
+
+async function nodePath(): Promise<string> {
+  const pathNode = await exec('sh', [
+    '-c',
+    'command -v node',
+  ]).catch(() => undefined);
+  return stableNodePath({
+    execPath: process.execPath,
+    execRealpath: await realpath(process.execPath),
+    pathNode,
+    pathNodeRealpath: pathNode
+      ? await realpath(pathNode).catch(() => undefined)
+      : undefined,
+  });
+}
+
+/** The npm that belongs to the running node, else whatever is on PATH. */
+async function npmPath(): Promise<string> {
+  const beside = join(dirname(process.execPath), 'npm');
+  return (await exists(beside)) ? beside : 'npm';
+}
+
+/**
+ * The CLI a service should run. npx runs from a cache npm may prune, so in that case the same
+ * version is installed for keeps: under ~/.local for a user, /usr/local for root.
+ */
+async function permanentCli(
+  scope: ServiceScope,
+  log: (line: string) => void,
+): Promise<string> {
+  const cliPath = await realpath(process.argv[1]!);
+  if (!isEphemeralInstall(cliPath)) {
+    return cliPath;
+  }
+  const prefix =
+    scope === 'system'
+      ? '/usr/local'
+      : join(homedir(), '.local');
+  log(`Installing ${PACKAGE}@${AGENT_VERSION} under ${prefix}…`);
+  await exec(await npmPath(), [
+    'install',
+    '--global',
+    '--prefix',
+    prefix,
+    '--no-fund',
+    '--no-audit',
+    `${PACKAGE}@${AGENT_VERSION}`,
+  ]).catch((error: unknown) => {
+    throw new CliError(
+      `Could not install ${PACKAGE} under ${prefix}: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  });
+  return join(
+    prefix,
+    'lib/node_modules',
+    PACKAGE,
+    'dist/cli.mjs',
+  );
 }
 
 const lingering = (): Promise<boolean> =>

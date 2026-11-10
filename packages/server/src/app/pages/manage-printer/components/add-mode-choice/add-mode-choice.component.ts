@@ -7,7 +7,9 @@ export type AddMode = 'enroll' | 'manual';
   selector: 'app-add-mode-choice',
   template: `
     <fieldset class="mb-4">
-      <legend class="h6">How do you want to add the printer?</legend>
+      <legend class="h6">
+        How do you want to add the printer?
+      </legend>
       <div class="form-check">
         <input
           class="form-check-input"
@@ -25,11 +27,11 @@ export type AddMode = 'enroll' | 'manual';
         >
         <div class="form-text" id="add-mode-enroll-help">
           @if (enrollment()) {
-            Recommended. Run one command there; it finds the printer
-            for you.
+            Recommended. Run one command there; it finds the
+            printer for you.
           } @else {
-            Unavailable: set <code>PUBLIC_URL</code> on the server to
-            enable it.
+            Unavailable: set <code>PUBLIC_URL</code> on the
+            server to enable it.
           }
         </div>
       </div>
@@ -48,8 +50,8 @@ export type AddMode = 'enroll' | 'manual';
           >Enter the printer's details here</label
         >
         <div class="form-text" id="add-mode-manual-help">
-          Then copy the agent's settings to its computer or a Docker
-          Compose file.
+          Then copy the agent's settings to its computer or a
+          Docker Compose file.
         </div>
       </div>
     </fieldset>

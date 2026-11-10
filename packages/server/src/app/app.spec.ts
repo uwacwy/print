@@ -1,8 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+
+import { environment } from '../environments/environment';
 import { App } from './app';
 import { CLIENT_ENVIRONMENT } from './auth/client-environment';
-import { environment } from '../environments/environment';
 
 describe('App', () => {
   beforeEach(async () => {
@@ -31,14 +32,14 @@ describe('App', () => {
     TestBed.overrideProvider(CLIENT_ENVIRONMENT, {
       useValue: {
         ...environment,
-        logo: { src: '/logo.png?v=1', alt: 'United Way' },
+        logo: { alt: 'United Way', src: '/logo.png?v=1' },
       },
     });
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
-    const img = (fixture.nativeElement as HTMLElement).querySelector(
-      'header img',
-    );
+    const img = (
+      fixture.nativeElement as HTMLElement
+    ).querySelector('header img');
     expect(img?.getAttribute('alt')).toBe('United Way');
   });
 });

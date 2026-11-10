@@ -1,13 +1,16 @@
 import type { Server as HttpServer } from 'node:http';
+
 import {
   AGENT_NAMESPACE,
   LIVE_NAMESPACE,
   SOCKET_PATH,
 } from '@uwacwy/print-shared';
 import { Server } from 'socket.io';
+
 import type { Authenticate } from '../middleware/auth/passport/passport';
 import type { PrintServerEvents } from '../types';
 import type { AgentHub } from './agent-hub/agent-hub';
+
 import {
   agentNamespace,
   type AgentNamespace,
@@ -18,9 +21,9 @@ import {
 } from './live/live.namespace';
 
 export interface WebSocketOptions {
+  events: PrintServerEvents;
   getHub: () => AgentHub;
   verify: Authenticate['verify'];
-  events: PrintServerEvents;
 }
 
 /**
@@ -33,17 +36,20 @@ export const attachWebSockets = (
   options: WebSocketOptions,
 ): Server => {
   const io = new Server(server, {
-    path: SOCKET_PATH,
-    serveClient: false,
     // Clients only send tiny events; job files travel over HTTP.
     maxHttpBufferSize: 16 * 1024,
+    path: SOCKET_PATH,
+    serveClient: false,
   });
   io.of('/').use((_socket, next) =>
     next(new Error('Invalid namespace')),
   );
 
   // socket.io types events per server, not per namespace.
-  agentNamespace(io.of(AGENT_NAMESPACE) as AgentNamespace, options);
+  agentNamespace(
+    io.of(AGENT_NAMESPACE) as AgentNamespace,
+    options,
+  );
   liveNamespace(io.of(LIVE_NAMESPACE) as LiveNamespace, options);
 
   console.log('[WebSockets] attached');

@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { formatPinInput, PIN_MAX_LENGTH, PIN_PATTERN } from './print-pin';
+
+import {
+  formatPinInput,
+  PIN_MAX_LENGTH,
+  PIN_PATTERN,
+} from './print-pin';
 
 describe('formatPinInput', () => {
   it('groups digits and drops everything else', () => {

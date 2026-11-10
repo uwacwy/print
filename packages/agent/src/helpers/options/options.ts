@@ -22,20 +22,6 @@ const FORMATS: readonly PrintDocumentFormat[] = [
 ];
 const MIME_TYPE = /^[a-z0-9!#$&^_.+-]+\/[a-z0-9!#$&^_.+-]+$/i;
 
-function positiveInteger(
-  name: string,
-  value: string,
-  minimum: number,
-): number {
-  const parsed = Number(value);
-  if (!Number.isSafeInteger(parsed) || parsed < minimum) {
-    throw new Error(
-      `PRINTER_URI ${name} must be an integer of at least ${minimum}.`,
-    );
-  }
-  return parsed;
-}
-
 function oneOf<T extends string>(
   name: string,
   value: string,
@@ -50,10 +36,30 @@ function oneOf<T extends string>(
   return match;
 }
 
+function positiveInteger(
+  name: string,
+  value: string,
+  minimum: number,
+): number {
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed < minimum) {
+    throw new Error(
+      `PRINTER_URI ${name} must be an integer of at least ${minimum}.`,
+    );
+  }
+  return parsed;
+}
+
 const PARSERS: Record<
   PrinterOptionName,
   (value: string) => Partial<PrinterOptions>
 > = {
+  dpi: (value) => ({
+    dpi: value === '0' ? 0 : positiveInteger('dpi', value, 72),
+  }),
+  format: (value) => ({
+    format: oneOf('format', value, FORMATS),
+  }),
   maxBytes: (value) => ({
     maxBytes: positiveInteger('maxBytes', value, 1024),
   }),
@@ -78,11 +84,22 @@ const PARSERS: Record<
   timeout: (value) => ({
     timeoutMs: positiveInteger('timeout', value, 1000),
   }),
-  format: (value) => ({ format: oneOf('format', value, FORMATS) }),
-  dpi: (value) => ({
-    dpi: value === '0' ? 0 : positiveInteger('dpi', value, 72),
-  }),
 };
+
+/** True when a response's Content-Type (parameters ignored) is one the printer accepts. */
+export function acceptsMimeType(
+  options: Pick<PrinterOptions, 'mimeTypes'>,
+  contentType: null | string,
+): boolean {
+  const type = contentType
+    ?.split(';', 1)[0]
+    ?.trim()
+    .toLowerCase();
+  return (
+    !!type &&
+    options.mimeTypes.some((each) => each.toLowerCase() === type)
+  );
+}
 
 /**
  * Splits `scheme://destination?option=value` into the bare destination and its options.
@@ -92,7 +109,7 @@ export function parsePrinterConnection(
   conn: string | URL,
   supported: readonly PrinterOptionName[],
   defaults: Partial<PrinterOptions> = {},
-): { uri: URL; options: PrinterOptions } {
+): { options: PrinterOptions; uri: URL } {
   let uri: URL;
   try {
     uri = new URL(conn);
@@ -112,24 +129,14 @@ export function parsePrinterConnection(
       );
     }
     if (seen.has(name)) {
-      throw new Error(`PRINTER_URI option "${name}" is repeated.`);
+      throw new Error(
+        `PRINTER_URI option "${name}" is repeated.`,
+      );
     }
     seen.add(name);
     Object.assign(options, PARSERS[option](value));
   }
   const bare = new URL(uri);
   bare.search = '';
-  return { uri: bare, options };
-}
-
-/** True when a response's Content-Type (parameters ignored) is one the printer accepts. */
-export function acceptsMimeType(
-  options: Pick<PrinterOptions, 'mimeTypes'>,
-  contentType: string | null,
-): boolean {
-  const type = contentType?.split(';', 1)[0]?.trim().toLowerCase();
-  return (
-    !!type &&
-    options.mimeTypes.some((each) => each.toLowerCase() === type)
-  );
+  return { options, uri: bare };
 }

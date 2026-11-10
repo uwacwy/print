@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest';
+
 import {
   checkDownloadedDocument,
   checkDownloadHeaders,
   isJobId,
 } from './jobs';
 
-const options = { maxBytes: 1024, mimeTypes: ['application/pdf'] };
+const options = {
+  maxBytes: 1024,
+  mimeTypes: ['application/pdf'],
+};
 
 describe('isJobId', () => {
   it('accepts UUIDs and rejects anything else', () => {
@@ -16,9 +20,9 @@ describe('isJobId', () => {
       true,
     );
     expect(isJobId('job-1')).toBe(false);
-    expect(isJobId('../0f8fad5b-d9cb-469f-a165-70867728950e')).toBe(
-      false,
-    );
+    expect(
+      isJobId('../0f8fad5b-d9cb-469f-a165-70867728950e'),
+    ).toBe(false);
   });
 });
 
@@ -27,8 +31,8 @@ describe('checkDownloadHeaders', () => {
     expect(() =>
       checkDownloadHeaders(
         {
-          contentType: 'application/pdf; charset=binary',
           contentLength: '1024',
+          contentType: 'application/pdf; charset=binary',
         },
         options,
       ),
@@ -38,13 +42,13 @@ describe('checkDownloadHeaders', () => {
   it('rejects unsupported or missing content types', () => {
     expect(() =>
       checkDownloadHeaders(
-        { contentType: 'image/png', contentLength: null },
+        { contentLength: null, contentType: 'image/png' },
         options,
       ),
     ).toThrow('Printer does not accept image/png.');
     expect(() =>
       checkDownloadHeaders(
-        { contentType: null, contentLength: null },
+        { contentLength: null, contentType: null },
         options,
       ),
     ).toThrow('untyped documents');
@@ -53,7 +57,10 @@ describe('checkDownloadHeaders', () => {
   it('rejects a Content-Length over maxBytes', () => {
     expect(() =>
       checkDownloadHeaders(
-        { contentType: 'application/pdf', contentLength: '1025' },
+        {
+          contentLength: '1025',
+          contentType: 'application/pdf',
+        },
         options,
       ),
     ).toThrow('exceeds the printer maxBytes');

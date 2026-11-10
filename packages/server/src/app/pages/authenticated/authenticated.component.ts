@@ -9,8 +9,8 @@ import { InteractionStatus } from '@azure/msal-browser';
 import { filter, map, startWith } from 'rxjs';
 
 @Component({
-  selector: 'app-authenticated',
   imports: [RouterOutlet],
+  selector: 'app-authenticated',
   template: `
     <header>
       @if (username(); as name) {
@@ -26,8 +26,8 @@ import { filter, map, startWith } from 'rxjs';
   `,
 })
 export class AuthenticatedComponent {
-  readonly #msal = inject(MsalService);
   readonly #broadcast = inject(MsalBroadcastService);
+  readonly #msal = inject(MsalService);
 
   // Re-read the active account whenever an MSAL interaction finishes.
   readonly #account = toSignal(

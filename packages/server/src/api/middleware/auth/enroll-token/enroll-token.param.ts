@@ -1,14 +1,15 @@
 import type { RequestHandler, Response } from 'express';
+
 import {
-  verifyEnrollToken,
   type EnrollTokenKey,
+  verifyEnrollToken,
 } from '../../../helpers/enroll-token/enroll-token';
 import { ENROLL_DENIED } from './enroll-token.strategy';
 
 export interface EnrollTokenDenial {
-  status: 401 | 410;
   code: string;
   error: string;
+  status: 401 | 410;
 }
 
 /**
@@ -19,7 +20,10 @@ export interface EnrollTokenDenial {
 export const enrollTokenParam =
   (
     key: EnrollTokenKey,
-    deny: (response: Response, denial: EnrollTokenDenial) => void,
+    deny: (
+      response: Response,
+      denial: EnrollTokenDenial,
+    ) => void,
   ): RequestHandler<{ token: string }> =>
   (request, response, next) => {
     const verification = verifyEnrollToken(

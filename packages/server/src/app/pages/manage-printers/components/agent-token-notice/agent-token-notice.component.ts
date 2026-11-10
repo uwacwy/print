@@ -1,11 +1,18 @@
-import { Component, computed, input, output } from '@angular/core';
 import type { SetupCommand } from '@uwacwy/print-shared';
+
+import {
+  Component,
+  computed,
+  input,
+  output,
+} from '@angular/core';
+
 import { SetupCommandsComponent } from '../../../../components/setup-commands/setup-commands.component';
 
 /** A freshly rotated agent token, shown once with a copy button. */
 @Component({
-  selector: 'app-agent-token-notice',
   imports: [SetupCommandsComponent],
+  selector: 'app-agent-token-notice',
   template: `
     <section
       class="alert alert-warning"
@@ -15,8 +22,9 @@ import { SetupCommandsComponent } from '../../../../components/setup-commands/se
         New agent token (shown once)
       </h2>
       <p class="small mb-2">
-        The previous token no longer works. Reconfigure the agent with
-        server URL <code>{{ serverUrl() }}</code> and this token:
+        The previous token no longer works. Reconfigure the agent
+        with server URL <code>{{ serverUrl() }}</code> and this
+        token:
       </p>
       <app-setup-commands [commands]="commands()" />
       <button
@@ -30,12 +38,12 @@ import { SetupCommandsComponent } from '../../../../components/setup-commands/se
   `,
 })
 export class AgentTokenNoticeComponent {
-  readonly printerId = input.required<number>();
-  readonly token = input.required<string>();
-  readonly serverUrl = input('');
   readonly dismissed = output();
+  readonly printerId = input.required<number>();
+  readonly serverUrl = input('');
+  readonly token = input.required<string>();
 
   protected readonly commands = computed((): SetupCommand[] => [
-    { id: 'token', label: 'Agent token', command: this.token() },
+    { command: this.token(), id: 'token', label: 'Agent token' },
   ]);
 }

@@ -22,10 +22,12 @@ import { Component, input, output } from '@angular/core';
   `,
 })
 export class AlertComponent {
-  readonly variant = input<'danger' | 'success' | 'warning'>('danger');
-  /** Pass `null` when a surrounding live region already announces the alert. */
-  readonly role = input<string | null>('alert');
+  readonly dismissed = output();
   /** The dismiss button's accessible name; no button without it. */
   readonly dismissLabel = input('');
-  readonly dismissed = output();
+  /** Pass `null` when a surrounding live region already announces the alert. */
+  readonly role = input<null | string>('alert');
+  readonly variant = input<'danger' | 'success' | 'warning'>(
+    'danger',
+  );
 }

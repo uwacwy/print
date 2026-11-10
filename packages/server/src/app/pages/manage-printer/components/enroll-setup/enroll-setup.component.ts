@@ -1,16 +1,22 @@
 import { DatePipe } from '@angular/common';
-import { Component, computed, input, output } from '@angular/core';
+import {
+  Component,
+  computed,
+  input,
+  output,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 import {
   enrollSetupCommands,
   type EnrollTokenResponse,
 } from '@uwacwy/print-shared';
+
 import { SetupCommandsComponent } from '../../../../components/setup-commands/setup-commands.component';
 
 /** Offers a setup command to run on the printer's computer, which enrolls the printer itself. */
 @Component({
-  selector: 'app-enroll-setup',
   imports: [DatePipe, RouterLink, SetupCommandsComponent],
+  selector: 'app-enroll-setup',
   template: `
     <section aria-labelledby="enroll-heading">
       <h2 class="h5" id="enroll-heading">
@@ -18,11 +24,12 @@ import { SetupCommandsComponent } from '../../../../components/setup-commands/se
       </h2>
       @if (token(); as enroll) {
         <p>
-          Run one of these on the computer next to the printer, such
-          as a Raspberry Pi with CUPS. It asks whether the printer is
-          a CUPS queue or a network (IPP) printer, lists the printers
-          it finds, and suggests a name and slug. The printer appears
-          in the list when setup finishes.
+          Run one of these on the computer next to the printer,
+          such as a Raspberry Pi with CUPS. It asks whether the
+          printer is a CUPS queue or a network (IPP) printer,
+          lists the printers it finds, and suggests a name and
+          slug. The printer appears in the list when setup
+          finishes.
         </p>
         <p>
           Works until {{ enroll.expiresAt | date: 'shortTime' }}.
@@ -30,7 +37,9 @@ import { SetupCommandsComponent } from '../../../../components/setup-commands/se
         </p>
         <app-setup-commands [commands]="commands()" />
         <div class="d-flex gap-2 mt-3">
-          <a class="btn btn-primary" routerLink="/manage">Done</a>
+          <a class="btn btn-primary" routerLink="/manage"
+            >Done</a
+          >
           <button
             type="button"
             class="btn btn-outline-secondary"
@@ -43,8 +52,8 @@ import { SetupCommandsComponent } from '../../../../components/setup-commands/se
       } @else {
         <p>
           Get a command to run on the computer connected to the
-          printer. It finds the printer, asks for its name, and starts
-          the print agent.
+          printer. It finds the printer, asks for its name, and
+          starts the print agent.
         </p>
         <button
           type="button"
@@ -59,9 +68,9 @@ import { SetupCommandsComponent } from '../../../../components/setup-commands/se
   `,
 })
 export class EnrollSetupComponent {
-  readonly token = input<EnrollTokenResponse>();
   readonly busy = input(false);
   readonly create = output();
+  readonly token = input<EnrollTokenResponse>();
 
   protected readonly commands = computed(() => {
     const enroll = this.token();

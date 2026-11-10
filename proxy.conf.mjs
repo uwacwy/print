@@ -1,6 +1,6 @@
+import { SOCKET_PATH } from '@uwacwy/print-shared';
 // @ts-check
-import http from "node:http";
-import { SOCKET_PATH } from "@uwacwy/print-shared";
+import http from 'node:http';
 
 /**
  * `ng serve` only. The dev server loads server.ts lazily, on the first request it renders, so the
@@ -9,7 +9,9 @@ import { SOCKET_PATH } from "@uwacwy/print-shared";
  * request (polling or upgrade), make one request to the dev server itself: that loads server.ts,
  * whose top-level await only settles once the socket listener is up.
  */
-const socketPort = Number(process.env["SOCKET_DEV_PORT"] || 4201);
+const socketPort = Number(
+  process.env['SOCKET_DEV_PORT'] || 4201,
+);
 
 /** @type {Promise<void> | undefined} */
 let serverLoaded;
@@ -24,10 +26,10 @@ const loadServer = (request) =>
     http
       .get(
         {
+          headers: { host: request.headers.host ?? 'localhost' },
           hostname: request.socket.localAddress,
+          path: '/api/healthz',
           port: request.socket.localPort,
-          path: "/api/healthz",
-          headers: { host: request.headers.host ?? "localhost" },
         },
         (response) => {
           response.resume();
@@ -42,7 +44,7 @@ const loadServer = (request) =>
           }
         },
       )
-      .on("error", reject);
+      .on('error', reject);
   });
 
 /** @param {http.IncomingMessage} request */
@@ -55,24 +57,24 @@ const ensureServerLoaded = (request) =>
 
 export default {
   // A regex key (leading `^`) so `/ws` matches only the socket endpoint, not e.g. `/wsfoo`.
-  [`^${SOCKET_PATH.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(/|\\?|$)`]:
+  [`^${SOCKET_PATH.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(/|\\?|$)`]:
     {
-      target: `http://127.0.0.1:${socketPort}`,
-      ws: true,
-      changeOrigin: false,
-      logLevel: "warn",
       /** @param {http.IncomingMessage} request */
       bypass: (request) =>
         ensureServerLoaded(request)
           // Proxy anyway; the client's own reconnect retries once server.ts loads.
           .catch(() => {})
           .then(() => undefined),
+      changeOrigin: false,
       /** @param {{ on(event: 'error', listener: () => void): unknown }} proxy */
       configure: (proxy) => {
         // The listener went away (e.g. SOCKET_DEV_PORT changed); warm up again next time.
-        proxy.on("error", () => {
+        proxy.on('error', () => {
           serverLoaded = undefined;
         });
       },
+      logLevel: 'warn',
+      target: `http://127.0.0.1:${socketPort}`,
+      ws: true,
     },
 };

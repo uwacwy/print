@@ -1,5 +1,6 @@
 import { input, password, select } from '@inquirer/prompts';
 import { slugify } from '@uwacwy/print-shared';
+
 import {
   discover,
   type DiscoveredPrinter,
@@ -26,9 +27,9 @@ export const promptServerUrl = async (): Promise<string> =>
 export const promptEnrollToken = async (): Promise<string> =>
   parseEnrollToken(
     await password({
+      mask: true,
       message:
         'Enrollment token (from "Add printer" on the print server)',
-      mask: true,
       validate: promptValidator(parseEnrollToken),
     }),
   );
@@ -36,8 +37,8 @@ export const promptEnrollToken = async (): Promise<string> =>
 export const promptAgentToken = async (): Promise<string> =>
   parseAgentToken(
     await password({
-      message: 'Agent token',
       mask: true,
+      message: 'Agent token',
       validate: promptValidator(parseAgentToken),
     }),
   );
@@ -48,20 +49,20 @@ const RESCAN = Symbol('rescan');
 /** Picks CUPS or IPP, lists what is available, and returns the chosen printer. */
 export async function choosePrinter(): Promise<DiscoveredPrinter> {
   const kind = await select<PrinterKind>({
-    message: 'How does this computer reach the printer?',
     choices: [
       {
-        name: 'CUPS',
-        value: 'cups',
         description:
           'A print queue set up on this computer (lpstat)',
+        name: 'CUPS',
+        value: 'cups',
       },
       {
+        description: 'A network printer found with mDNS/Bonjour',
         name: 'IPP',
         value: 'ipp',
-        description: 'A network printer found with mDNS/Bonjour',
       },
     ],
+    message: 'How does this computer reach the printer?',
   });
   for (;;) {
     console.error(
@@ -69,32 +70,32 @@ export async function choosePrinter(): Promise<DiscoveredPrinter> {
         ? 'Listing CUPS queues…'
         : 'Searching the network for IPP printers…',
     );
-    const [{ printers, error } = { printers: [] }] = await discover([
-      kind,
-    ]);
+    const [{ error, printers } = { printers: [] }] =
+      await discover([kind]);
     if (error) {
       console.error(error);
     }
     const choice = await select<
       DiscoveredPrinter | typeof MANUAL | typeof RESCAN
     >({
-      message: printers.length ? 'Printer' : 'No printers found',
       choices: [
         ...printers.map((printer) => ({
-          name: printer.name,
-          value: printer,
           description:
-            printer.detail && !printer.uri.includes(printer.detail)
+            printer.detail &&
+            !printer.uri.includes(printer.detail)
               ? `${printer.uri} · ${printer.detail}`
               : printer.uri,
+          name: printer.name,
+          value: printer,
         })),
         { name: 'Search again', value: RESCAN },
         {
+          description: 'cups://<queue> or ipp://<host>/<path>',
           name: 'Enter a printer URI',
           value: MANUAL,
-          description: 'cups://<queue> or ipp://<host>/<path>',
         },
       ],
+      message: printers.length ? 'Printer' : 'No printers found',
     });
     if (choice === RESCAN) {
       continue;
@@ -106,7 +107,7 @@ export async function choosePrinter(): Promise<DiscoveredPrinter> {
           validate: promptValidator(parsePrinterUri),
         }),
       );
-      return { uri, name: new URL(uri).hostname };
+      return { name: new URL(uri).hostname, uri };
     }
     return choice;
   }
@@ -117,8 +118,8 @@ export const promptName = async (
 ): Promise<string> =>
   parseName(
     await input({
-      message: 'Printer name (shown to people printing)',
       default: defaultName,
+      message: 'Printer name (shown to people printing)',
       validate: promptValidator(parseName),
     }),
   );
@@ -129,8 +130,8 @@ export const promptSlug = async (
 ): Promise<string> =>
   parseSlug(
     await input({
-      message,
       default: slugify(name) || undefined,
+      message,
       validate: promptValidator(parseSlug),
     }),
   );

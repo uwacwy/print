@@ -1,27 +1,33 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { describe, expect, it } from 'vitest';
+
 import type { PrinterSummary } from '../../../../services/printer/printer.service';
+
 import { PrinterAdminActionsComponent } from './printer-admin-actions.component';
 
 const printer: PrinterSummary = {
-  id: 1,
-  slug: 'front-office',
-  name: 'Front Office',
-  queue: 'cups://Front_Office',
-  coverPage: true,
-  lastSeenAt: null,
   activeJobs: 0,
+  coverPage: true,
   failedJobs: 2,
+  id: 1,
+  lastSeenAt: null,
+  name: 'Front Office',
   online: false,
   pin: null,
   qrEpoch: 0,
+  queue: 'cups://Front_Office',
+  slug: 'front-office',
 };
 
 describe('PrinterAdminActionsComponent', () => {
   const create = (value = printer, busy = false) => {
-    TestBed.configureTestingModule({ providers: [provideRouter([])] });
-    const fixture = TestBed.createComponent(PrinterAdminActionsComponent);
+    TestBed.configureTestingModule({
+      providers: [provideRouter([])],
+    });
+    const fixture = TestBed.createComponent(
+      PrinterAdminActionsComponent,
+    );
     fixture.componentRef.setInput('printer', value);
     fixture.componentRef.setInput('busy', busy);
     fixture.detectChanges();
@@ -46,8 +52,15 @@ describe('PrinterAdminActionsComponent', () => {
     c.retryFailedJobs.subscribe(() => events.push('retry'));
     c.deleteAllJobs.subscribe(() => events.push('jobs'));
     c.removePrinter.subscribe(() => events.push('remove'));
-    buttons(fixture.nativeElement).forEach((button) => button.click());
-    expect(events).toEqual(['rotate', 'retry', 'jobs', 'remove']);
+    buttons(fixture.nativeElement).forEach((button) =>
+      button.click(),
+    );
+    expect(events).toEqual([
+      'rotate',
+      'retry',
+      'jobs',
+      'remove',
+    ]);
   });
 
   it('offers retry only when jobs failed', () => {
@@ -60,7 +73,9 @@ describe('PrinterAdminActionsComponent', () => {
   it('disables every button while busy', () => {
     const fixture = create(printer, true);
     expect(
-      buttons(fixture.nativeElement).every((button) => button.disabled),
+      buttons(fixture.nativeElement).every(
+        (button) => button.disabled,
+      ),
     ).toBe(true);
   });
 });

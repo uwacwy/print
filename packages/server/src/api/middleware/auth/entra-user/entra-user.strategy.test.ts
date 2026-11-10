@@ -1,19 +1,20 @@
 import { generateKeyPairSync } from 'node:crypto';
 import { beforeEach, describe, expect, it } from 'vitest';
+
 import { testEntra } from '../../../../realtime/test-support';
 import { useApiServer } from '../../../test-support';
 
 describe('entraUser strategy', () => {
-  const { entra, token, bearer } = testEntra({
-    adminRole: 'PrintAdmin',
+  const { bearer, entra, token } = testEntra({
     adminGroupIds: ['admin-group-id'],
+    adminRole: 'PrintAdmin',
   });
   const api = useApiServer({ entra });
   const roleAdmin = () =>
     bearer({
-      sub: 'role-admin',
       roles: ['PrintAdmin'],
       scp: 'Printers.Manage',
+      sub: 'role-admin',
     });
   const session = (authorization?: string) =>
     fetch(`${api.baseUrl}/api/session`, {
@@ -25,7 +26,9 @@ describe('entraUser strategy', () => {
   it('rejects absent, forged, and foreign-tenant tokens', async () => {
     const missing = await session();
     expect(missing.status).toBe(401);
-    expect(missing.headers.get('www-authenticate')).toBe('Bearer');
+    expect(missing.headers.get('www-authenticate')).toBe(
+      'Bearer',
+    );
     expect(await missing.json()).toMatchObject({
       code: 'access_token_required',
     });
@@ -34,9 +37,9 @@ describe('entraUser strategy', () => {
       modulusLength: 2048,
     });
     const claims = {
-      sub: 'role-admin',
       roles: ['PrintAdmin'],
       scp: 'Printers.Manage',
+      sub: 'role-admin',
     };
     for (const forged of [
       await token(claims, { key: privateKey }),
@@ -59,7 +62,7 @@ describe('entraUser strategy', () => {
 
   it('denies users without the scope or an admin role or group', async () => {
     const ordinary = await session(
-      await bearer({ sub: 'user', scp: 'Printers.Manage' }),
+      await bearer({ scp: 'Printers.Manage', sub: 'user' }),
     );
     expect(ordinary.status).toBe(403);
     expect(await ordinary.json()).toMatchObject({
@@ -68,9 +71,9 @@ describe('entraUser strategy', () => {
 
     const wrongScope = await session(
       await bearer({
-        sub: 'user',
-        scp: 'User.Read',
         roles: ['PrintAdmin'],
+        scp: 'User.Read',
+        sub: 'user',
       }),
     );
     expect(wrongScope.status).toBe(403);
@@ -89,10 +92,10 @@ describe('entraUser strategy', () => {
 
     const group = await session(
       await bearer({
-        oid: 'group-admin-oid',
-        sub: 'pairwise',
         groups: ['admin-group-id'],
+        oid: 'group-admin-oid',
         scp: 'Printers.Manage',
+        sub: 'pairwise',
       }),
     );
     expect(await group.json()).toEqual({
@@ -102,10 +105,10 @@ describe('entraUser strategy', () => {
     const v1 = await session(
       `Bearer ${await token(
         {
-          ver: '1.0',
-          sub: 'v1-admin',
           roles: ['PrintAdmin'],
           scp: 'Printers.Manage',
+          sub: 'v1-admin',
+          ver: '1.0',
         },
         { issuer: `https://sts.windows.net/${entra.tenantId}/` },
       )}`,
@@ -115,12 +118,16 @@ describe('entraUser strategy', () => {
 
   it('lets the delegated scope alone authorize when no role or group is configured', async () => {
     await api.start({
-      entra: { ...entra, adminRole: undefined, adminGroupIds: [] },
+      entra: {
+        ...entra,
+        adminGroupIds: [],
+        adminRole: undefined,
+      },
     });
     expect(
       (
         await session(
-          await bearer({ sub: 'user', scp: 'Printers.Manage' }),
+          await bearer({ scp: 'Printers.Manage', sub: 'user' }),
         )
       ).status,
     ).toBe(200);

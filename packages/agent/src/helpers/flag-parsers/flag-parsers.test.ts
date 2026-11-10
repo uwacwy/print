@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import {
   parseAgentToken,
   parseEnrollToken,
@@ -18,11 +19,15 @@ describe('flag parsers', () => {
       'http://localhost:8080',
     );
     expect(() => parseServerUrl('ftp://x')).toThrow('https');
-    expect(() => parseServerUrl('print.example.org')).toThrow('URL');
+    expect(() => parseServerUrl('print.example.org')).toThrow(
+      'URL',
+    );
   });
 
   it('checks token shapes', () => {
-    expect(parseEnrollToken(`${'a'.repeat(43)}_ `)).toHaveLength(44);
+    expect(parseEnrollToken(`${'a'.repeat(43)}_ `)).toHaveLength(
+      44,
+    );
     expect(() => parseEnrollToken('a'.repeat(43))).toThrow('44');
     expect(parseAgentToken('-'.repeat(43))).toHaveLength(43);
     expect(() => parseAgentToken('a'.repeat(44))).toThrow('43');
@@ -30,15 +35,19 @@ describe('flag parsers', () => {
 
   it('accepts printer URIs the drivers understand', () => {
     expect(
-      parsePrinterUri('cups://Front_Desk?option_sides=one-sided'),
+      parsePrinterUri(
+        'cups://Front_Desk?option_sides=one-sided',
+      ),
     ).toBe('cups://Front_Desk?option_sides=one-sided');
-    expect(parsePrinterUri('ipps://printer.local/ipp/print')).toBe(
-      'ipps://printer.local/ipp/print',
-    );
+    expect(
+      parsePrinterUri('ipps://printer.local/ipp/print'),
+    ).toBe('ipps://printer.local/ipp/print');
     expect(() => parsePrinterUri('lpd://printer')).toThrow(
       'cups://',
     );
-    expect(() => parsePrinterUri('Front_Desk')).toThrow('cups://');
+    expect(() => parsePrinterUri('Front_Desk')).toThrow(
+      'cups://',
+    );
   });
 
   it('checks slugs and names', () => {

@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { describe, expect, it } from 'vitest';
+
 import { AlertComponent } from './alert.component';
 
 describe('AlertComponent', () => {
@@ -22,16 +23,23 @@ describe('AlertComponent', () => {
 
   it('can drop the role and emit dismissals', () => {
     const fixture = create({
-      variant: 'success',
-      role: null,
       dismissLabel: 'Dismiss message',
+      role: null,
+      variant: 'success',
     });
     let dismissed = 0;
-    fixture.componentInstance.dismissed.subscribe(() => dismissed++);
+    fixture.componentInstance.dismissed.subscribe(
+      () => dismissed++,
+    );
     const el: HTMLElement = fixture.nativeElement;
-    expect(el.querySelector('.alert')!.hasAttribute('role')).toBe(false);
-    const button = el.querySelector<HTMLButtonElement>('button')!;
-    expect(button.getAttribute('aria-label')).toBe('Dismiss message');
+    expect(
+      el.querySelector('.alert')!.hasAttribute('role'),
+    ).toBe(false);
+    const button =
+      el.querySelector<HTMLButtonElement>('button')!;
+    expect(button.getAttribute('aria-label')).toBe(
+      'Dismiss message',
+    );
     button.click();
     expect(dismissed).toBe(1);
   });

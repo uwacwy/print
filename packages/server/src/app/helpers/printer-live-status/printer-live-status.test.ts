@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
+
 import { applyLiveEvent } from './printer-live-status';
 
 const status = {
-  online: false,
   activeJobs: 0,
   failedJobs: 0,
   lastSeenAt: null,
+  online: false,
 };
 
 describe('applyLiveEvent', () => {
@@ -13,14 +14,14 @@ describe('applyLiveEvent', () => {
     expect(
       applyLiveEvent(
         status,
-        { type: 'snapshot', onlinePrinterIds: [1, 2] },
+        { onlinePrinterIds: [1, 2], type: 'snapshot' },
         1,
       ).online,
     ).toBe(true);
     expect(
       applyLiveEvent(
         { ...status, online: true },
-        { type: 'snapshot', onlinePrinterIds: [2] },
+        { onlinePrinterIds: [2], type: 'snapshot' },
         1,
       ).online,
     ).toBe(false);
@@ -30,7 +31,7 @@ describe('applyLiveEvent', () => {
     expect(
       applyLiveEvent(
         status,
-        { type: 'snapshot', onlinePrinterIds: [] },
+        { onlinePrinterIds: [], type: 'snapshot' },
         1,
       ),
     ).toBe(status);
@@ -40,31 +41,35 @@ describe('applyLiveEvent', () => {
     const agent = applyLiveEvent(
       status,
       {
-        type: 'agent',
-        printerId: 1,
-        online: true,
         lastSeenAt: '2026-10-29T12:00:00Z',
+        online: true,
+        printerId: 1,
+        type: 'agent',
       },
       1,
     );
     expect(agent).toMatchObject({
-      online: true,
       lastSeenAt: '2026-10-29T12:00:00Z',
+      online: true,
     });
     expect(
       applyLiveEvent(
         agent,
         {
-          type: 'job',
-          printerId: 1,
-          jobId: 'j',
-          status: 'queued',
           activeJobs: 3,
           failedJobs: 1,
+          jobId: 'j',
+          printerId: 1,
+          status: 'queued',
+          type: 'job',
         },
         1,
       ),
-    ).toMatchObject({ online: true, activeJobs: 3, failedJobs: 1 });
+    ).toMatchObject({
+      activeJobs: 3,
+      failedJobs: 1,
+      online: true,
+    });
   });
 
   it('keeps the last seen time when an event has none', () => {
@@ -72,7 +77,12 @@ describe('applyLiveEvent', () => {
     expect(
       applyLiveEvent(
         seen,
-        { type: 'agent', printerId: 1, online: false, lastSeenAt: null },
+        {
+          lastSeenAt: null,
+          online: false,
+          printerId: 1,
+          type: 'agent',
+        },
         1,
       ).lastSeenAt,
     ).toBe('earlier');
@@ -83,11 +93,11 @@ describe('applyLiveEvent', () => {
       applyLiveEvent(
         { ...status, activeJobs: 4 },
         {
-          type: 'jobs-deleted',
-          printerId: 1,
-          count: 4,
           activeJobs: 0,
+          count: 4,
           failedJobs: 0,
+          printerId: 1,
+          type: 'jobs-deleted',
         },
         1,
       ).activeJobs,
@@ -98,7 +108,12 @@ describe('applyLiveEvent', () => {
     expect(
       applyLiveEvent(
         status,
-        { type: 'agent', printerId: 2, online: true, lastSeenAt: null },
+        {
+          lastSeenAt: null,
+          online: true,
+          printerId: 2,
+          type: 'agent',
+        },
         1,
       ),
     ).toBe(status);

@@ -3,8 +3,13 @@ import type {
   AgentServerEvents,
 } from '@uwacwy/print-shared';
 import type { Namespace } from 'socket.io';
-import { handshake, type SocketData } from '../handshake/handshake';
+
 import type { WebSocketOptions } from '../sockets';
+
+import {
+  handshake,
+  type SocketData,
+} from '../handshake/handshake';
 
 export type AgentNamespace = Namespace<
   AgentClientEvents,

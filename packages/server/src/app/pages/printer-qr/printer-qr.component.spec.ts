@@ -6,34 +6,35 @@ import {
 } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+
 import {
-  PrinterService,
   type IssuedQrToken,
+  PrinterService,
   type PrinterSummary,
 } from '../../services/printer/printer.service';
 import { toLocalInput } from './helpers/qr-window/qr-window';
 import { PrinterQrComponent } from './printer-qr.component';
 
 const frontOffice: PrinterSummary = {
-  id: 1,
-  slug: 'front-office',
-  name: 'Front Office',
-  queue: 'cups://Front_Office',
-  coverPage: true,
-  lastSeenAt: null,
   activeJobs: 0,
+  coverPage: true,
   failedJobs: 0,
+  id: 1,
+  lastSeenAt: null,
+  name: 'Front Office',
   online: true,
   pin: null,
   qrEpoch: 0,
+  queue: 'cups://Front_Office',
+  slug: 'front-office',
 };
 
 const issued: IssuedQrToken = {
-  token: 'qr.jwt.value',
-  path: '/print/front-office?token=qr.jwt.value',
-  url: 'http://localhost:4200/print/front-office?token=qr.jwt.value',
-  notBefore: '2030-01-01T00:00:00.000Z',
   expiresAt: '2030-01-02T00:00:00.000Z',
+  notBefore: '2030-01-01T00:00:00.000Z',
+  path: '/print/front-office?token=qr.jwt.value',
+  token: 'qr.jwt.value',
+  url: 'http://localhost:4200/print/front-office?token=qr.jwt.value',
 };
 
 async function setup(
@@ -48,7 +49,9 @@ async function setup(
         provide: ActivatedRoute,
         useValue: {
           snapshot: {
-            paramMap: convertToParamMap({ slug: 'front-office' }),
+            paramMap: convertToParamMap({
+              slug: 'front-office',
+            }),
           },
         },
       },
@@ -70,14 +73,14 @@ async function setup(
       b.textContent?.includes(label),
     )!;
   const generate = async () => {
-    (element.querySelector('form') as HTMLFormElement).dispatchEvent(
-      new Event('submit', { cancelable: true }),
-    );
+    (
+      element.querySelector('form') as HTMLFormElement
+    ).dispatchEvent(new Event('submit', { cancelable: true }));
     await fixture.whenStable();
     await new Promise((resolve) => setTimeout(resolve));
     await fixture.whenStable();
   };
-  return { fixture, element, button, generate, issueQrToken };
+  return { button, element, fixture, generate, issueQrToken };
 }
 
 describe('PrinterQrComponent', () => {
@@ -91,15 +94,16 @@ describe('PrinterQrComponent', () => {
     const until = element.querySelector(
       '#qr-expires-at',
     ) as HTMLInputElement;
-    expect(Date.parse(until.value) - Date.parse(from.value)).toBe(
-      24 * 3_600_000,
-    );
+    expect(
+      Date.parse(until.value) - Date.parse(from.value),
+    ).toBe(24 * 3_600_000);
 
     await generate();
 
-    const [slug, window] = issueQrToken.mock.calls[0] as unknown as [
+    const [slug, window] = issueQrToken.mock
+      .calls[0] as unknown as [
       string,
-      { notBefore: string; expiresAt: string },
+      { expiresAt: string; notBefore: string },
     ];
     expect(slug).toBe('front-office');
     expect(window.notBefore).toBe(
@@ -127,7 +131,7 @@ describe('PrinterQrComponent', () => {
   });
 
   it('sets the end time from an hour preset', async () => {
-    const { fixture, element } = await setup();
+    const { element, fixture } = await setup();
     const group = element.querySelector(
       '[role=group][aria-labelledby=qr-until-presets]',
     )!;
@@ -137,9 +141,9 @@ describe('PrinterQrComponent', () => {
     next.setMinutes(0, 0, 0);
     next.setHours(next.getHours() + 1);
     expect(buttons[0].textContent?.trim()).toContain(
-      new Intl.DateTimeFormat(undefined, { hour: 'numeric' }).format(
-        next,
-      ),
+      new Intl.DateTimeFormat(undefined, {
+        hour: 'numeric',
+      }).format(next),
     );
 
     buttons[2].click();
@@ -150,11 +154,13 @@ describe('PrinterQrComponent', () => {
     next.setHours(next.getHours() + 2);
     expect(until.value).toBe(toLocalInput(next));
     expect(buttons[2].getAttribute('aria-pressed')).toBe('true');
-    expect(buttons[0].getAttribute('aria-pressed')).toBe('false');
+    expect(buttons[0].getAttribute('aria-pressed')).toBe(
+      'false',
+    );
   });
 
   it('nudges either boundary by 15 minutes', async () => {
-    const { fixture, element, button } = await setup();
+    const { button, element, fixture } = await setup();
     const from = element.querySelector(
       '#qr-not-before',
     ) as HTMLInputElement;
@@ -174,7 +180,7 @@ describe('PrinterQrComponent', () => {
   });
 
   it('refuses a window that ends before it starts', async () => {
-    const { fixture, element, generate, issueQrToken } =
+    const { element, fixture, generate, issueQrToken } =
       await setup();
     const until = element.querySelector(
       '#qr-expires-at',
@@ -193,21 +199,23 @@ describe('PrinterQrComponent', () => {
 
   it('reuses the issued token for the poster PDF and the printed poster', async () => {
     const printQrPoster = vi.fn(() =>
-      of({ jobId: 'j', agentOnline: true }),
+      of({ agentOnline: true, jobId: 'j' }),
     );
     const getQrPoster = vi.fn(() => of(new Blob(['%PDF'])));
     const tab = {
-      opener: {},
-      location: { href: '' },
       close: vi.fn(),
+      location: { href: '' },
+      opener: {},
     };
     vi.spyOn(window, 'open').mockReturnValue(
       tab as unknown as Window,
     );
-    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:poster');
-    const { fixture, button, generate } = await setup({
-      printQrPoster,
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue(
+      'blob:poster',
+    );
+    const { button, fixture, generate } = await setup({
       getQrPoster,
+      printQrPoster,
     });
     await generate();
 
@@ -234,9 +242,9 @@ describe('PrinterQrComponent', () => {
     const disablePin = vi.fn(() =>
       of({ ...frontOffice, pin: null }),
     );
-    const { fixture, element, button } = await setup({
-      refreshPin,
+    const { button, element, fixture } = await setup({
       disablePin,
+      refreshPin,
     });
     expect(element.textContent).toContain('PIN uploads are off');
 
@@ -260,7 +268,7 @@ describe('PrinterQrComponent', () => {
     const revokeQrCodes = vi.fn(() =>
       of({ ...frontOffice, qrEpoch: 1 }),
     );
-    const { fixture, element, button, generate } = await setup({
+    const { button, element, fixture, generate } = await setup({
       revokeQrCodes,
     });
     await generate();
@@ -279,27 +287,29 @@ describe('PrinterQrComponent', () => {
   });
 
   it('shows an error and no QR when issuing fails', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    vi.spyOn(console, 'error').mockImplementation(
+      () => undefined,
+    );
     const { element, generate } = await setup({
       issueQrToken: () => throwError(() => new Error('boom')),
     });
     await generate();
-    expect(element.querySelector('[role=alert]')?.textContent).toContain(
-      'Failed to generate QR',
-    );
+    expect(
+      element.querySelector('[role=alert]')?.textContent,
+    ).toContain('Failed to generate QR');
     expect(element.querySelector('a.print-link')).toBeNull();
   });
 
   it('shows an error when a PIN request fails', async () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true);
-    const { fixture, element, button } = await setup({
+    const { button, element, fixture } = await setup({
       refreshPin: () => throwError(() => new Error('nope')),
     });
     button('Turn on PIN').click();
     await fixture.whenStable();
-    expect(element.querySelector('[role=alert]')?.textContent).toContain(
-      'Request failed. Please try again.',
-    );
+    expect(
+      element.querySelector('[role=alert]')?.textContent,
+    ).toContain('Request failed. Please try again.');
   });
 
   it('reports a missing printer', async () => {

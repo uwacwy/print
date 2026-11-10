@@ -1,8 +1,8 @@
 export interface QrWindow {
   /** datetime-local value */
-  notBefore: string;
-  /** datetime-local value */
   expiresAt: string;
+  /** datetime-local value */
+  notBefore: string;
 }
 
 export interface UntilPreset {
@@ -26,8 +26,10 @@ export function toLocalInput(date: Date): string {
 
 /** A window starting now and lasting 24 hours. */
 export const defaultWindow = (now: Date): QrWindow => ({
+  expiresAt: toLocalInput(
+    new Date(now.getTime() + DEFAULT_WINDOW_MS),
+  ),
   notBefore: toLocalInput(now),
-  expiresAt: toLocalInput(new Date(now.getTime() + DEFAULT_WINDOW_MS)),
 });
 
 /** Shifts a datetime-local value by whole minutes; undefined when it is not a valid date. */
@@ -42,21 +44,22 @@ export function shiftLocalInput(
 }
 
 /** The ISO timestamps the API expects for a window entered in local time. */
-export const toIsoWindow = ({ notBefore, expiresAt }: QrWindow) => ({
-  notBefore: new Date(notBefore).toISOString(),
+export const toIsoWindow = ({
+  expiresAt,
+  notBefore,
+}: QrWindow) => ({
   expiresAt: new Date(expiresAt).toISOString(),
+  notBefore: new Date(notBefore).toISOString(),
 });
 
-/** An error message when the window ends at or before it starts. */
-export function windowOrderError(
-  notBefore: string,
-  expiresAt: string,
-): string | undefined {
+/** Presets count from the window's start when it is still in the future, otherwise from now. */
+export function presetsForWindow(now: Date, notBefore: string) {
   const start = Date.parse(notBefore);
-  const end = Date.parse(expiresAt);
-  return Number.isFinite(start) && Number.isFinite(end) && end <= start
-    ? 'Must be after the start time.'
-    : undefined;
+  return untilPresets(
+    Number.isFinite(start) && start > now.getTime()
+      ? new Date(start)
+      : now,
+  );
 }
 
 /**
@@ -70,10 +73,12 @@ export function untilPresets(
   const first = new Date(from);
   first.setMinutes(0, 0, 0);
   first.setHours(first.getHours() + 1);
-  const time = new Intl.DateTimeFormat(undefined, { hour: 'numeric' });
-  const dayAndTime = new Intl.DateTimeFormat(undefined, {
-    weekday: 'short',
+  const time = new Intl.DateTimeFormat(undefined, {
     hour: 'numeric',
+  });
+  const dayAndTime = new Intl.DateTimeFormat(undefined, {
+    hour: 'numeric',
+    weekday: 'short',
   });
   return Array.from({ length: count }, (_, index) => {
     const at = new Date(first);
@@ -86,12 +91,16 @@ export function untilPresets(
   });
 }
 
-/** Presets count from the window's start when it is still in the future, otherwise from now. */
-export function presetsForWindow(now: Date, notBefore: string) {
+/** An error message when the window ends at or before it starts. */
+export function windowOrderError(
+  notBefore: string,
+  expiresAt: string,
+): string | undefined {
   const start = Date.parse(notBefore);
-  return untilPresets(
-    Number.isFinite(start) && start > now.getTime()
-      ? new Date(start)
-      : now,
-  );
+  const end = Date.parse(expiresAt);
+  return Number.isFinite(start) &&
+    Number.isFinite(end) &&
+    end <= start
+    ? 'Must be after the start time.'
+    : undefined;
 }

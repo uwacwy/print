@@ -1,4 +1,8 @@
-import type { DownloadHeaders, PrinterOptions } from '../../types';
+import type {
+  DownloadHeaders,
+  PrinterOptions,
+} from '../../types';
+
 import { acceptsMimeType } from '../options/options';
 
 const JOB_ID =
@@ -6,29 +10,16 @@ const JOB_ID =
 
 export const isJobId = (id: string): boolean => JOB_ID.test(id);
 
-/** Rejects a download the printer can't take, before its body is read. */
-export function checkDownloadHeaders(
-  { contentType, contentLength }: DownloadHeaders,
-  options: Pick<PrinterOptions, 'maxBytes' | 'mimeTypes'>,
-): void {
-  if (!acceptsMimeType(options, contentType)) {
-    throw new Error(
-      `Printer does not accept ${contentType ?? 'untyped documents'}.`,
-    );
-  }
-  if (Number(contentLength ?? 0) > options.maxBytes) {
-    throw new Error('Downloaded job exceeds the printer maxBytes.');
-  }
-}
-
 /** Rejects a downloaded body that is too large or claims to be a PDF but isn't. */
 export function checkDownloadedDocument(
-  contentType: string | null,
+  contentType: null | string,
   document: Buffer,
   options: Pick<PrinterOptions, 'maxBytes'>,
 ): Buffer {
   if (document.length > options.maxBytes) {
-    throw new Error('Downloaded job exceeds the printer maxBytes.');
+    throw new Error(
+      'Downloaded job exceeds the printer maxBytes.',
+    );
   }
   if (
     acceptsMimeType(
@@ -40,4 +31,21 @@ export function checkDownloadedDocument(
     throw new Error('Downloaded job is not a valid PDF.');
   }
   return document;
+}
+
+/** Rejects a download the printer can't take, before its body is read. */
+export function checkDownloadHeaders(
+  { contentLength, contentType }: DownloadHeaders,
+  options: Pick<PrinterOptions, 'maxBytes' | 'mimeTypes'>,
+): void {
+  if (!acceptsMimeType(options, contentType)) {
+    throw new Error(
+      `Printer does not accept ${contentType ?? 'untyped documents'}.`,
+    );
+  }
+  if (Number(contentLength ?? 0) > options.maxBytes) {
+    throw new Error(
+      'Downloaded job exceeds the printer maxBytes.',
+    );
+  }
 }

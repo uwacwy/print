@@ -1,8 +1,16 @@
 import type { Request } from 'express';
+
 import busboy from 'busboy';
+
 import type { UploadConfig } from './server-config/server-config';
+
 import { UploadError } from './errors';
 import { cleanFileName } from './strings';
+
+export interface JobSubmission {
+  documents: (UploadedFile & { copies: number })[];
+  title: string | undefined;
+}
 
 export interface UploadedFile {
   buffer: Buffer;
@@ -10,17 +18,12 @@ export interface UploadedFile {
   index: number;
 }
 
-export interface JobSubmission {
-  documents: (UploadedFile & { copies: number })[];
-  title: string | undefined;
-}
-
 export function readMultipart(
   request: Request,
   config: UploadConfig,
 ): Promise<{
-  files: UploadedFile[];
   fields: Record<string, string>;
+  files: UploadedFile[];
 }> {
   return new Promise((resolve, reject) => {
     let parser: busboy.Busboy;
@@ -28,10 +31,10 @@ export function readMultipart(
       parser = busboy({
         headers: request.headers,
         limits: {
-          fileSize: config.maxUploadBytes,
-          files: config.maxDocumentsPerJob,
           fields: config.maxDocumentsPerJob + 4,
           fieldSize: 1024,
+          files: config.maxDocumentsPerJob,
+          fileSize: config.maxUploadBytes,
         },
       });
     } catch {
@@ -40,7 +43,7 @@ export function readMultipart(
     }
     const files: UploadedFile[] = [];
     const fields: Record<string, string> = {};
-    let failure: UploadError | undefined;
+    let failure: undefined | UploadError;
     const fail = (error: UploadError) => {
       failure ??= error;
     };
@@ -71,7 +74,9 @@ export function readMultipart(
         const buffer = Buffer.concat(chunks);
         if (!buffer.length) {
           return fail(
-            new UploadError(`${info.filename} is an empty file.`),
+            new UploadError(
+              `${info.filename} is an empty file.`,
+            ),
           );
         }
         files.push({
@@ -98,7 +103,7 @@ export function readMultipart(
       reject(new UploadError('Unable to read upload.')),
     );
     parser.on('close', () =>
-      failure ? reject(failure) : resolve({ files, fields }),
+      failure ? reject(failure) : resolve({ fields, files }),
     );
     request.pipe(parser);
   });
@@ -114,7 +119,7 @@ export async function readMultipartSubmission(
       415,
     );
   }
-  const { files, fields } = await readMultipart(request, config);
+  const { fields, files } = await readMultipart(request, config);
   return {
     documents: files
       .sort((a, b) => a.index - b.index)

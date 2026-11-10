@@ -1,5 +1,7 @@
 import { Component, input, output } from '@angular/core';
+
 import type { PrinterSummary } from '../../../../services/printer/printer.service';
+
 import { AgentBadgeComponent } from '../../../../components/agent-badge/agent-badge.component';
 import { AgentTokenNoticeComponent } from '../agent-token-notice/agent-token-notice.component';
 import { PrinterAdminActionsComponent } from '../printer-admin-actions/printer-admin-actions.component';
@@ -8,7 +10,10 @@ import { PrinterQuickActionsComponent } from '../printer-quick-actions/printer-q
 
 /** One printer: an expandable summary with details and management actions, plus quick actions. */
 @Component({
-  selector: 'li[app-printer-list-item]',
+  host: {
+    '[attr.data-printer-id]': 'printer().id',
+    class: 'printer d-flex align-items-start border rounded',
+  },
   imports: [
     AgentBadgeComponent,
     AgentTokenNoticeComponent,
@@ -16,10 +21,7 @@ import { PrinterQuickActionsComponent } from '../printer-quick-actions/printer-q
     PrinterDetailsComponent,
     PrinterQuickActionsComponent,
   ],
-  host: {
-    class: 'printer d-flex align-items-start border rounded',
-    '[attr.data-printer-id]': 'printer().id',
-  },
+  selector: 'li[app-printer-list-item]',
   styles: `
     .printer-details {
       flex: 1 1 auto;
@@ -37,7 +39,9 @@ import { PrinterQuickActionsComponent } from '../printer-quick-actions/printer-q
   template: `
     <details class="printer-details">
       <summary class="printer-summary">
-        <span class="fw-semibold me-1">{{ printer().name }}</span>
+        <span class="fw-semibold me-1">{{
+          printer().name
+        }}</span>
         <app-agent-badge [online]="printer().online" />
         <span class="text-muted small ms-1">
           {{ printer().activeJobs }} active
@@ -80,15 +84,15 @@ import { PrinterQuickActionsComponent } from '../printer-quick-actions/printer-q
   `,
 })
 export class PrinterListItemComponent {
-  readonly printer = input.required<PrinterSummary>();
   readonly busy = input(false);
+  readonly deleteAllJobs = output();
+  readonly dismissToken = output();
+  readonly printer = input.required<PrinterSummary>();
+  readonly printQr = output();
+  readonly removePrinter = output();
+  readonly retryFailedJobs = output();
+  readonly rotateToken = output();
+  readonly serverUrl = input('');
   /** A just-rotated agent token, if one is waiting to be copied. */
   readonly token = input<string>();
-  readonly serverUrl = input('');
-  readonly printQr = output();
-  readonly rotateToken = output();
-  readonly retryFailedJobs = output();
-  readonly deleteAllJobs = output();
-  readonly removePrinter = output();
-  readonly dismissToken = output();
 }

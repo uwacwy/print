@@ -11,7 +11,9 @@ export const AGENT_PRINTER_PATH = '/api/agent/printer';
 export const ENROLL_TOKEN_PATH = '/api/printers/enroll-token';
 
 /** Install script: token-specific enrollment script, or the generic one. */
-export const installScriptPath = (enrollToken?: string): string =>
+export const installScriptPath = (
+  enrollToken?: string,
+): string =>
   enrollToken === undefined
     ? '/install.sh'
     : `/printer/${encodeURIComponent(enrollToken)}/install`;

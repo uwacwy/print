@@ -1,10 +1,12 @@
+import { spawn } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import { readFileSync } from 'node:fs';
-import { spawn } from 'node:child_process';
 import { firstValueFrom, NEVER, Subject, toArray } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { simplifyPdf } from '../../helpers/pdf';
+
 import type { PrintRequest } from '../../types';
+
+import { simplifyPdf } from '../../helpers/pdf';
 import { CupsPrinter } from './cups-printer';
 
 vi.mock('node:child_process', () => ({ spawn: vi.fn() }));
@@ -47,13 +49,15 @@ function fakeLp(
       ).join('');
     }
     const stream = () =>
-      Object.assign(new EventEmitter(), { setEncoding: vi.fn() });
+      Object.assign(new EventEmitter(), {
+        setEncoding: vi.fn(),
+      });
     const child = new EventEmitter() as ReturnType<typeof spawn>;
     const out = stream();
     Object.assign(child, {
-      stdout: out,
-      stderr: stream(),
       kill: vi.fn(),
+      stderr: stream(),
+      stdout: out,
     });
     queueMicrotask(() => {
       out.emit('data', stdout);
@@ -77,9 +81,9 @@ describe('CupsPrinter', () => {
     await printer.ready();
     const pdf = Buffer.from('%PDF-test');
     fakeLp([], (args) =>
-      expect(readFileSync(args[args.length - 1]!).toString()).toBe(
-        '%PDF-test-simplified',
-      ),
+      expect(
+        readFileSync(args[args.length - 1]!).toString(),
+      ).toBe('%PDF-test-simplified'),
     );
     await printer.print(pdf, { id: 'job-1', title: 'W-2' });
     expect(simplifyPdf).toHaveBeenCalledWith(pdf, {
@@ -104,10 +108,10 @@ describe('CupsPrinter', () => {
       'cups://Queue?option_print-quality=3&maxBytes=2048&mimeTypes=application/pdf,image/png&timeout=5000&dpi=0&option_sides=two-sided-long-edge&option_fit-to-page=',
     );
     expect(printer.options).toEqual({
+      dpi: 0,
       maxBytes: 2048,
       mimeTypes: ['application/pdf', 'image/png'],
       timeoutMs: 5000,
-      dpi: 0,
     });
     fakeLp();
     await printer.print(Buffer.from('%PDF-test'), {
@@ -137,9 +141,15 @@ describe('CupsPrinter', () => {
   it.each([
     ['cups://queue/other', /cups:\/\//],
     ['cups://queue:631', /cups:\/\//],
-    ['cups://queue?format=application/pdf', /format.*not supported/],
+    [
+      'cups://queue?format=application/pdf',
+      /format.*not supported/,
+    ],
     ['cups://queue?quality=draft', /quality.*not supported/],
-    ['cups://queue?dpi=10', /dpi must be an integer of at least 72/],
+    [
+      'cups://queue?dpi=10',
+      /dpi must be an integer of at least 72/,
+    ],
     ['cups://queue?option_=3', /invalid name/],
     ['cups://queue?option_media=A4%20Letter', /spaces/],
   ])('rejects %s', (conn, message) => {
@@ -150,10 +160,15 @@ describe('CupsPrinter', () => {
     fakeLp([0, 1, 0]);
     const jobs$ = new Subject<PrintRequest>();
     const printer = new CupsPrinter('cups://Queue', jobs$);
-    const results = firstValueFrom(printer.results$.pipe(toArray()));
+    const results = firstValueFrom(
+      printer.results$.pipe(toArray()),
+    );
     const job = (id: string) => ({ id, title: `Job ${id}` });
     ['a', 'b', 'c'].forEach((id) =>
-      jobs$.next({ job: job(id), pdf: Buffer.from('%PDF-test') }),
+      jobs$.next({
+        job: job(id),
+        pdf: Buffer.from('%PDF-test'),
+      }),
     );
     // Let all three start before completing, which would drop any still waiting.
     await vi.waitFor(() => expect(lpCalls()).toHaveLength(3));
@@ -162,9 +177,9 @@ describe('CupsPrinter', () => {
     expect(await results).toEqual([
       { job: job('a'), status: 'printed' },
       {
+        error: expect.stringContaining('lp exited 1'),
         job: job('b'),
         status: 'failed',
-        error: expect.stringContaining('lp exited 1'),
       },
       { job: job('c'), status: 'printed' },
     ]);

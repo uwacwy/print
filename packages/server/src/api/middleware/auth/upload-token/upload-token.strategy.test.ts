@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
+
 import { addPrinter } from '../../../../realtime/test-support';
-import { uploadForm, useApiServer } from '../../../test-support';
 import { setPrinterPin } from '../../../helpers/database/database';
+import { uploadForm, useApiServer } from '../../../test-support';
 
 describe('uploadToken strategy', () => {
   const api = useApiServer();

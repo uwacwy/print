@@ -1,6 +1,10 @@
-const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
+const LOOPBACK_HOSTS = new Set([
+  '127.0.0.1',
+  '[::1]',
+  'localhost',
+]);
 
-const parseUrl = (value: string): URL | undefined => {
+const parseUrl = (value: string): undefined | URL => {
   try {
     return new URL(value);
   } catch {

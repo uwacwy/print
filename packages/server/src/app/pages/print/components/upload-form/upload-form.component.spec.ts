@@ -2,6 +2,7 @@ import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { form } from '@angular/forms/signals';
 import { describe, expect, it, vi } from 'vitest';
+
 import {
   addDocument,
   emptyUpload,
@@ -21,12 +22,12 @@ import { UploadFormComponent } from './upload-form.component';
   />`,
 })
 class HostComponent {
-  #next = 2;
-  readonly submitted = vi.fn();
   readonly model = signal(emptyUpload(1));
   readonly f = form(this.model, () => undefined, {
     submission: { action: async () => void this.submitted() },
   });
+  readonly submitted = vi.fn();
+  #next = 2;
   add() {
     this.model.update((m) => addDocument(m, this.#next++));
   }
@@ -44,46 +45,60 @@ describe('UploadFormComponent', () => {
       Array.from(el.querySelectorAll('button')).find((b) =>
         b.textContent?.includes(label),
       )!;
-    return { fixture, el, button };
+    return { button, el, fixture };
   };
 
   it('states the size limit and starts with one non-removable row', async () => {
     const { el } = await setup();
     expect(el.textContent).toContain('up to 5 MB per document');
-    expect(el.querySelectorAll('app-upload-document-row')).toHaveLength(1);
     expect(
-      el.querySelector<HTMLButtonElement>('[aria-label="Remove document 1"]')!
-        .disabled,
+      el.querySelectorAll('app-upload-document-row'),
+    ).toHaveLength(1);
+    expect(
+      el.querySelector<HTMLButtonElement>(
+        '[aria-label="Remove document 1"]',
+      )!.disabled,
     ).toBe(true);
   });
 
   it('adds rows up to the printer limit', async () => {
-    const { fixture, el, button } = await setup();
+    const { button, el, fixture } = await setup();
     button('Add another').click();
     await fixture.whenStable();
-    expect(el.querySelectorAll('app-upload-document-row')).toHaveLength(2);
+    expect(
+      el.querySelectorAll('app-upload-document-row'),
+    ).toHaveLength(2);
     expect(button('Add another').disabled).toBe(true);
   });
 
   it('removes a row', async () => {
-    const { fixture, el, button } = await setup();
+    const { button, el, fixture } = await setup();
     button('Add another').click();
     await fixture.whenStable();
-    el.querySelector<HTMLButtonElement>('[aria-label="Remove document 1"]')!.click();
+    el.querySelector<HTMLButtonElement>(
+      '[aria-label="Remove document 1"]',
+    )!.click();
     await fixture.whenStable();
-    expect(el.querySelectorAll('app-upload-document-row')).toHaveLength(1);
+    expect(
+      el.querySelectorAll('app-upload-document-row'),
+    ).toHaveLength(1);
   });
 
   it('binds the title and submits', async () => {
-    const { fixture, el } = await setup();
-    const title = el.querySelector<HTMLInputElement>('#job-title')!;
+    const { el, fixture } = await setup();
+    const title =
+      el.querySelector<HTMLInputElement>('#job-title')!;
     title.value = 'Report';
     title.dispatchEvent(new Event('input'));
     el.querySelector('form')!.dispatchEvent(
       new Event('submit', { cancelable: true }),
     );
     await fixture.whenStable();
-    expect(fixture.componentInstance.model().title).toBe('Report');
-    expect(fixture.componentInstance.submitted).toHaveBeenCalled();
+    expect(fixture.componentInstance.model().title).toBe(
+      'Report',
+    );
+    expect(
+      fixture.componentInstance.submitted,
+    ).toHaveBeenCalled();
   });
 });

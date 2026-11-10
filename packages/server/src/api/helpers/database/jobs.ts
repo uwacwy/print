@@ -1,14 +1,15 @@
 import { randomUUID } from 'node:crypto';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+
 import { insertJob, type PrintDatabase } from './database';
 
 export interface NewJob {
-  printerId: number;
-  title: string;
   copies: number;
   originalName: string;
-  submittedBy: string | null;
+  printerId: number;
+  submittedBy: null | string;
+  title: string;
   uploaderIp: string;
 }
 
@@ -22,15 +23,15 @@ export async function enqueueJob(
   const id = randomUUID();
   const filePath = join(jobsDir, `${id}.pdf`);
   try {
-    await mkdir(jobsDir, { recursive: true, mode: 0o700 });
+    await mkdir(jobsDir, { mode: 0o700, recursive: true });
     await writeFile(filePath, pdf, { flag: 'wx', mode: 0o600 });
     insertJob(db, {
-      id,
-      printer_id: job.printerId,
-      title: job.title.slice(0, 120),
       copies: job.copies,
+      id,
       original_name: job.originalName,
+      printer_id: job.printerId,
       submitted_by: job.submittedBy,
+      title: job.title.slice(0, 120),
       uploader_ip: job.uploaderIp,
     });
   } catch (error) {

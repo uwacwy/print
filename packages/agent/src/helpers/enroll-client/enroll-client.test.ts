@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+
 import {
   enroll,
   queueForReport,
@@ -23,12 +24,12 @@ describe('enroll-client', () => {
 
   it('builds errors from API bodies', () => {
     expect(
-      serverError(409, { error: 'Taken.', code: 'slug_taken' }),
+      serverError(409, { code: 'slug_taken', error: 'Taken.' }),
     ).toEqual(
       expect.objectContaining({
+        code: 'slug_taken',
         message: 'Taken.',
         status: 409,
-        code: 'slug_taken',
       }),
     );
     expect(serverError(502, '<html>').message).toBe(
@@ -40,8 +41,8 @@ describe('enroll-client', () => {
     const fetchMock = vi.fn(async () =>
       Response.json(
         {
-          printer: { slug: 's', name: 'n', queue: 'cups://Q' },
           agentToken: 't',
+          printer: { name: 'n', queue: 'cups://Q', slug: 's' },
         },
         { status: 201 },
       ),
@@ -50,8 +51,8 @@ describe('enroll-client', () => {
     await expect(
       enroll('https://print.example.org/', 'enroll-token', {
         name: 'n',
-        slug: 's',
         queue: 'cups://Q?option_x=1',
+        slug: 's',
       }),
     ).resolves.toMatchObject({ agentToken: 't' });
     const [url, init] = fetchMock.mock.calls[0] as unknown as [
@@ -67,8 +68,8 @@ describe('enroll-client', () => {
     ).toBe('Bearer enroll-token');
     expect(JSON.parse(init.body as string)).toEqual({
       name: 'n',
-      slug: 's',
       queue: 'cups://Q',
+      slug: 's',
     });
   });
 
@@ -77,7 +78,7 @@ describe('enroll-client', () => {
       'fetch',
       vi.fn(async () =>
         Response.json(
-          { error: 'Bad token.', code: 'agent_token_invalid' },
+          { code: 'agent_token_invalid', error: 'Bad token.' },
           { status: 401 },
         ),
       ),
@@ -88,13 +89,17 @@ describe('enroll-client', () => {
       'cups://Q',
     );
     await expect(rejected).rejects.toBeInstanceOf(ServerError);
-    await expect(rejected).rejects.toMatchObject({ status: 401 });
+    await expect(rejected).rejects.toMatchObject({
+      status: 401,
+    });
 
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => {
         throw new TypeError('fetch failed', {
-          cause: new Error('getaddrinfo ENOTFOUND p.example.org'),
+          cause: new Error(
+            'getaddrinfo ENOTFOUND p.example.org',
+          ),
         });
       }),
     );

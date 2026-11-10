@@ -1,4 +1,5 @@
 import { segment } from 'ts-routes';
+
 import { api } from './api.routes';
 import { installRoutes } from './install.routes';
 

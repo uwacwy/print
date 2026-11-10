@@ -25,7 +25,10 @@ export default defineConfig(
   ]),
 
   {
-    extends: [js.configs.recommended, tseslint.configs.recommended],
+    extends: [
+      js.configs.recommended,
+      tseslint.configs.recommended,
+    ],
     files: ['**/*.{js,mjs,cjs,ts,mts,cts}'],
     // Off here because disables for type-aware rules look unused; lint:typed reports them.
     linterOptions: { reportUnusedDisableDirectives: 'off' },
@@ -59,10 +62,16 @@ export default defineConfig(
         'error',
         {
           paths: [
-            { message: NO_SELF_IMPORT, name: '@uwacwy/print-shared' },
+            {
+              message: NO_SELF_IMPORT,
+              name: '@uwacwy/print-shared',
+            },
             ...builtinModules
               .filter((name) => !name.startsWith('node:'))
-              .map((name) => ({ message: PLATFORM_NEUTRAL, name })),
+              .map((name) => ({
+                message: PLATFORM_NEUTRAL,
+                name,
+              })),
           ],
           patterns: [
             { message: PLATFORM_NEUTRAL, regex: '^node:' },

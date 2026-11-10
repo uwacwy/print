@@ -1,13 +1,5 @@
 import type { Observable } from 'rxjs';
-import {
-  chooseDocumentFormat,
-  getSupportedDocumentFormats,
-  printDocument,
-  validateIppPrinterUri,
-} from '../../helpers/ipp/ipp';
-import { parsePrinterConnection } from '../../helpers/options/options';
-import { convertPdfToPclm } from '../../helpers/pdf';
-import { printInOrder } from '../../helpers/print-queue/print-queue';
+
 import type {
   IPrinter,
   PrintDocumentFormat,
@@ -17,6 +9,16 @@ import type {
   PrintResult,
 } from '../../types';
 
+import {
+  chooseDocumentFormat,
+  getSupportedDocumentFormats,
+  printDocument,
+  validateIppPrinterUri,
+} from '../../helpers/ipp/ipp';
+import { parsePrinterConnection } from '../../helpers/options/options';
+import { convertPdfToPclm } from '../../helpers/pdf';
+import { printInOrder } from '../../helpers/print-queue/print-queue';
+
 /** `ipp(s)://host/path?maxBytes=…&mimeTypes=…&quality=…&timeout=…&format=…` prints over IPP. */
 export class IppPrinter implements IPrinter {
   readonly options: PrinterOptions;
@@ -24,8 +26,11 @@ export class IppPrinter implements IPrinter {
   readonly uri: URL;
   #format: Promise<PrintDocumentFormat> | undefined;
 
-  constructor(conn: string | URL, jobs$: Observable<PrintRequest>) {
-    const { uri, options } = parsePrinterConnection(conn, [
+  constructor(
+    conn: string | URL,
+    jobs$: Observable<PrintRequest>,
+  ) {
+    const { options, uri } = parsePrinterConnection(conn, [
       'maxBytes',
       'mimeTypes',
       'quality',
@@ -54,10 +59,6 @@ export class IppPrinter implements IPrinter {
     return this.#format;
   }
 
-  ready(): Promise<void> {
-    return this.format().then(() => undefined);
-  }
-
   async print(pdf: Buffer, job: PrintJob): Promise<void> {
     const format = await this.format();
     const data =
@@ -68,5 +69,9 @@ export class IppPrinter implements IPrinter {
       quality: this.options.quality,
       timeoutMs: this.options.timeoutMs,
     });
+  }
+
+  ready(): Promise<void> {
+    return this.format().then(() => undefined);
   }
 }

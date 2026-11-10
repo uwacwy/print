@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { formatPin, generatePin, pinMatches } from './pin';
 
 describe('upload PINs', () => {

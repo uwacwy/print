@@ -1,45 +1,19 @@
 declare module 'ipp' {
-  interface PrinterOptions {
-    uri?: string;
-    version?: string;
-  }
-
-  interface PrintJobMessage {
-    'operation-attributes-tag': {
-      'requesting-user-name': string;
-      'job-name': string;
-      'document-format': 'application/pdf' | 'application/PCLm';
-    };
-    'job-attributes-tag'?: {
-      'print-quality'?: 'draft' | 'normal' | 'high';
-    };
-    data: Buffer;
-  }
-
-  interface PrintJobResponse {
-    statusCode?: string;
-    'job-attributes-tag'?: {
-      'job-id'?: number;
-      'job-uri'?: string;
-    };
-  }
-
   interface GetPrinterAttributesMessage {
     'operation-attributes-tag': {
-      'requesting-user-name': string;
       'requested-attributes': string[];
+      'requesting-user-name': string;
     };
   }
 
   interface GetPrinterAttributesResponse {
-    statusCode?: string;
     'printer-attributes-tag'?: {
       'document-format-supported'?: string | string[];
     };
+    statusCode?: string;
   }
 
   interface Printer {
-    url: { signal?: AbortSignal };
     execute(
       operation: 'Print-Job',
       message: PrintJobMessage,
@@ -56,15 +30,44 @@ declare module 'ipp' {
         response?: GetPrinterAttributesResponse,
       ) => void,
     ): void;
+    url: { signal?: AbortSignal };
   }
 
-  function Printer(uri: string, options?: PrinterOptions): Printer;
+  interface PrinterOptions {
+    uri?: string;
+    version?: string;
+  }
+
+  interface PrintJobMessage {
+    data: Buffer;
+    'job-attributes-tag'?: {
+      'print-quality'?: 'draft' | 'high' | 'normal';
+    };
+    'operation-attributes-tag': {
+      'document-format': 'application/PCLm' | 'application/pdf';
+      'job-name': string;
+      'requesting-user-name': string;
+    };
+  }
+
+  interface PrintJobResponse {
+    'job-attributes-tag'?: {
+      'job-id'?: number;
+      'job-uri'?: string;
+    };
+    statusCode?: string;
+  }
+
+  function Printer(
+    uri: string,
+    options?: PrinterOptions,
+  ): Printer;
   export {
+    GetPrinterAttributesMessage,
+    GetPrinterAttributesResponse,
     Printer,
     PrinterOptions,
     PrintJobMessage,
     PrintJobResponse,
-    GetPrinterAttributesMessage,
-    GetPrinterAttributesResponse,
   };
 }

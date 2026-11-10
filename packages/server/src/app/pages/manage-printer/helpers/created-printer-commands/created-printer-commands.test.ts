@@ -1,29 +1,35 @@
 import { describe, expect, it } from 'vitest';
+
 import type { CreatedPrinter } from '../../../../services/printer/printer.service';
+
 import { createdPrinterCommands } from './created-printer-commands';
 
-const created = (serverUrl: string | null): CreatedPrinter => ({
+const created = (serverUrl: null | string): CreatedPrinter => ({
+  agentToken: 'a'.repeat(43),
   printer: {
-    id: 2,
-    slug: 'front',
-    name: 'Front',
-    queue: 'cups://Front',
-    coverPage: false,
-    lastSeenAt: null,
     activeJobs: 0,
+    coverPage: false,
     failedJobs: 0,
+    id: 2,
+    lastSeenAt: null,
+    name: 'Front',
     online: false,
     pin: null,
     qrEpoch: 0,
+    queue: 'cups://Front',
+    slug: 'front',
   },
-  agentToken: 'a'.repeat(43),
   serverUrl,
 });
 
 describe('createdPrinterCommands', () => {
   it('returns only the token without a server URL', () => {
     expect(createdPrinterCommands(created(null))).toEqual([
-      { id: 'token', label: 'Agent token', command: 'a'.repeat(43) },
+      {
+        command: 'a'.repeat(43),
+        id: 'token',
+        label: 'Agent token',
+      },
     ]);
   });
 
@@ -33,8 +39,8 @@ describe('createdPrinterCommands', () => {
     );
     expect(commands[0].id).toBe('token');
     expect(commands.length).toBeGreaterThan(1);
-    expect(commands.some((c) => c.command.includes('agent-front:'))).toBe(
-      true,
-    );
+    expect(
+      commands.some((c) => c.command.includes('agent-front:')),
+    ).toBe(true);
   });
 });

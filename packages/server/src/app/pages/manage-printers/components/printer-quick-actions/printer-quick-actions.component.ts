@@ -1,11 +1,12 @@
 import { Component, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
+
 import type { PrinterSummary } from '../../../../services/printer/printer.service';
 
 /** Icon-only shortcuts shown beside a printer's row. */
 @Component({
-  selector: 'app-printer-quick-actions',
   imports: [RouterLink],
+  selector: 'app-printer-quick-actions',
   template: `
     <div
       class="btn-group btn-group-sm"
@@ -19,10 +20,13 @@ import type { PrinterSummary } from '../../../../services/printer/printer.servic
         rel="noopener"
         title="Open upload page"
       >
-        <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
+        <i
+          class="bi bi-box-arrow-up-right"
+          aria-hidden="true"
+        ></i>
         <span class="visually-hidden"
-          >Open upload page for {{ printer().name }} (opens in new
-          tab)</span
+          >Open upload page for {{ printer().name }} (opens in
+          new tab)</span
         >
       </a>
       <button
@@ -51,7 +55,7 @@ import type { PrinterSummary } from '../../../../services/printer/printer.servic
   `,
 })
 export class PrinterQuickActionsComponent {
-  readonly printer = input.required<PrinterSummary>();
   readonly busy = input(false);
+  readonly printer = input.required<PrinterSummary>();
   readonly printQr = output();
 }

@@ -1,4 +1,5 @@
 import { Component, input, output } from '@angular/core';
+
 import type { PrinterSummary } from '../../../../services/printer/printer.service';
 
 /** The printer's upload PIN, with turn on/refresh/off controls. */
@@ -9,13 +10,16 @@ import type { PrinterSummary } from '../../../../services/printer/printer.servic
       <h2 class="h4" id="pin-heading">Upload PIN</h2>
       @if (printer().pin; as pin) {
         <p>
-          Visitors without the QR code can enter this PIN to get a
-          short-lived upload link:
-          <strong class="pin font-monospace fs-4 ms-2">{{ pin }}</strong>
+          Visitors without the QR code can enter this PIN to get
+          a short-lived upload link:
+          <strong class="pin font-monospace fs-4 ms-2">{{
+            pin
+          }}</strong>
         </p>
       } @else {
         <p class="text-muted">
-          PIN uploads are off. Only QR codes work for this printer.
+          PIN uploads are off. Only QR codes work for this
+          printer.
         </p>
       }
       <div class="d-flex flex-wrap gap-2">
@@ -43,8 +47,8 @@ import type { PrinterSummary } from '../../../../services/printer/printer.servic
   `,
 })
 export class PinSectionComponent {
-  readonly printer = input.required<PrinterSummary>();
   readonly busy = input(false);
-  readonly refresh = output();
   readonly disable = output();
+  readonly printer = input.required<PrinterSummary>();
+  readonly refresh = output();
 }

@@ -1,15 +1,15 @@
 import type { UploadTokenStatus } from '../../../../services/printer/printer.service';
 
 export interface DocumentRow {
-  id: number;
-  file: File | null;
   /** Kept as a string because native selects bind string values. */
   copies: string;
+  file: File | null;
+  id: number;
 }
 
 export interface UploadModel {
-  title: string;
   documents: DocumentRow[];
+  title: string;
 }
 
 export const ACCEPTED_TYPES =
@@ -22,20 +22,20 @@ const TOKEN_MESSAGES: Record<
   Exclude<UploadTokenStatus, 'valid'>,
   string
 > = {
-  invalid: 'This print link is not valid.',
   expired: 'This print link has expired.',
+  invalid: 'This print link is not valid.',
   'not-yet-valid': 'This QR code is not active yet.',
 };
 
 export const newDocument = (id: number): DocumentRow => ({
-  id,
-  file: null,
   copies: '1',
+  file: null,
+  id,
 });
 
 export const emptyUpload = (id: number): UploadModel => ({
-  title: '',
   documents: [newDocument(id)],
+  title: '',
 });
 
 export const addDocument = (
@@ -51,27 +51,35 @@ export const removeDocument = (
   id: number,
 ): UploadModel => ({
   ...upload,
-  documents: upload.documents.filter((document) => document.id !== id),
+  documents: upload.documents.filter(
+    (document) => document.id !== id,
+  ),
 });
 
 export const hasDocument = (documents: readonly DocumentRow[]) =>
   documents.some((document) => document.file);
 
 /** The multipart body the server expects; rows without a file are skipped. */
-export function buildJobBody({ title, documents }: UploadModel): FormData {
+export function buildJobBody({
+  documents,
+  title,
+}: UploadModel): FormData {
   const body = new FormData();
   body.set('job__title', title);
   documents
-    .flatMap(({ file, copies }) => (file ? [{ file, copies }] : []))
-    .forEach(({ file, copies }, index) => {
+    .flatMap(({ copies, file }) =>
+      file ? [{ copies, file }] : [],
+    )
+    .forEach(({ copies, file }, index) => {
       body.set(`document__copies_${index}`, copies);
       body.set(`document__file_${index}`, file, file.name);
     });
   return body;
 }
 
-export const maxUploadMb = (maxUploadBytes: number | undefined) =>
-  Math.floor((maxUploadBytes ?? 0) / 1048576);
+export const maxUploadMb = (
+  maxUploadBytes: number | undefined,
+) => Math.floor((maxUploadBytes ?? 0) / 1048576);
 
 /** `['1', '2', …]` up to the printer's copy limit (at least one). */
 export const copyOptions = (maxCopies: number | undefined) =>
@@ -83,13 +91,15 @@ export function fileSizeError(
   file: File | null,
   limitBytes: number | undefined,
 ): string | undefined {
-  return file && limitBytes !== undefined && file.size > limitBytes
+  return file &&
+    limitBytes !== undefined &&
+    file.size > limitBytes
     ? `${file.name} exceeds the ${maxUploadMb(limitBytes)} MB limit.`
     : undefined;
 }
 
 export const jobSentNotice = (
-  job: { title: string; agentOnline: boolean },
+  job: { agentOnline: boolean; title: string },
   printerName: string,
 ) =>
   job.agentOnline
@@ -97,5 +107,7 @@ export const jobSentNotice = (
     : `"${job.title}" is queued and will print when ${printerName} is back online.`;
 
 /** Why the link's token can't be used, or '' when it is valid or absent. */
-export const tokenNotice = (status: UploadTokenStatus | null | undefined) =>
+export const tokenNotice = (
+  status: null | undefined | UploadTokenStatus,
+) =>
   status && status !== 'valid' ? TOKEN_MESSAGES[status] : '';

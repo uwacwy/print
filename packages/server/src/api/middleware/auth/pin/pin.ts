@@ -1,18 +1,19 @@
 import { randomInt, timingSafeEqual } from 'node:crypto';
+
 import type { PrinterRow } from '../../../helpers/database/database';
 
 export const PIN_LENGTH = 9;
+
+/** Formats a PIN as three hyphenated groups (111-222-333) for display. */
+export function formatPin(pin: string): string {
+  return pin.match(/\d{3}/g)?.join('-') ?? pin;
+}
 
 export function generatePin(): string {
   return String(randomInt(0, 10 ** PIN_LENGTH)).padStart(
     PIN_LENGTH,
     '0',
   );
-}
-
-/** Formats a PIN as three hyphenated groups (111-222-333) for display. */
-export function formatPin(pin: string): string {
-  return pin.match(/\d{3}/g)?.join('-') ?? pin;
 }
 
 /** Accepts the PIN with or without separators; compares in constant time. */

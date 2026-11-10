@@ -1,27 +1,33 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { describe, expect, it } from 'vitest';
+
 import type { PrinterSummary } from '../../../../services/printer/printer.service';
+
 import { PrinterListItemComponent } from './printer-list-item.component';
 
 const printer: PrinterSummary = {
-  id: 1,
-  slug: 'front-office',
-  name: 'Front Office',
-  queue: 'cups://Front_Office',
-  coverPage: true,
-  lastSeenAt: null,
   activeJobs: 1,
+  coverPage: true,
   failedJobs: 2,
+  id: 1,
+  lastSeenAt: null,
+  name: 'Front Office',
   online: true,
   pin: null,
   qrEpoch: 0,
+  queue: 'cups://Front_Office',
+  slug: 'front-office',
 };
 
 describe('PrinterListItemComponent', () => {
   const create = (inputs: Record<string, unknown> = {}) => {
-    TestBed.configureTestingModule({ providers: [provideRouter([])] });
-    const fixture = TestBed.createComponent(PrinterListItemComponent);
+    TestBed.configureTestingModule({
+      providers: [provideRouter([])],
+    });
+    const fixture = TestBed.createComponent(
+      PrinterListItemComponent,
+    );
     fixture.componentRef.setInput('printer', printer);
     for (const [name, value] of Object.entries(inputs)) {
       fixture.componentRef.setInput(name, value);
@@ -47,8 +53,12 @@ describe('PrinterListItemComponent', () => {
   });
 
   it('shows a rotated token when one is given', () => {
-    const el: HTMLElement = create({ token: 'secret' }).nativeElement;
-    expect(el.querySelector('details')?.textContent).toContain('secret');
+    const el: HTMLElement = create({
+      token: 'secret',
+    }).nativeElement;
+    expect(el.querySelector('details')?.textContent).toContain(
+      'secret',
+    );
   });
 
   it('forwards child actions', () => {

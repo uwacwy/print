@@ -5,6 +5,7 @@ import {
   PDFRawStream,
 } from 'pdf-lib';
 import { describe, expect, it } from 'vitest';
+
 import { addCoverPage } from './cover-page';
 
 async function sourcePdf(pages: number): Promise<Uint8Array> {
@@ -16,15 +17,15 @@ async function sourcePdf(pages: number): Promise<Uint8Array> {
 }
 
 const options = {
-  siteTitle: 'VITA Secure Print',
-  printerName: 'Main Office',
-  title: 'Jane Doe 555-0100',
   documents: [
-    { titleOrFilename: 'W-2.jpg', copies: 2 },
-    { titleOrFilename: 'driver license.heic', copies: 1 },
+    { copies: 2, titleOrFilename: 'W-2.jpg' },
+    { copies: 1, titleOrFilename: 'driver license.heic' },
   ],
+  printerName: 'Main Office',
+  siteTitle: 'VITA Secure Print',
   submittedAt: new Date('2026-10-26T18:00:00Z'),
   timeZone: 'America/Denver',
+  title: 'Jane Doe 555-0100',
 };
 
 describe('cover page', () => {
@@ -34,7 +35,9 @@ describe('cover page', () => {
     );
     const contents = pdf.getPage(0).node.Contents();
     const references =
-      contents instanceof PDFArray ? contents.asArray() : [contents];
+      contents instanceof PDFArray
+        ? contents.asArray()
+        : [contents];
     const content = references
       .map((reference) =>
         Buffer.from(
@@ -61,16 +64,16 @@ describe('cover page', () => {
     );
     expect(result.getPageCount()).toBe(3);
     expect(result.getPage(0).getSize()).toEqual({
-      width: 612,
       height: 792,
+      width: 612,
     });
     expect(result.getPage(1).getSize()).toEqual({
-      width: 300,
       height: 400,
+      width: 300,
     });
     expect(result.getPage(2).getSize()).toEqual({
-      width: 310,
       height: 400,
+      width: 310,
     });
   });
 

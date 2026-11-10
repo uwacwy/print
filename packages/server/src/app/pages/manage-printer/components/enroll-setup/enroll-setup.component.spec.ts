@@ -1,12 +1,17 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { describe, expect, it } from 'vitest';
+
 import { EnrollSetupComponent } from './enroll-setup.component';
 
 describe('EnrollSetupComponent', () => {
   const create = (inputs: Record<string, unknown>) => {
-    TestBed.configureTestingModule({ providers: [provideRouter([])] });
-    const fixture = TestBed.createComponent(EnrollSetupComponent);
+    TestBed.configureTestingModule({
+      providers: [provideRouter([])],
+    });
+    const fixture = TestBed.createComponent(
+      EnrollSetupComponent,
+    );
     for (const [name, value] of Object.entries(inputs)) {
       fixture.componentRef.setInput(name, value);
     }
@@ -33,9 +38,9 @@ describe('EnrollSetupComponent', () => {
   it('shows the setup commands once a token exists', () => {
     const fixture = create({
       token: {
-        token: 'e'.repeat(44),
         expiresAt: '2030-01-01T00:00:00.000Z',
         serverUrl: 'https://print.example.org',
+        token: 'e'.repeat(44),
       },
     });
     expect(fixture.nativeElement.textContent).toContain(

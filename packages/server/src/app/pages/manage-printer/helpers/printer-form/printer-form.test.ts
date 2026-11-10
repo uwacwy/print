@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import {
   emptyPrinterModel,
   printerPageTitle,
@@ -17,19 +18,24 @@ describe('printer form helpers', () => {
   it('maps a summary to the editable fields', () => {
     expect(
       toPrinterModel({
-        id: 1,
-        slug: 's',
-        name: 'N',
-        queue: 'cups://Q',
-        coverPage: true,
-        lastSeenAt: null,
         activeJobs: 2,
+        coverPage: true,
         failedJobs: 0,
+        id: 1,
+        lastSeenAt: null,
+        name: 'N',
         online: true,
         pin: null,
         qrEpoch: 0,
+        queue: 'cups://Q',
+        slug: 's',
       }),
-    ).toEqual({ slug: 's', name: 'N', queue: 'cups://Q', coverPage: true });
+    ).toEqual({
+      coverPage: true,
+      name: 'N',
+      queue: 'cups://Q',
+      slug: 's',
+    });
     expect(emptyPrinterModel().name).toBe('');
   });
 

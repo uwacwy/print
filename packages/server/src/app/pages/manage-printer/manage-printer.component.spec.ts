@@ -2,12 +2,13 @@ import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, provideRouter } from '@angular/router';
 import { of, Subject, throwError } from 'rxjs';
 import { describe, expect, it } from 'vitest';
+
+import { CLIENT_ENVIRONMENT } from '../../auth/client-environment';
 import {
-  LiveEventsService,
   type LiveEvent,
+  LiveEventsService,
 } from '../../services/live-events/live-events.service';
 import { PrinterService } from '../../services/printer/printer.service';
-import { CLIENT_ENVIRONMENT } from '../../auth/client-environment';
 import { ManagePrinterComponent } from './manage-printer.component';
 
 describe('ManagePrinterComponent', () => {
@@ -19,22 +20,24 @@ describe('ManagePrinterComponent', () => {
         provideRouter([]),
         {
           provide: ActivatedRoute,
-          useValue: { snapshot: { paramMap: { get: () => '1' } } },
+          useValue: {
+            snapshot: { paramMap: { get: () => '1' } },
+          },
         },
         {
           provide: PrinterService,
           useValue: {
             getAdminPrinter: () =>
               of({
-                id: 1,
-                slug: 'front-office',
-                name: 'Front Office',
-                queue: 'cups://Front_Office',
-                coverPage: true,
-                lastSeenAt: null,
                 activeJobs: 0,
+                coverPage: true,
                 failedJobs: 0,
+                id: 1,
+                lastSeenAt: null,
+                name: 'Front Office',
                 online: false,
+                queue: 'cups://Front_Office',
+                slug: 'front-office',
               }),
           },
         },
@@ -42,47 +45,55 @@ describe('ManagePrinterComponent', () => {
       ],
     }).compileComponents();
 
-    const fixture = TestBed.createComponent(ManagePrinterComponent);
+    const fixture = TestBed.createComponent(
+      ManagePrinterComponent,
+    );
     await fixture.whenStable();
 
     expect(
       fixture.nativeElement.querySelector('h1')?.textContent,
     ).toContain('Edit printer');
     expect(
-      fixture.nativeElement.querySelector('#printer-name')?.value,
+      fixture.nativeElement.querySelector('#printer-name')
+        ?.value,
     ).toBe('Front Office');
     expect(
-      fixture.nativeElement.querySelector('#printer-queue')?.value,
+      fixture.nativeElement.querySelector('#printer-queue')
+        ?.value,
     ).toBe('cups://Front_Office');
     expect(
       fixture.nativeElement.querySelector('#printer-cover-page')
         ?.checked,
     ).toBe(true);
-    expect(fixture.nativeElement.textContent).toContain('Offline');
+    expect(fixture.nativeElement.textContent).toContain(
+      'Offline',
+    );
 
     events.next({
-      type: 'agent',
-      printerId: 1,
-      online: true,
       lastSeenAt: null,
+      online: true,
+      printerId: 1,
+      type: 'agent',
     });
     events.next({
-      type: 'job',
-      printerId: 1,
-      jobId: 'job',
-      status: 'queued',
       activeJobs: 3,
       failedJobs: 0,
+      jobId: 'job',
+      printerId: 1,
+      status: 'queued',
+      type: 'job',
     });
     events.next({
-      type: 'agent',
-      printerId: 2,
-      online: false,
       lastSeenAt: null,
+      online: false,
+      printerId: 2,
+      type: 'agent',
     });
     await fixture.whenStable();
 
-    expect(fixture.nativeElement.textContent).toContain('Online');
+    expect(fixture.nativeElement.textContent).toContain(
+      'Online',
+    );
     expect(fixture.nativeElement.textContent).toContain(
       '3 active job(s)',
     );
@@ -98,19 +109,27 @@ describe('ManagePrinterComponent', () => {
         provideRouter([]),
         {
           provide: ActivatedRoute,
-          useValue: { snapshot: { paramMap: { get: () => 'new' } } },
+          useValue: {
+            snapshot: { paramMap: { get: () => 'new' } },
+          },
         },
         { provide: PrinterService, useValue: printers },
         {
           provide: CLIENT_ENVIRONMENT,
           useValue: {
-            msal: { tenantId: '', clientId: '', redirectUri: '' },
             enrollment,
+            msal: {
+              clientId: '',
+              redirectUri: '',
+              tenantId: '',
+            },
           },
         },
       ],
     }).compileComponents();
-    const fixture = TestBed.createComponent(ManagePrinterComponent);
+    const fixture = TestBed.createComponent(
+      ManagePrinterComponent,
+    );
     await fixture.whenStable();
     return fixture;
   };
@@ -119,9 +138,9 @@ describe('ManagePrinterComponent', () => {
     const fixture = await addPage(true, {
       createEnrollToken: () =>
         of({
-          token: 'e'.repeat(44),
           expiresAt: '2030-01-01T00:00:00.000Z',
           serverUrl: 'https://print.example.org',
+          token: 'e'.repeat(44),
         }),
     });
     const page: HTMLElement = fixture.nativeElement;
@@ -131,7 +150,9 @@ describe('ManagePrinterComponent', () => {
     ).toBe(true);
     expect(page.querySelector('#printer-name')).toBeNull();
 
-    page.querySelector<HTMLButtonElement>('section button')!.click();
+    page
+      .querySelector<HTMLButtonElement>('section button')!
+      .click();
     await fixture.whenStable();
 
     expect(page.textContent).toContain(
@@ -146,20 +167,20 @@ describe('ManagePrinterComponent', () => {
     const fixture = await addPage(false, {
       createAdminPrinter: () =>
         of({
+          agentToken: 'a'.repeat(43),
           printer: {
-            id: 2,
-            slug: 'front',
-            name: 'Front',
-            queue: 'cups://Front',
-            coverPage: false,
-            lastSeenAt: null,
             activeJobs: 0,
+            coverPage: false,
             failedJobs: 0,
+            id: 2,
+            lastSeenAt: null,
+            name: 'Front',
             online: false,
             pin: null,
             qrEpoch: 0,
+            queue: 'cups://Front',
+            slug: 'front',
           },
-          agentToken: 'a'.repeat(43),
           serverUrl: 'https://print.example.org',
         }),
     });
@@ -191,7 +212,9 @@ describe('ManagePrinterComponent', () => {
   it('shows the server message and stays on the form when saving fails', async () => {
     const fixture = await addPage(false, {
       createAdminPrinter: () =>
-        throwError(() => ({ error: { error: 'Slug already used' } })),
+        throwError(() => ({
+          error: { error: 'Slug already used' },
+        })),
     });
     const page: HTMLElement = fixture.nativeElement;
     page
@@ -214,9 +237,9 @@ describe('ManagePrinterComponent', () => {
       .click();
     await fixture.whenStable();
 
-    expect(page.querySelector('[role=alert]')?.textContent).toContain(
-      'Slug already used',
-    );
+    expect(
+      page.querySelector('[role=alert]')?.textContent,
+    ).toContain('Slug already used');
     expect(page.querySelector('#printer-name')).not.toBeNull();
   });
 });

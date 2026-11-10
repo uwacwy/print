@@ -10,29 +10,30 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
+
 import {
   renderErrorScript,
   renderInstallScript,
 } from './install-script';
 
 const syntaxCheck = (script: string) =>
-  spawnSync('bash', ['-n'], { input: script, encoding: 'utf8' });
+  spawnSync('bash', ['-n'], { encoding: 'utf8', input: script });
 
 const hasShellcheck =
   spawnSync('shellcheck', ['--version']).status === 0;
 
 const enrollScript = renderInstallScript({
-  serverUrl: 'https://print.example.org',
+  agentVersion: '1.2.3',
   enrollToken: 'A'.repeat(44),
   enrollTokenExpiresAt: new Date('2025-01-01T12:30:00Z'),
-  agentVersion: '1.2.3',
+  serverUrl: 'https://print.example.org',
 });
 
 describe('renderInstallScript', () => {
   it('presets the server, token, and pinned version', () => {
-    expect(enrollScript.startsWith('#!/usr/bin/env bash\n')).toBe(
-      true,
-    );
+    expect(
+      enrollScript.startsWith('#!/usr/bin/env bash\n'),
+    ).toBe(true);
     expect(enrollScript).toContain(
       "PRINT_SERVER_URL='https://print.example.org'",
     );
@@ -48,14 +49,16 @@ describe('renderInstallScript', () => {
     expect(enrollScript).toContain(
       'AGENT_VERSION="${AGENT_VERSION:-1.2.3}"',
     );
-    expect(enrollScript.trimEnd().endsWith('main "$@"')).toBe(true);
+    expect(enrollScript.trimEnd().endsWith('main "$@"')).toBe(
+      true,
+    );
   });
 
   it('never embeds an unsafe version', () => {
     expect(
       renderInstallScript({
-        serverUrl: 'https://x',
         agentVersion: '1"; rm -rf /',
+        serverUrl: 'https://x',
       }),
     ).toContain('AGENT_VERSION="${AGENT_VERSION:-}"');
   });
@@ -63,15 +66,16 @@ describe('renderInstallScript', () => {
   it('is valid bash', () => {
     expect(syntaxCheck(enrollScript).stderr).toBe('');
     expect(
-      syntaxCheck(renderInstallScript({ serverUrl: 'https://x' }))
-        .status,
+      syntaxCheck(
+        renderInstallScript({ serverUrl: 'https://x' }),
+      ).status,
     ).toBe(0);
   });
 
   it.skipIf(!hasShellcheck)('passes shellcheck', () => {
     const result = spawnSync('shellcheck', ['-'], {
-      input: enrollScript,
       encoding: 'utf8',
+      input: enrollScript,
     });
     expect(result.stdout).toBe('');
   });
@@ -80,8 +84,8 @@ describe('renderInstallScript', () => {
 describe('renderErrorScript', () => {
   it('prints the message and fails', () => {
     const result = spawnSync('bash', [], {
-      input: renderErrorScript(`it's "expired" $(nope)`),
       encoding: 'utf8',
+      input: renderErrorScript(`it's "expired" $(nope)`),
     });
     expect(result.status).toBe(1);
     expect(result.stderr).toBe(
@@ -93,7 +97,7 @@ describe('renderErrorScript', () => {
 describe('install script run', () => {
   let home: string;
 
-  afterEach(() => rm(home, { recursive: true, force: true }));
+  afterEach(() => rm(home, { force: true, recursive: true }));
 
   /** A HOME with stand-in node and npm in ~/.local/bin that record how they were called. */
   const fakeHome = async () => {
@@ -128,11 +132,15 @@ describe('install script run', () => {
     return bin;
   };
 
-  const run = (bin: string, script: string, args: string[] = []) =>
+  const run = (
+    bin: string,
+    script: string,
+    args: string[] = [],
+  ) =>
     spawnSync('bash', ['-s', '--', ...args], {
-      input: script,
       encoding: 'utf8',
       env: { HOME: home, PATH: `${bin}:/usr/bin:/bin` },
+      input: script,
     });
 
   it.skipIf(process.getuid?.() === 0)(
@@ -145,9 +153,9 @@ describe('install script run', () => {
       ]);
       expect(result.stderr).toContain('Using Node.js v22.1.0');
       expect(result.status).toBe(0);
-      expect(await readFile(join(home, 'npm-spec'), 'utf8')).toBe(
-        '@uwacwy/print-agent@1.2.3\n',
-      );
+      expect(
+        await readFile(join(home, 'npm-spec'), 'utf8'),
+      ).toBe('@uwacwy/print-agent@1.2.3\n');
       expect(
         (await readFile(join(home, 'agent-args'), 'utf8')).split(
           '\n',
@@ -186,9 +194,9 @@ describe('install script run', () => {
         ],
       );
       expect(result.status).toBe(0);
-      expect(await readFile(join(home, 'npm-spec'), 'utf8')).toBe(
-        '/tmp/agent.tgz\n',
-      );
+      expect(
+        await readFile(join(home, 'npm-spec'), 'utf8'),
+      ).toBe('/tmp/agent.tgz\n');
       expect(
         (await readFile(join(home, 'agent-args'), 'utf8')).split(
           '\n',

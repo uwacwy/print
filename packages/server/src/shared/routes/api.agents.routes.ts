@@ -2,7 +2,6 @@ import { arg, segment } from 'ts-routes';
 
 export const agents = {
   enroll: segment`/enroll`,
-  printer: segment`/printer`,
   jobs: {
     ...segment`/jobs`,
     children: {
@@ -15,4 +14,5 @@ export const agents = {
       },
     },
   },
+  printer: segment`/printer`,
 };

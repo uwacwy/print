@@ -1,8 +1,11 @@
 import type { NextFunction, Request, Response } from 'express';
+
 import { Passport } from 'passport';
+
 import type { PrintDatabase } from '../../../helpers/database/database';
-import type { UploadTokenKey } from '../upload-token/upload-token';
 import type { EnrollTokenKey } from '../../../helpers/enroll-token/enroll-token';
+import type { UploadTokenKey } from '../upload-token/upload-token';
+
 import { AgentTokenStrategy } from '../agent-token/agent-token.strategy';
 import { EnrollTokenStrategy } from '../enroll-token/enroll-token.strategy';
 import {
@@ -11,35 +14,11 @@ import {
 } from '../entra-user/entra-user.strategy';
 import { PinStrategy } from '../pin/pin.strategy';
 import {
-  isAuthChallenge,
   type AuthChallenge,
+  isAuthChallenge,
   type Principal,
 } from '../principal';
 import { UploadTokenStrategy } from '../upload-token/upload-token.strategy';
-
-export type StrategyName =
-  | 'entraUser'
-  | 'uploadToken'
-  | 'pin'
-  | 'agentToken'
-  | 'enrollToken';
-
-export interface AuthOptions {
-  db: PrintDatabase;
-  /** Registers `entraUser` (unconfigured tenants answer 503 to presented JWTs). */
-  entra?: EntraUserOptions;
-  /** Registers `uploadToken`. */
-  uploadToken?: UploadTokenKey;
-  /** Registers `enrollToken`. */
-  enrollToken?: EnrollTokenKey;
-}
-
-/** Generic over route params so it never widens Express 5's typed `request.params`. */
-export type AuthMiddleware = <P>(
-  request: Request<P>,
-  response: Response,
-  next: NextFunction,
-) => void;
 
 export interface Authenticate {
   /** Accepts the first strategy that succeeds, in order; otherwise responds 401/403/503. */
@@ -50,8 +29,32 @@ export interface Authenticate {
   verify: (
     authorization: string | undefined,
     ...strategies: StrategyName[]
-  ) => Promise<Principal | AuthChallenge>;
+  ) => Promise<AuthChallenge | Principal>;
 }
+
+/** Generic over route params so it never widens Express 5's typed `request.params`. */
+export type AuthMiddleware = <P>(
+  request: Request<P>,
+  response: Response,
+  next: NextFunction,
+) => void;
+
+export interface AuthOptions {
+  db: PrintDatabase;
+  /** Registers `enrollToken`. */
+  enrollToken?: EnrollTokenKey;
+  /** Registers `entraUser` (unconfigured tenants answer 503 to presented JWTs). */
+  entra?: EntraUserOptions;
+  /** Registers `uploadToken`. */
+  uploadToken?: UploadTokenKey;
+}
+
+export type StrategyName =
+  | 'agentToken'
+  | 'enrollToken'
+  | 'entraUser'
+  | 'pin'
+  | 'uploadToken';
 
 // @types/passport returns `any`; with a callback the result is always a request handler.
 type Authenticator = (
@@ -71,28 +74,16 @@ type Authenticator = (
 const UNKNOWN: AuthChallenge = {
   code: 'unauthorized',
   error: 'Unauthorized',
-  status: 401,
   presented: false,
+  status: 401,
 };
-
-/** The failure that best explains the rejection: the first credential actually presented. */
-export function selectChallenge(
-  challenges: unknown[],
-): AuthChallenge {
-  const known = challenges.filter(isAuthChallenge);
-  return (
-    known.find((challenge) => challenge.presented) ??
-    known[0] ??
-    UNKNOWN
-  );
-}
 
 /** Builds an isolated Passport instance and its per-route `authenticate(...)` middleware. */
 export function createAuthenticate({
   db,
+  enrollToken,
   entra,
   uploadToken,
-  enrollToken,
 }: AuthOptions): Authenticate {
   const passport = new Passport();
   passport.use('agentToken', new AgentTokenStrategy(db));
@@ -163,14 +154,14 @@ export function createAuthenticate({
     authorization: string | undefined,
     ...strategies: StrategyName[]
   ) =>
-    new Promise<Principal | AuthChallenge>((resolve, reject) => {
+    new Promise<AuthChallenge | Principal>((resolve, reject) => {
       // The strategies only read the Authorization header.
       const request = {
-        headers: { authorization },
         header: (name: string) =>
           name.toLowerCase() === 'authorization'
             ? authorization
             : undefined,
+        headers: { authorization },
       } as unknown as Request;
       (passport.authenticate as Authenticator)(
         strategies,
@@ -202,4 +193,16 @@ export function createAuthenticate({
     optional: middleware(true),
     verify,
   });
+}
+
+/** The failure that best explains the rejection: the first credential actually presented. */
+export function selectChallenge(
+  challenges: unknown[],
+): AuthChallenge {
+  const known = challenges.filter(isAuthChallenge);
+  return (
+    known.find((challenge) => challenge.presented) ??
+    known[0] ??
+    UNKNOWN
+  );
 }

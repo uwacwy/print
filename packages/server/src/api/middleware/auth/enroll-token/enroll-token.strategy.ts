@@ -1,32 +1,36 @@
 import type { Request } from 'express';
+
 import { Strategy } from 'passport-strategy';
+
+import type { AuthChallenge, Principal } from '../principal';
+
 import {
-  verifyEnrollToken,
   type EnrollTokenKey,
   type EnrollTokenVerification,
+  verifyEnrollToken,
 } from '../../../helpers/enroll-token/enroll-token';
 import { bearer } from '../credentials';
-import type { AuthChallenge, Principal } from '../principal';
 
 const SCHEME = 'Bearer realm="print-enroll"';
 
 export const ENROLL_DENIED: Record<
-  Exclude<EnrollTokenVerification['status'], 'valid'> | 'required',
+  | 'required'
+  | Exclude<EnrollTokenVerification['status'], 'valid'>,
   Pick<AuthChallenge, 'code' | 'error'>
 > = {
-  required: {
-    code: 'enroll_token_required',
-    error: 'An enrollment token is required.',
+  expired: {
+    code: 'enroll_token_expired',
+    error:
+      'This enrollment token has expired. Ask an administrator for a new one.',
   },
   invalid: {
     code: 'enroll_token_invalid',
     error:
       'This enrollment token is not valid. Ask an administrator for a new one.',
   },
-  expired: {
-    code: 'enroll_token_expired',
-    error:
-      'This enrollment token has expired. Ask an administrator for a new one.',
+  required: {
+    code: 'enroll_token_required',
+    error: 'An enrollment token is required.',
   },
 };
 
@@ -45,16 +49,16 @@ export class EnrollTokenStrategy extends Strategy {
       : undefined;
     if (verification?.status === 'valid') {
       return this.success({
-        kind: 'enroll',
         expiresAt: verification.expiresAt,
+        kind: 'enroll',
       } satisfies Principal);
     }
     this.fail(
       {
         ...ENROLL_DENIED[verification?.status ?? 'required'],
-        status: 401,
         presented: !!token,
         scheme: SCHEME,
+        status: 401,
       } satisfies AuthChallenge,
       401,
     );

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import {
   addDocument,
   buildJobBody,
@@ -13,13 +14,15 @@ import {
 } from './print-upload';
 
 const pdf = (name: string, size = 3) =>
-  new File([new Uint8Array(size)], name, { type: 'application/pdf' });
+  new File([new Uint8Array(size)], name, {
+    type: 'application/pdf',
+  });
 
 describe('document rows', () => {
   it('starts with one empty row of one copy', () => {
     expect(emptyUpload(7)).toEqual({
+      documents: [{ copies: '1', file: null, id: 7 }],
       title: '',
-      documents: [{ id: 7, file: null, copies: '1' }],
     });
   });
 
@@ -28,33 +31,35 @@ describe('document rows', () => {
     const added = addDocument(start, 2);
     expect(added.documents.map((d) => d.id)).toEqual([1, 2]);
     expect(start.documents).toHaveLength(1);
-    expect(removeDocument(added, 1).documents.map((d) => d.id)).toEqual([
-      2,
-    ]);
+    expect(
+      removeDocument(added, 1).documents.map((d) => d.id),
+    ).toEqual([2]);
   });
 
   it('detects whether any row has a file', () => {
     const { documents } = emptyUpload(1);
     expect(hasDocument(documents)).toBe(false);
-    expect(hasDocument([{ ...documents[0], file: pdf('a.pdf') }])).toBe(
-      true,
-    );
+    expect(
+      hasDocument([{ ...documents[0], file: pdf('a.pdf') }]),
+    ).toBe(true);
   });
 });
 
 describe('buildJobBody', () => {
   it('numbers only the rows that have a file', () => {
     const body = buildJobBody({
-      title: 'Report',
       documents: [
-        { id: 1, file: null, copies: '1' },
-        { id: 2, file: pdf('a.pdf'), copies: '2' },
-        { id: 3, file: pdf('b.pdf'), copies: '3' },
+        { copies: '1', file: null, id: 1 },
+        { copies: '2', file: pdf('a.pdf'), id: 2 },
+        { copies: '3', file: pdf('b.pdf'), id: 3 },
       ],
+      title: 'Report',
     });
     expect(body.get('job__title')).toBe('Report');
     expect(body.get('document__copies_0')).toBe('2');
-    expect((body.get('document__file_0') as File).name).toBe('a.pdf');
+    expect((body.get('document__file_0') as File).name).toBe(
+      'a.pdf',
+    );
     expect(body.get('document__copies_1')).toBe('3');
     expect(body.has('document__file_2')).toBe(false);
   });
@@ -77,22 +82,26 @@ describe('limits', () => {
     );
     expect(fileSizeError(pdf('ok.pdf', 10), 10)).toBeUndefined();
     expect(fileSizeError(null, 10)).toBeUndefined();
-    expect(fileSizeError(pdf('x.pdf', 99), undefined)).toBeUndefined();
+    expect(
+      fileSizeError(pdf('x.pdf', 99), undefined),
+    ).toBeUndefined();
   });
 });
 
 describe('notices', () => {
   it('words the job result by agent state', () => {
-    expect(jobSentNotice({ title: 'T', agentOnline: true }, 'Front')).toBe(
-      '"T" was sent to Front.',
-    );
     expect(
-      jobSentNotice({ title: 'T', agentOnline: false }, 'Front'),
+      jobSentNotice({ agentOnline: true, title: 'T' }, 'Front'),
+    ).toBe('"T" was sent to Front.');
+    expect(
+      jobSentNotice({ agentOnline: false, title: 'T' }, 'Front'),
     ).toContain('is queued');
   });
 
   it('explains unusable tokens only', () => {
-    expect(tokenNotice('expired')).toBe('This print link has expired.');
+    expect(tokenNotice('expired')).toBe(
+      'This print link has expired.',
+    );
     expect(tokenNotice('invalid')).toContain('not valid');
     expect(tokenNotice('not-yet-valid')).toContain('not active');
     expect(tokenNotice('valid')).toBe('');

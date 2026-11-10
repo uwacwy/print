@@ -4,8 +4,8 @@ import { AgentBadgeComponent } from '../../../../components/agent-badge/agent-ba
 
 /** Whether the printer's agent is connected, and how many jobs are waiting. */
 @Component({
-  selector: 'app-printer-status',
   imports: [AgentBadgeComponent],
+  selector: 'app-printer-status',
   template: `
     <p role="status">
       Agent:
@@ -17,6 +17,6 @@ import { AgentBadgeComponent } from '../../../../components/agent-badge/agent-ba
   `,
 })
 export class PrinterStatusComponent {
-  readonly online = input.required<boolean>();
   readonly activeJobs = input.required<number>();
+  readonly online = input.required<boolean>();
 }

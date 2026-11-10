@@ -7,8 +7,8 @@ import {
 
 /** Same secret and issuer as upload tokens; a separate HKDF `info` keeps the MACs independent. */
 export interface EnrollTokenKey {
-  tokenSecret: string;
   tokenIssuer: string;
+  tokenSecret: string;
 }
 
 /**
@@ -36,14 +36,14 @@ export const MAX_ENROLL_TOKEN_MINUTES = 0xffff;
 export const ENROLL_TOKEN_PATTERN = /^[A-Za-z0-9_-]{44}$/;
 
 export interface EnrollToken {
-  token: string;
-  notBefore: Date;
   expiresAt: Date;
+  notBefore: Date;
+  token: string;
 }
 
 export type EnrollTokenVerification =
-  | { status: 'valid'; expiresAt: Date }
-  | { status: 'invalid' | 'expired' };
+  | { expiresAt: Date; status: 'valid' }
+  | { status: 'expired' | 'invalid' };
 
 const macKeys = new WeakMap<EnrollTokenKey, Buffer>();
 const macKey = (key: EnrollTokenKey): Buffer => {
@@ -92,11 +92,13 @@ export function signEnrollToken(
   body.writeUInt32BE(startMinute, 9);
   body.writeUInt16BE(lifetimeMinutes, 13);
   return {
+    expiresAt: new Date(
+      (startMinute + lifetimeMinutes) * MINUTE_MS,
+    ),
+    notBefore: new Date(startMinute * MINUTE_MS),
     token: Buffer.concat([body, tag(key, body)]).toString(
       'base64url',
     ),
-    notBefore: new Date(startMinute * MINUTE_MS),
-    expiresAt: new Date((startMinute + lifetimeMinutes) * MINUTE_MS),
   };
 }
 
@@ -113,7 +115,10 @@ export function verifyEnrollToken(
   const body = bytes.subarray(0, BODY_LENGTH);
   if (
     bytes.length !== TOKEN_LENGTH ||
-    !timingSafeEqual(bytes.subarray(BODY_LENGTH), tag(key, body)) ||
+    !timingSafeEqual(
+      bytes.subarray(BODY_LENGTH),
+      tag(key, body),
+    ) ||
     body.readUInt8(0) !== HEADER
   ) {
     return { status: 'invalid' };
@@ -127,5 +132,5 @@ export function verifyEnrollToken(
   }
   return now.getTime() - CLOCK_TOLERANCE_MS >= expiresAt
     ? { status: 'expired' }
-    : { status: 'valid', expiresAt: new Date(expiresAt) };
+    : { expiresAt: new Date(expiresAt), status: 'valid' };
 }

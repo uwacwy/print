@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import {
   connectErrorDetail,
   formatSeconds,
@@ -35,9 +36,9 @@ describe('reconnect timing', () => {
 
 describe('connectErrorDetail', () => {
   it('hides generic transport failures', () => {
-    expect(connectErrorDetail(new Error('websocket error'))).toBe(
-      '',
-    );
+    expect(
+      connectErrorDetail(new Error('websocket error')),
+    ).toBe('');
     expect(connectErrorDetail(new Error(''))).toBe('');
   });
 

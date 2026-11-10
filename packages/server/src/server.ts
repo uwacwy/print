@@ -12,6 +12,14 @@ import { AddressInfo } from 'node:net';
 import { join } from 'node:path';
 import { isMainThread, workerData } from 'node:worker_threads';
 import { Subject } from 'rxjs';
+
+import type {
+  DevSockets,
+  PrintServerEvent,
+  PrintServerEvents,
+  ServerGlobals,
+} from './api/types';
+
 import apiRoot from './api';
 import { openAccessLog } from './api/helpers/access-log/access-log';
 import { findLogo } from './api/helpers/logo/logo';
@@ -26,25 +34,22 @@ import {
   attachWebSockets,
   type WebSocketOptions,
 } from './api/sockets/sockets';
-import type {
-  DevSockets,
-  PrintServerEvent,
-  PrintServerEvents,
-  ServerGlobals,
-} from './api/types';
 import {
   getPrintRuntime,
   shutdownPrintRuntime,
   startJobCleanup,
 } from './realtime/runtime';
 
-const browserDistFolder = join(import.meta.dirname, '../browser');
+const browserDistFolder = join(
+  import.meta.dirname,
+  '../browser',
+);
 
 // Angular's build imports this module in worker threads to extract and prerender
 // routes. Those never serve API requests, so they must not require deployment secrets.
 const angularBuildWorker =
   !isMainThread &&
-  typeof (workerData as { outputMode?: unknown } | null)
+  typeof (workerData as null | { outputMode?: unknown })
     ?.outputMode === 'string';
 
 loadLocalEnvFile();
@@ -52,7 +57,8 @@ const config = loadServerConfig(
   angularBuildWorker && !process.env['UPLOAD_TOKEN_SECRET']
     ? {
         ...process.env,
-        UPLOAD_TOKEN_SECRET: randomBytes(32).toString('base64url'),
+        UPLOAD_TOKEN_SECRET:
+          randomBytes(32).toString('base64url'),
       }
     : process.env,
 );
@@ -81,7 +87,9 @@ if (config.publicUrl) {
   allowedHosts.push(hostname);
 }
 if (process.env['NG_ALLOWED_HOSTS']) {
-  allowedHosts.push(...process.env['NG_ALLOWED_HOSTS'].split(','));
+  allowedHosts.push(
+    ...process.env['NG_ALLOWED_HOSTS'].split(','),
+  );
 }
 if (allowedHosts.length) {
   console.log(
@@ -118,8 +126,8 @@ app.use((_request, response, next) => {
  */
 app.use(
   express.static(browserDistFolder, {
-    maxAge: '1y',
     index: false,
+    maxAge: '1y',
     redirect: false,
   }),
 );
@@ -131,27 +139,27 @@ const $ = createRouting(root);
 app.use(
   $.api.pattern,
   apiRoot({
-    db: runtime.db,
-    jobsDir: runtime.jobsDir,
-    getHub,
-    upload: config.upload,
-    publicUrl: config.publicUrl,
-    enrollment: config.enrollment,
-    entra: config.entra,
     client: {
       ...config.client,
       logo: findLogo(browserDistFolder, config.logoAlt),
     },
+    db: runtime.db,
+    enrollment: config.enrollment,
+    entra: config.entra,
+    getHub,
+    jobsDir: runtime.jobsDir,
+    publicUrl: config.publicUrl,
+    upload: config.upload,
   }),
 );
 
 app.use(
   installRouter({
-    upload: config.upload,
-    enrollment: config.enrollment,
     agentVersion: readServerVersion(
       join(import.meta.dirname, '../../package.json'),
     ),
+    enrollment: config.enrollment,
+    upload: config.upload,
   }),
 );
 
@@ -162,7 +170,9 @@ app.use((req, res, next) => {
   angularApp
     .handle(req)
     .then((response) =>
-      response ? writeResponseToNodeResponse(response, res) : next(),
+      response
+        ? writeResponseToNodeResponse(response, res)
+        : next(),
     )
     .catch(next);
 });
@@ -176,11 +186,15 @@ const eventBus = (globals.eventBus ??=
   new Subject<PrintServerEvent>());
 
 const events: PrintServerEvents = {
-  next: (event) => eventBus.next(event),
   events$: eventBus.asObservable(),
+  next: (event) => eventBus.next(event),
 };
 
-const socketOptions: WebSocketOptions = { getHub, verify, events };
+const socketOptions: WebSocketOptions = {
+  events,
+  getHub,
+  verify,
+};
 
 const listen = (
   server: http.Server,
@@ -196,7 +210,9 @@ const listen = (
     });
   });
 
-function formatAddressInfo(address: AddressInfo | string | null) {
+function formatAddressInfo(
+  address: AddressInfo | null | string,
+) {
   if (!address) {
     return '';
   }
@@ -227,14 +243,13 @@ function startDevServer(port: number): Promise<void> {
 
   const server = http.createServer();
   const devSockets: DevSockets = {
-    port,
-    server,
-    options: socketOptions,
     io: attachWebSockets(server, {
+      events,
       getHub: () => devSockets.options.getHub(),
       verify: (...args) => devSockets.options.verify(...args),
-      events,
     }),
+    options: socketOptions,
+    port,
     ready: listen(server, port, '127.0.0.1').then(
       () => {
         // Don't keep the dev server's process alive just for this listener.
@@ -256,12 +271,14 @@ function startDevServer(port: number): Promise<void> {
         );
       },
     ),
+    server,
   };
   globals.devSockets = devSockets;
   return devSockets.ready;
 }
 
 import { createRouting } from 'ts-routes';
+
 import pkg from '../package.json';
 import { root } from './shared/routes/routes';
 
@@ -282,8 +299,8 @@ async function startServer(): Promise<void> {
       // The returned promise settles before the HTTP server finishes closing; the callback doesn't.
       void io.close(() => resolve());
     });
-    void Promise.all([serverClosed, accessLog?.close()]).then(() =>
-      process.exit(0),
+    void Promise.all([serverClosed, accessLog?.close()]).then(
+      () => process.exit(0),
     );
     server.closeIdleConnections();
     setTimeout(() => process.exit(0), 5000).unref();

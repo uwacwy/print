@@ -1,23 +1,25 @@
 import express, { type Request, type Response } from 'express';
 import { createRouting } from 'ts-routes';
+
+import type {
+  EnrollmentConfig,
+  UploadConfig,
+} from '../../helpers/server-config/server-config';
+
 import { installRoutes } from '../../../shared/routes/install.routes';
 import {
   INSTALL_SCRIPT_CONTENT_TYPE,
   renderErrorScript,
   renderInstallScript,
 } from '../../helpers/install-script/install-script';
-import type {
-  EnrollmentConfig,
-  UploadConfig,
-} from '../../helpers/server-config/server-config';
 import { enrollTokenParam } from '../../middleware/auth/enroll-token/enroll-token.param';
 import { installScriptRateLimit } from '../../middleware/rate-limits/rate-limits';
 
 export interface InstallRouterOptions {
-  upload: UploadConfig;
-  enrollment?: EnrollmentConfig;
   /** Agent version the scripts install; the server's own version, kept in lockstep. */
   agentVersion?: string;
+  enrollment?: EnrollmentConfig;
+  upload: UploadConfig;
 }
 
 const sendScript = (
@@ -28,8 +30,8 @@ const sendScript = (
   response
     .status(status)
     .set({
-      'Content-Type': INSTALL_SCRIPT_CONTENT_TYPE,
       'Cache-Control': 'no-store',
+      'Content-Type': INSTALL_SCRIPT_CONTENT_TYPE,
     })
     .send(script);
 
@@ -41,9 +43,9 @@ const $ = createRouting(installRoutes);
  * script that prints the reason, since that is all `curl | bash` shows.
  */
 export default ({
-  upload,
-  enrollment,
   agentVersion,
+  enrollment,
+  upload,
 }: InstallRouterOptions) => {
   const limit = installScriptRateLimit(upload);
   const script =
@@ -75,7 +77,7 @@ export default ({
       $.install_sh.pattern,
       limit,
       script((serverUrl) =>
-        renderInstallScript({ serverUrl, agentVersion }),
+        renderInstallScript({ agentVersion, serverUrl }),
       ),
     )
     .get(
@@ -83,17 +85,17 @@ export default ({
       limit,
       enrollTokenParam(
         upload.access,
-        (response, { status, error }) =>
+        (response, { error, status }) =>
           sendScript(response, status, renderErrorScript(error)),
       ),
       script((serverUrl, request, response) =>
         renderInstallScript({
-          serverUrl,
+          agentVersion,
           enrollToken: String(request.params['token']),
           enrollTokenExpiresAt: response.locals[
             'enrollTokenExpiresAt'
           ] as Date,
-          agentVersion,
+          serverUrl,
         }),
       ),
     );

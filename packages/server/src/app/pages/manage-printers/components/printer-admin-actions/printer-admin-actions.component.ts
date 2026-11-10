@@ -1,11 +1,12 @@
 import { Component, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
+
 import type { PrinterSummary } from '../../../../services/printer/printer.service';
 
 /** Management actions in a printer's expanded panel. */
 @Component({
-  selector: 'app-printer-admin-actions',
   imports: [RouterLink],
+  selector: 'app-printer-admin-actions',
   template: `
     <div class="d-flex flex-wrap gap-2">
       <a
@@ -38,7 +39,10 @@ import type { PrinterSummary } from '../../../../services/printer/printer.servic
           [disabled]="busy()"
           (click)="retryFailedJobs.emit()"
         >
-          <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+          <i
+            class="bi bi-arrow-clockwise"
+            aria-hidden="true"
+          ></i>
           Retry failed jobs
         </button>
       }
@@ -64,10 +68,10 @@ import type { PrinterSummary } from '../../../../services/printer/printer.servic
   `,
 })
 export class PrinterAdminActionsComponent {
-  readonly printer = input.required<PrinterSummary>();
   readonly busy = input(false);
-  readonly rotateToken = output();
-  readonly retryFailedJobs = output();
   readonly deleteAllJobs = output();
+  readonly printer = input.required<PrinterSummary>();
   readonly removePrinter = output();
+  readonly retryFailedJobs = output();
+  readonly rotateToken = output();
 }

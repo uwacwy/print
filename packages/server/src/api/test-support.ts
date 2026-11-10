@@ -1,29 +1,32 @@
-import { createServer, type Server } from 'node:http';
-import express from 'express';
-import { PDFDocument } from 'pdf-lib';
-import { afterEach, beforeEach, expect } from 'vitest';
 import type { Server as SocketServer } from 'socket.io';
-import {
-  getPrinterBySlug,
-  type PrintDatabase,
-} from './helpers/database/database';
-import { signUploadToken } from './middleware/auth/upload-token/upload-token';
-import { createAuthenticate } from './middleware/auth/passport/passport';
-import { AgentHub } from './sockets/agent-hub/agent-hub';
-import { attachWebSockets } from './sockets/sockets';
+
+import express from 'express';
+import { createServer, type Server } from 'node:http';
+import { PDFDocument } from 'pdf-lib';
+import { Observable } from 'rxjs';
+import { afterEach, beforeEach, expect } from 'vitest';
+
+import type { UploadConfig } from './helpers/server-config/server-config';
+
 import {
   closeServer,
   listen,
   tempDatabase,
   TestAgent,
-  TestLiveClient,
   testEntra,
+  TestLiveClient,
   testUploadConfig,
 } from '../realtime/test-support';
-import type { UploadConfig } from './helpers/server-config/server-config';
+import {
+  getPrinterBySlug,
+  type PrintDatabase,
+} from './helpers/database/database';
 import apiRoot, { type ApiRootOptions } from './index';
+import { createAuthenticate } from './middleware/auth/passport/passport';
+import { signUploadToken } from './middleware/auth/upload-token/upload-token';
 import installRouter from './routers/install/install.router';
-import { Observable } from 'rxjs';
+import { AgentHub } from './sockets/agent-hub/agent-hub';
+import { attachWebSockets } from './sockets/sockets';
 
 export async function samplePdf(): Promise<Blob> {
   const pdf = await PDFDocument.create();
@@ -49,10 +52,10 @@ export async function uploadForm(
 export const testPublicUrl = new URL('http://print.test');
 
 export interface StartOptions {
-  upload?: UploadConfig;
-  entra?: ApiRootOptions['entra'];
   client?: ApiRootOptions['client'];
   enrollment?: ApiRootOptions['enrollment'];
+  entra?: ApiRootOptions['entra'];
+  upload?: UploadConfig;
 }
 
 /**
@@ -73,7 +76,7 @@ export function useApiServer(defaults: StartOptions = {}) {
   const clients: { close(): void }[] = [];
 
   beforeEach(async () => {
-    ({ db, jobsDir, cleanup } = await tempDatabase());
+    ({ cleanup, db, jobsDir } = await tempDatabase());
     hub = new AgentHub(db);
   });
 
@@ -97,14 +100,16 @@ export function useApiServer(defaults: StartOptions = {}) {
   };
 
   const start = async ({
-    upload: uploadConfig = defaults.upload ?? testUploadConfig,
-    entra = defaultEntra,
     client,
+    entra = defaultEntra,
+    upload: uploadConfig = defaults.upload ?? testUploadConfig,
     // `{ enrollment: undefined }` disables enrollment for one test.
     ...rest
   }: StartOptions = {}) => {
     const enrollment =
-      'enrollment' in rest ? rest.enrollment : defaults.enrollment;
+      'enrollment' in rest
+        ? rest.enrollment
+        : defaults.enrollment;
     await stop();
     upload = uploadConfig;
     const app = express();
@@ -112,34 +117,42 @@ export function useApiServer(defaults: StartOptions = {}) {
     app.use(
       '/api',
       apiRoot({
-        db,
-        jobsDir,
-        getHub: () => hub,
-        upload,
-        entra,
         client,
+        db,
         enrollment,
+        entra,
+        getHub: () => hub,
+        jobsDir,
         publicUrl: testPublicUrl,
+        upload,
       }),
     );
     app.use(
-      installRouter({ upload, enrollment, agentVersion: '9.9.9' }),
+      installRouter({
+        agentVersion: '9.9.9',
+        enrollment,
+        upload,
+      }),
     );
     server = createServer(app);
     io = attachWebSockets(server, {
+      events: {
+        events$: new Observable(),
+        next: () => {},
+      },
       getHub: () => hub,
       verify: createAuthenticate({ db, entra }).verify,
-      events: {
-        next: () => {},
-        events$: new Observable(),
-      },
     });
     host = await listen(server);
   };
 
   /** Opens an agent socket without waiting for its handshake. */
   const openAgent = (token?: string, namespace?: string) => {
-    const agent = new TestAgent(`http://${host}`, token, namespace);
+    const agent = new TestAgent(
+      `http://${host}`,
+      token,
+      namespace,
+    );
     clients.push(agent);
     return agent;
   };
@@ -166,13 +179,17 @@ export function useApiServer(defaults: StartOptions = {}) {
   ) => {
     const printer = getPrinterBySlug(db, slug)!;
     const hour = 3_600_000;
-    const { token } = await signUploadToken(upload.access, printer, {
-      source: 'qr',
-      notBefore: new Date(Date.now() + window.from * hour),
-      expiresAt: new Date(Date.now() + window.to * hour),
-      maxLifetimeMs: upload.access.tokenMaxLifetimeMs,
-      now: new Date(Date.now() + window.from * hour),
-    });
+    const { token } = await signUploadToken(
+      upload.access,
+      printer,
+      {
+        expiresAt: new Date(Date.now() + window.to * hour),
+        maxLifetimeMs: upload.access.tokenMaxLifetimeMs,
+        notBefore: new Date(Date.now() + window.from * hour),
+        now: new Date(Date.now() + window.from * hour),
+        source: 'qr',
+      },
+    );
     return token;
   };
 
@@ -180,19 +197,22 @@ export function useApiServer(defaults: StartOptions = {}) {
   const postUpload = async (
     form: FormData,
     headers: Record<string, string> = { 'x-print-upload': '1' },
-    authorization?: string | null,
+    authorization?: null | string,
   ) => {
     const credential =
       authorization === undefined
         ? `Bearer ${await uploadToken()}`
         : authorization;
-    return fetch(`http://${host}/api/printers/front-office/jobs`, {
-      method: 'POST',
-      body: form,
-      headers: credential
-        ? { ...headers, authorization: credential }
-        : headers,
-    });
+    return fetch(
+      `http://${host}/api/printers/front-office/jobs`,
+      {
+        body: form,
+        headers: credential
+          ? { ...headers, authorization: credential }
+          : headers,
+        method: 'POST',
+      },
+    );
   };
 
   const exchangePin = (
@@ -200,39 +220,39 @@ export function useApiServer(defaults: StartOptions = {}) {
     headers: Record<string, string> = {},
   ) =>
     fetch(`http://${host}/api/printers/front-office/token`, {
-      method: 'POST',
       headers: {
-        'x-print-upload': '1',
         authorization: `Pin ${pin}`,
+        'x-print-upload': '1',
         ...headers,
       },
+      method: 'POST',
     });
 
   return {
+    get baseUrl() {
+      return `http://${host}`;
+    },
+    connectAgent,
     get db() {
       return db;
     },
-    get jobsDir() {
-      return jobsDir;
+    exchangePin,
+    get host() {
+      return host;
     },
     get hub() {
       return hub;
     },
-    get host() {
-      return host;
+    get jobsDir() {
+      return jobsDir;
     },
-    get baseUrl() {
-      return `http://${host}`;
-    },
+    openAgent,
+    openLive,
+    postUpload,
+    start,
     get upload() {
       return upload;
     },
-    start,
-    openAgent,
-    connectAgent,
-    openLive,
     uploadToken,
-    postUpload,
-    exchangePin,
   };
 }
