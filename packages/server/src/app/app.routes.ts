@@ -1,18 +1,9 @@
 import { Routes } from '@angular/router';
 import { MsalGuard } from '@azure/msal-angular';
 
-import { AuthenticatedComponent } from './pages/authenticated/authenticated.component';
-import { ManagePrinterComponent } from './pages/manage-printer/manage-printer.component';
-import { ManagePrintersComponent } from './pages/manage-printers/manage-printers.component';
-import { NotFound } from './pages/not-found/not-found';
-import { PrintComponent } from './pages/print/print.component';
-import { PrinterQrComponent } from './pages/printer-qr/printer-qr.component';
-import { WelcomeComponent } from './pages/welcome/welcome.component';
-
 export const routes: Routes = [
   { path: 'auth/callback', pathMatch: 'full', redirectTo: '' },
   {
-    component: WelcomeComponent,
     data: {
       width: {
         lg: 8,
@@ -22,11 +13,14 @@ export const routes: Routes = [
         xs: 12,
       },
     },
+    loadComponent: () =>
+      import('./pages/welcome/welcome.component').then(
+        (m) => m.WelcomeComponent,
+      ),
     path: '',
     title: 'Welcome',
   },
   {
-    component: PrintComponent,
     data: {
       width: {
         lg: 8,
@@ -36,6 +30,10 @@ export const routes: Routes = [
         xs: 12,
       },
     },
+    loadComponent: () =>
+      import('./pages/print/print.component').then(
+        (m) => m.PrintComponent,
+      ),
     path: 'print/:slug',
     title: 'Print Documents',
   },
@@ -44,24 +42,42 @@ export const routes: Routes = [
     canActivateChild: [MsalGuard],
     children: [
       {
-        component: ManagePrintersComponent,
+        loadComponent: () =>
+          import('./pages/manage-printers/manage-printers.component').then(
+            (m) => m.ManagePrintersComponent,
+          ),
         path: '',
         pathMatch: 'full',
         title: 'Manage Printers',
       },
       {
-        component: PrinterQrComponent,
+        loadComponent: () =>
+          import('./pages/printer-qr/printer-qr.component').then(
+            (m) => m.PrinterQrComponent,
+          ),
         path: ':slug/qr',
         title: 'Printer QR Codes',
       },
       {
-        component: ManagePrinterComponent,
+        loadComponent: () =>
+          import('./pages/manage-printer/manage-printer.component').then(
+            (m) => m.ManagePrinterComponent,
+          ),
         path: ':slug',
         title: 'Manage Printer',
       },
     ],
-    component: AuthenticatedComponent,
+    loadComponent: () =>
+      import('./pages/authenticated/authenticated.component').then(
+        (m) => m.AuthenticatedComponent,
+      ),
     path: 'manage',
   },
-  { component: NotFound, path: '**' },
+  {
+    loadComponent: () =>
+      import('./pages/not-found/not-found').then(
+        (m) => m.NotFound,
+      ),
+    path: '**',
+  },
 ];
