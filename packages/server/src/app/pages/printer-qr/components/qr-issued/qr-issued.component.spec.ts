@@ -1,11 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import {
+  type IssuedQrToken,
+  type PrinterSummary,
+} from '@uwacwy/print-shared';
 import { describe, expect, it } from 'vitest';
-
-import type {
-  IssuedQrToken,
-  PrinterSummary,
-} from '../../../../services/printer/printer.service';
 
 import { QrIssuedComponent } from './qr-issued.component';
 

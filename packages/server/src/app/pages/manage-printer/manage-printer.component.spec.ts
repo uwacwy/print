@@ -1,13 +1,11 @@
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, provideRouter } from '@angular/router';
+import { LiveEvent } from '@uwacwy/print-shared';
 import { of, Subject, throwError } from 'rxjs';
 import { describe, expect, it } from 'vitest';
 
 import { CLIENT_ENVIRONMENT } from '../../auth/client-environment';
-import {
-  type LiveEvent,
-  LiveEventsService,
-} from '../../services/live-events/live-events.service';
+import { LiveEventsService } from '../../services/live-events/live-events.service';
 import { PrinterService } from '../../services/printer/printer.service';
 import { ManagePrinterComponent } from './manage-printer.component';
 

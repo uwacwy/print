@@ -1,6 +1,5 @@
 import { Component, input, output } from '@angular/core';
-
-import type { PrinterSummary } from '../../../../services/printer/printer.service';
+import { type PrinterSummary } from '@uwacwy/print-shared';
 
 import { AgentBadgeComponent } from '../../../../components/agent-badge/agent-badge.component';
 import { AgentTokenNoticeComponent } from '../agent-token-notice/agent-token-notice.component';

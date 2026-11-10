@@ -1,6 +1,5 @@
+import { type CreatedPrinter } from '@uwacwy/print-shared';
 import { describe, expect, it } from 'vitest';
-
-import type { CreatedPrinter } from '../../../../services/printer/printer.service';
 
 import { createdPrinterCommands } from './created-printer-commands';
 

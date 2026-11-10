@@ -1,8 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { Component, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
-
-import type { PrinterSummary } from '../../../../services/printer/printer.service';
+import { type PrinterSummary } from '@uwacwy/print-shared';
 
 /** The read-only facts about a printer. */
 @Component({

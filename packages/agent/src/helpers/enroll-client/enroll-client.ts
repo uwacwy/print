@@ -1,8 +1,12 @@
+import type { z } from 'zod';
+
 import {
   $,
   type AgentPrinterUpdate,
-  type EnrollRequest,
-  type EnrollResponse,
+  AgentPrinterView,
+  EnrollRequest,
+  EnrollResponse,
+  parseWith,
 } from '@uwacwy/print-shared';
 
 export class ServerError extends Error {
@@ -44,11 +48,12 @@ export function serverError(
   );
 }
 
-async function request<T>(
+async function request<S extends z.ZodType>(
   serverUrl: string,
   path: string,
   init: { body: unknown; method: string; token: string },
-): Promise<T> {
+  schema: S,
+): Promise<z.output<S>> {
   const url = new URL(path, serverUrl);
   const response = await fetch(url, {
     body: JSON.stringify(init.body),
@@ -72,7 +77,7 @@ async function request<T>(
   if (!response.ok) {
     throw serverError(response.status, body);
   }
-  return body as T;
+  return parseWith(schema)(body);
 }
 
 /** Exchanges an enrollment token for a new printer and its long-lived agent token. */
@@ -81,22 +86,32 @@ export const enroll = (
   enrollToken: string,
   printer: EnrollRequest,
 ): Promise<EnrollResponse> =>
-  request(serverUrl, $.api.agent.enroll(), {
-    body: { ...printer, queue: queueForReport(printer.queue) },
-    method: 'POST',
-    token: enrollToken,
-  });
+  request(
+    serverUrl,
+    $.api.agent.enroll(),
+    {
+      body: { ...printer, queue: queueForReport(printer.queue) },
+      method: 'POST',
+      token: enrollToken,
+    },
+    EnrollResponse,
+  );
 
 /** Tells the server which queue the agent prints to; doubles as an agent token check. */
 export const reportQueue = (
   serverUrl: string,
   agentToken: string,
   printerUri: string,
-): Promise<EnrollRequest> =>
-  request(serverUrl, $.api.agent.printer(), {
-    body: {
-      queue: queueForReport(printerUri),
-    } satisfies AgentPrinterUpdate,
-    method: 'PATCH',
-    token: agentToken,
-  });
+): Promise<AgentPrinterView> =>
+  request(
+    serverUrl,
+    $.api.agent.printer(),
+    {
+      body: {
+        queue: queueForReport(printerUri),
+      } satisfies AgentPrinterUpdate,
+      method: 'PATCH',
+      token: agentToken,
+    },
+    AgentPrinterView,
+  );

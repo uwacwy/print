@@ -160,6 +160,8 @@ export interface UploadConfig {
   uploadsPerMinute: number;
 }
 
+type ServerEnvironment = z.infer<typeof ServerEnvironment>;
+
 /** Env files tried, relative to the working directory, when `PRINT_ENV_FILE` is unset. */
 const DEFAULT_ENV_FILES = ['.env', 'packages/server/.env'];
 
@@ -218,15 +220,6 @@ export function loadServerConfig(
       .split(',')
       .map((item) => item.trim())
       .filter(Boolean);
-  const msal =
-    e.ENTRA_TENANT_ID && e.ENTRA_CLIENT_ID
-      ? {
-          apiScope: `${e.ENTRA_API_AUDIENCE ?? `api://${e.ENTRA_CLIENT_ID}`}/${e.ENTRA_ADMIN_SCOPE}`,
-          authority: `https://login.microsoftonline.com/${e.ENTRA_TENANT_ID}`,
-          clientId: e.ENTRA_CLIENT_ID,
-          tenantId: e.ENTRA_TENANT_ID,
-        }
-      : undefined;
   const serverUrl = serverOrigin(e.PUBLIC_URL);
   const publicUrl = new URL(e.PUBLIC_URL);
   return {
@@ -236,11 +229,7 @@ export function loadServerConfig(
           maxDays: e.ACCESS_LOG_DAYS,
         }
       : undefined,
-    client: {
-      ...(msal && { msal }),
-      enrollment: !!serverUrl,
-      publicUrl,
-    },
+    client: toClientConfig(e),
     dataDir: resolve(e.DATA_DIR),
     enrollment: {
       serverUrl,
@@ -303,4 +292,30 @@ export function readServerVersion(
     typeof manifest.version === 'string'
     ? manifest.version
     : undefined;
+}
+
+/** The browser-safe subset of the server's settings, served by `GET /api/client-config`. */
+export function toClientConfig(
+  e: Pick<
+    ServerEnvironment,
+    | 'ENTRA_ADMIN_SCOPE'
+    | 'ENTRA_API_AUDIENCE'
+    | 'ENTRA_CLIENT_ID'
+    | 'ENTRA_TENANT_ID'
+    | 'PUBLIC_URL'
+  >,
+): ClientConfig {
+  return {
+    enrollment: !!serverOrigin(e.PUBLIC_URL),
+    publicUrl: new URL(e.PUBLIC_URL).href,
+    ...(e.ENTRA_TENANT_ID &&
+      e.ENTRA_CLIENT_ID && {
+        msal: {
+          apiScope: `${e.ENTRA_API_AUDIENCE ?? `api://${e.ENTRA_CLIENT_ID}`}/${e.ENTRA_ADMIN_SCOPE}`,
+          authority: `https://login.microsoftonline.com/${e.ENTRA_TENANT_ID}`,
+          clientId: e.ENTRA_CLIENT_ID,
+          tenantId: e.ENTRA_TENANT_ID,
+        },
+      }),
+  };
 }

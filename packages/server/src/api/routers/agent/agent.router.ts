@@ -1,7 +1,11 @@
 import {
+  AgentPrinterUpdate,
   agents,
   type EnrollResponse,
+  JobId,
+  JobReport,
   MAX_ERROR_LENGTH,
+  PrinterInput,
 } from '@uwacwy/print-shared';
 import express from 'express';
 import { createReadStream } from 'node:fs';
@@ -18,15 +22,16 @@ import {
   getJobForPrinter,
   getPrinterById,
   type PrintDatabase,
+  printerFields,
   type PrinterRow,
   reportJob,
   updatePrinter,
-  validatePrinterFields,
 } from '../../helpers/database/database';
-import { validatePrinterInput } from '../../helpers/printers';
+import { toPrinterFields } from '../../helpers/printers';
 import { createAuthenticate } from '../../middleware/auth/passport/passport';
 import { principal } from '../../middleware/auth/principal';
 import { enrollRateLimit } from '../../middleware/rate-limits/rate-limits';
+import { validate } from '../../middleware/validate/validate';
 
 export interface AgentApiOptions {
   db: PrintDatabase;
@@ -36,16 +41,13 @@ export interface AgentApiOptions {
   upload: UploadConfig;
 }
 
-const queueUpdate = z.object({ queue: z.string() });
-
 const agentView = ({ name, queue, slug }: PrinterRow) => ({
   name,
   queue,
   slug,
 });
 
-const JOB_ID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const jobParams = z.object({ id: JobId });
 
 const agentPrinter = (request: express.Request) => {
   const who = principal(request);
@@ -78,13 +80,12 @@ export default ({
         $.enroll.pattern,
         enrollRateLimit(upload),
         authenticate('enrollToken'),
+        validate({ body: PrinterInput }),
         (request, response) => {
-          const parsed = validatePrinterInput(request.body);
-          if ('error' in parsed) {
-            response.status(400).json(parsed);
-            return;
-          }
-          const created = createPrinter(db, parsed.fields);
+          const created = createPrinter(
+            db,
+            toPrinterFields(request.body),
+          );
           if (typeof created === 'string') {
             response
               .status(409)
@@ -99,42 +100,33 @@ export default ({
       )
 
       // Agents report the queue they actually print to, so the admin list reflects the host.
-      .patch($.printer.pattern, agent, (request, response) => {
-        const printer = agentPrinter(request);
-        const body = queueUpdate.safeParse(request.body);
-        const fields = body.success
-          ? validatePrinterFields({
-              cover_page: printer.cover_page === 1 ? 'true' : '',
-              name: printer.name,
-              queue: body.data.queue,
-              slug: printer.slug,
-            })
-          : 'Invalid printer fields.';
-        if (typeof fields === 'string') {
-          response.status(400).json({ error: fields });
-          return;
-        }
-        updatePrinter(db, printer.id, fields);
-        response.json(
-          agentView(getPrinterById(db, printer.id)!),
-        );
-      })
-      .param('id', (req, res, next, id: string) => {
-        if (!JOB_ID_PATTERN.test(id)) {
-          res.status(400).json({ error: 'Invalid job ID' });
-          return;
-        }
-        next();
-      })
+      .patch(
+        $.printer.pattern,
+        agent,
+        validate({ body: AgentPrinterUpdate }),
+        (request, response) => {
+          const printer = agentPrinter(request);
+          updatePrinter(db, printer.id, {
+            ...printerFields(printer),
+            queue: request.body.queue,
+          });
+          response.json(
+            agentView(getPrinterById(db, printer.id)!),
+          );
+        },
+      )
       .get(
         // '/jobs/:id/file',
         $.jobs.$id.file.pattern as ':id',
         agent,
+        validate({ params: jobParams }),
         async (request, response, next) => {
           const printer = agentPrinter(request);
-          const job = JOB_ID_PATTERN.test(request.params.id)
-            ? getJobForPrinter(db, printer.id, request.params.id)
-            : undefined;
+          const job = getJobForPrinter(
+            db,
+            printer.id,
+            request.params.id,
+          );
           if (!job || job.status !== 'printing') {
             response
               .status(404)
@@ -165,32 +157,23 @@ export default ({
         // '/jobs/:id/status',
         $.jobs.$id.status.pattern as ':id',
         agent,
+        validate({ body: JobReport, params: jobParams }),
         async (request, response) => {
+          const { body, params } = request;
           const printer = agentPrinter(request);
-          const body: unknown = request.body;
-          const status =
-            typeof body === 'object' &&
-            body !== null &&
-            'status' in body
-              ? body.status
-              : undefined;
-          if (status !== 'printed' && status !== 'failed') {
-            response
-              .status(400)
-              .json({ error: 'Invalid status report' });
-            return;
-          }
+          const jobId = params.id;
           const errorText =
-            status === 'failed' &&
-            typeof body === 'object' &&
-            body !== null &&
-            'error' in body
-              ? String(body.error).slice(0, MAX_ERROR_LENGTH)
+            body.status === 'failed'
+              ? body.error.slice(0, MAX_ERROR_LENGTH)
               : undefined;
-          const jobId = request.params.id;
           if (
-            !JOB_ID_PATTERN.test(jobId) ||
-            !reportJob(db, printer.id, jobId, status, errorText)
+            !reportJob(
+              db,
+              printer.id,
+              jobId,
+              body.status,
+              errorText,
+            )
           ) {
             response.status(404).json({
               error: 'Job not found or already completed',
@@ -198,12 +181,12 @@ export default ({
             return;
           }
           // A failed job keeps its PDF so an admin can retry it until it expires.
-          if (status === 'printed') {
+          if (body.status === 'printed') {
             await rm(join(jobsDir, `${jobId}.pdf`), {
               force: true,
             });
           }
-          getHub().publishJob(printer.id, jobId, status);
+          getHub().publishJob(printer.id, jobId, body.status);
           response.json({ accepted: true });
         },
       )

@@ -32,9 +32,9 @@ export interface Authenticate {
   ) => Promise<AuthChallenge | Principal>;
 }
 
-/** Generic over route params so it never widens Express 5's typed `request.params`. */
-export type AuthMiddleware = <P>(
-  request: Request<P>,
+/** Deliberately not generic: a generic middleware makes TypeScript infer `any` for the typed `validate` that follows it. */
+export type AuthMiddleware = (
+  request: Request,
   response: Response,
   next: NextFunction,
 ) => void;

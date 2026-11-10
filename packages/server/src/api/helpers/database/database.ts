@@ -1,4 +1,3 @@
-import { PRINTER_SLUG_PATTERN } from '@uwacwy/print-shared';
 import Database from 'better-sqlite3';
 import { createHash, randomBytes } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
@@ -43,114 +42,6 @@ export interface PrinterRow {
   token_created_at: string;
   token_hash: string;
 }
-
-export function getPrinterById(
-  db: PrintDatabase,
-  id: number,
-): PrinterRow | undefined {
-  return db
-    .prepare('SELECT * FROM printers WHERE id = ?')
-    .get(id) as PrinterRow | undefined;
-}
-
-export function getPrinterBySlug(
-  db: PrintDatabase,
-  slug: string,
-): PrinterRow | undefined {
-  return db
-    .prepare('SELECT * FROM printers WHERE slug = ?')
-    .get(slug) as PrinterRow | undefined;
-}
-
-export function getPrinterByToken(
-  db: PrintDatabase,
-  token: string,
-): PrinterRow | undefined {
-  return db
-    .prepare('SELECT * FROM printers WHERE token_hash = ?')
-    .get(tokenHash(token)) as PrinterRow | undefined;
-}
-
-export function listPrinters(db: PrintDatabase): PrinterRow[] {
-  return db
-    .prepare('SELECT * FROM printers ORDER BY slug')
-    .all() as PrinterRow[];
-}
-
-export function openDatabase(dataDir: string): {
-  db: PrintDatabase;
-  jobsDir: string;
-} {
-  const jobsDir = join(dataDir, 'jobs');
-  mkdirSync(jobsDir, { mode: 0o700, recursive: true });
-  const db = new Database(join(dataDir, 'print.db'));
-  db.pragma('journal_mode = WAL');
-  db.pragma('foreign_keys = ON');
-  db.pragma('busy_timeout = 5000');
-  db.exec(`
-		CREATE TABLE IF NOT EXISTS printers (
-			id INTEGER PRIMARY KEY,
-			slug TEXT NOT NULL UNIQUE,
-			name TEXT NOT NULL,
-			queue TEXT NOT NULL,
-			token_hash TEXT NOT NULL UNIQUE,
-			token_created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
-			last_seen_at TEXT,
-			cover_page INTEGER NOT NULL DEFAULT 0
-		);
-		CREATE TABLE IF NOT EXISTS jobs (
-			id TEXT PRIMARY KEY,
-			printer_id INTEGER NOT NULL REFERENCES printers(id) ON DELETE CASCADE,
-			title TEXT NOT NULL,
-			copies INTEGER NOT NULL CHECK(copies BETWEEN 1 AND 5),
-			original_name TEXT NOT NULL,
-			status TEXT NOT NULL CHECK(status IN ('queued','printing','printed','failed','expired')),
-			error TEXT,
-			submitted_by TEXT,
-			created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
-			sent_at TEXT,
-			finished_at TEXT,
-			uploader_ip TEXT NOT NULL
-		);
-		CREATE INDEX IF NOT EXISTS jobs_printer_status ON jobs(printer_id, status, created_at);
-		CREATE INDEX IF NOT EXISTS jobs_created ON jobs(created_at);
-	`);
-  // Databases created before cover pages existed lack this column.
-  const printerColumns = db
-    .prepare('PRAGMA table_info(printers)')
-    .all() as {
-    name: string;
-  }[];
-  const migrations: [column: string, ddl: string][] = [
-    [
-      'cover_page',
-      'ALTER TABLE printers ADD COLUMN cover_page INTEGER NOT NULL DEFAULT 0',
-    ],
-    ['pin', 'ALTER TABLE printers ADD COLUMN pin TEXT'],
-    [
-      'qr_epoch',
-      'ALTER TABLE printers ADD COLUMN qr_epoch INTEGER NOT NULL DEFAULT 0',
-    ],
-  ];
-  for (const [column, ddl] of migrations) {
-    if (!printerColumns.some(({ name }) => name === column)) {
-      db.exec(ddl);
-    }
-  }
-  return { db, jobsDir };
-}
-
-export function tokenHash(token: string): string {
-  return createHash('sha256').update(token).digest('hex');
-}
-
-// Form and JSON bodies only carry scalars; anything else is treated as missing.
-const fieldText = (value: unknown): string =>
-  typeof value === 'string' ||
-  typeof value === 'number' ||
-  typeof value === 'boolean'
-    ? String(value)
-    : '';
 
 /** Revokes every outstanding upload token for the printer; returns the new epoch. */
 export function bumpQrEpoch(
@@ -313,6 +204,33 @@ export function getJobForPrinter(
     .get(jobId, printerId) as JobRow | undefined;
 }
 
+export function getPrinterById(
+  db: PrintDatabase,
+  id: number,
+): PrinterRow | undefined {
+  return db
+    .prepare('SELECT * FROM printers WHERE id = ?')
+    .get(id) as PrinterRow | undefined;
+}
+
+export function getPrinterBySlug(
+  db: PrintDatabase,
+  slug: string,
+): PrinterRow | undefined {
+  return db
+    .prepare('SELECT * FROM printers WHERE slug = ?')
+    .get(slug) as PrinterRow | undefined;
+}
+
+export function getPrinterByToken(
+  db: PrintDatabase,
+  token: string,
+): PrinterRow | undefined {
+  return db
+    .prepare('SELECT * FROM printers WHERE token_hash = ?')
+    .get(tokenHash(token)) as PrinterRow | undefined;
+}
+
 export function getQueuedJobs(
   db: PrintDatabase,
   printerId: number,
@@ -345,6 +263,12 @@ export function insertJob(
   ).run(job);
 }
 
+export function listPrinters(db: PrintDatabase): PrinterRow[] {
+  return db
+    .prepare('SELECT * FROM printers ORDER BY slug')
+    .all() as PrinterRow[];
+}
+
 export function markJobsPrinting(
   db: PrintDatabase,
   printerId: number,
@@ -367,6 +291,69 @@ export function markPrinterSeen(
   db.prepare(
     "UPDATE printers SET last_seen_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?",
   ).run(printerId);
+}
+
+export function openDatabase(dataDir: string): {
+  db: PrintDatabase;
+  jobsDir: string;
+} {
+  const jobsDir = join(dataDir, 'jobs');
+  mkdirSync(jobsDir, { mode: 0o700, recursive: true });
+  const db = new Database(join(dataDir, 'print.db'));
+  db.pragma('journal_mode = WAL');
+  db.pragma('foreign_keys = ON');
+  db.pragma('busy_timeout = 5000');
+  db.exec(`
+		CREATE TABLE IF NOT EXISTS printers (
+			id INTEGER PRIMARY KEY,
+			slug TEXT NOT NULL UNIQUE,
+			name TEXT NOT NULL,
+			queue TEXT NOT NULL,
+			token_hash TEXT NOT NULL UNIQUE,
+			token_created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+			last_seen_at TEXT,
+			cover_page INTEGER NOT NULL DEFAULT 0
+		);
+		CREATE TABLE IF NOT EXISTS jobs (
+			id TEXT PRIMARY KEY,
+			printer_id INTEGER NOT NULL REFERENCES printers(id) ON DELETE CASCADE,
+			title TEXT NOT NULL,
+			copies INTEGER NOT NULL CHECK(copies BETWEEN 1 AND 5),
+			original_name TEXT NOT NULL,
+			status TEXT NOT NULL CHECK(status IN ('queued','printing','printed','failed','expired')),
+			error TEXT,
+			submitted_by TEXT,
+			created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+			sent_at TEXT,
+			finished_at TEXT,
+			uploader_ip TEXT NOT NULL
+		);
+		CREATE INDEX IF NOT EXISTS jobs_printer_status ON jobs(printer_id, status, created_at);
+		CREATE INDEX IF NOT EXISTS jobs_created ON jobs(created_at);
+	`);
+  // Databases created before cover pages existed lack this column.
+  const printerColumns = db
+    .prepare('PRAGMA table_info(printers)')
+    .all() as {
+    name: string;
+  }[];
+  const migrations: [column: string, ddl: string][] = [
+    [
+      'cover_page',
+      'ALTER TABLE printers ADD COLUMN cover_page INTEGER NOT NULL DEFAULT 0',
+    ],
+    ['pin', 'ALTER TABLE printers ADD COLUMN pin TEXT'],
+    [
+      'qr_epoch',
+      'ALTER TABLE printers ADD COLUMN qr_epoch INTEGER NOT NULL DEFAULT 0',
+    ],
+  ];
+  for (const [column, ddl] of migrations) {
+    if (!printerColumns.some(({ name }) => name === column)) {
+      db.exec(ddl);
+    }
+  }
+  return { db, jobsDir };
 }
 
 export function printerFields(
@@ -475,6 +462,10 @@ export function setPrinterPin(
   );
 }
 
+export function tokenHash(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
+}
+
 export function updatePrinter(
   db: PrintDatabase,
   id: number,
@@ -500,57 +491,6 @@ export function updatePrinter(
     }
     throw error;
   }
-}
-
-export function validatePrinterFields(
-  input: Partial<Record<keyof PrinterFields, unknown>>,
-): PrinterFields | string {
-  const slug = fieldText(input.slug).trim().toLowerCase();
-  const name = fieldText(input.name).trim();
-  const queue = fieldText(input.queue).trim();
-  // HTML checkboxes submit "on" when ticked and nothing otherwise.
-  const cover_page = ['1', 'on', 'true'].includes(
-    fieldText(input.cover_page),
-  );
-  if (!PRINTER_SLUG_PATTERN.test(slug)) {
-    return 'Slug must be lowercase letters, numbers, and hyphens (max 63).';
-  }
-  if (!name || name.length > 100) {
-    return 'Name is required (max 100 characters).';
-  }
-  let printerUri: URL;
-  try {
-    printerUri = new URL(queue);
-  } catch {
-    return 'Printer URI must be a valid cups://, ipp://, ipps://, http://, or https:// URL.';
-  }
-  if (printerUri.protocol === 'cups:') {
-    if (
-      !/^[A-Za-z0-9_.-]{1,128}$/.test(printerUri.hostname) ||
-      printerUri.pathname ||
-      printerUri.port ||
-      printerUri.search ||
-      printerUri.hash ||
-      printerUri.username ||
-      printerUri.password
-    ) {
-      return 'CUPS destination must be cups://<queue_name>.';
-    }
-    return { cover_page, name, queue, slug };
-  }
-  if (
-    !['http:', 'https:', 'ipp:', 'ipps:'].includes(
-      printerUri.protocol,
-    ) ||
-    !printerUri.hostname ||
-    printerUri.username ||
-    printerUri.password ||
-    !printerUri.pathname ||
-    printerUri.pathname === '/'
-  ) {
-    return 'Printer URI must use ipp://, ipps://, http://, or https:// and include a printer endpoint.';
-  }
-  return { cover_page, name, queue, slug };
 }
 
 function isSlugConflict(error: unknown): boolean {

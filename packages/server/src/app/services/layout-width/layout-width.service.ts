@@ -15,7 +15,7 @@ import {
 } from '@angular/router';
 import { catchError, filter, map, of } from 'rxjs';
 
-import { ColWidths } from '../../../api/helpers/zod';
+import { ColWidths } from './col-widths';
 
 @Service()
 export class LayoutWidthService {

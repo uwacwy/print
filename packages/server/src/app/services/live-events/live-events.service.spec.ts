@@ -1,11 +1,11 @@
 import { PLATFORM_ID } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MsalService } from '@azure/msal-angular';
+import { LiveEvent } from '@uwacwy/print-shared';
 import { of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
-  type LiveEvent,
   LiveEventsService,
   SOCKET_IO,
 } from './live-events.service';

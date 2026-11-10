@@ -1,9 +1,9 @@
 import {
   $,
   AGENT_NAMESPACE,
-  type AgentJob,
+  AgentHello,
+  AgentJob,
   type JobReport,
-  parseAgentJobs,
   SOCKET_PATH,
   SYNC_INTERVAL_MS,
 } from '@uwacwy/print-shared';
@@ -261,15 +261,18 @@ export function startAgent(config: AgentConfig): Promise<void> {
         log(`[ws] Connected: ${websocketBase}`);
         socket.emit('sync');
       })
-      .on('hello', (registered) =>
-        log(
-          `[ws] Listening to queue: '${new URL($.print.$slug({ slug: registered.slug }), websocketBase).href}' => '${registered.name}'`,
-        ),
-      )
+      .on('hello', (payload) => {
+        const hello = AgentHello.safeParse(payload);
+        if (hello.success) {
+          log(
+            `[ws] Listening to queue: '${new URL($.print.$slug({ slug: hello.data.slug }), websocketBase).href}' => '${hello.data.name}'`,
+          );
+        }
+      })
       .on('jobs', (value) => {
-        parseAgentJobs(value)?.forEach((job) =>
-          incoming.next(job),
-        );
+        AgentJob.array()
+          .safeParse(value)
+          .data?.forEach((job) => incoming.next(job));
       })
       .on('connect_error', (error) => {
         if (stopping) {

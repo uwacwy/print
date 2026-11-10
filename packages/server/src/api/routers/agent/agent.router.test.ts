@@ -132,4 +132,44 @@ describe('agent router', () => {
         .get(jobId),
     ).toEqual({ error: 'jammed', status: 'failed' });
   });
+
+  it('rejects malformed job ids and status reports with issues', async () => {
+    await api.start();
+    const { token } = addPrinter(api.db);
+    const send = (id: string, body: unknown) =>
+      fetch(
+        new URL(
+          $.api.agent.jobs.$id.status({ id }),
+          `http://${api.host}`,
+        ),
+        {
+          body: JSON.stringify(body),
+          headers: {
+            authorization: `Bearer ${token}`,
+            'content-type': 'application/json',
+          },
+          method: 'POST',
+        },
+      );
+
+    const badId = await send('not-a-uuid', {
+      status: 'printed',
+    });
+    expect(badId.status).toBe(400);
+    expect(await badId.json()).toMatchObject({
+      code: 'invalid_request',
+      error: expect.stringContaining('Invalid params.'),
+      issues: {
+        properties: { id: { errors: [expect.any(String)] } },
+      },
+    });
+
+    const badBody = await send(crypto.randomUUID(), {
+      status: 'exploded',
+    });
+    expect(badBody.status).toBe(400);
+    expect(await badBody.json()).toMatchObject({
+      error: expect.stringContaining('Invalid body.'),
+    });
+  });
 });

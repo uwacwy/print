@@ -2,121 +2,39 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { inject, Service } from '@angular/core';
 import {
   $,
-  type EnrollTokenResponse,
+  CreatedPrinter,
+  DeletedJobs,
+  EnrollTokenResponse,
+  IssuedQrToken,
+  IssuedUploadToken,
+  parseWith,
+  type PrinterInput,
+  PrinterSummary,
+  PublicPrinter,
+  type QrPosterRequest,
+  QueuedQrSheet,
+  RetriedJobs,
+  SubmittedJob,
+  type UploadTokenWindow,
 } from '@uwacwy/print-shared';
-
-export interface CreatedPrinter {
-  agentToken: string;
-  printer: PrinterSummary;
-  /** `PUBLIC_URL` origin for setup commands; null when the server has none. */
-  serverUrl: null | string;
-}
-
-export interface DeletedJobs {
-  deleted: number;
-  printer: PrinterSummary;
-}
-
-export interface IssuedQrToken extends IssuedUploadToken {
-  notBefore: string;
-  /** Relative print-page link including the token. */
-  path: string;
-  url: string;
-}
-
-export interface IssuedUploadToken {
-  expiresAt: string;
-  token: string;
-}
-
-export interface PrinterInput {
-  coverPage: boolean;
-  name: string;
-  queue: string;
-  slug: string;
-}
-
-export interface PrinterSummary extends PrinterInput {
-  activeJobs: number;
-  /** Failed jobs that still have their document and can be retried. */
-  failedJobs: number;
-  id: number;
-  lastSeenAt: null | string;
-  online: boolean;
-  /** Formatted as ###-###-###, or null when PIN uploads are disabled. */
-  pin: null | string;
-  qrEpoch: number;
-}
-
-export interface PublicPrinter {
-  access: UploadAccess;
-  coverPage: boolean;
-  name: string;
-  slug: string;
-  upload: UploadLimits;
-}
-
-/** Either reuse an issued token or request a new one for the given window. */
-export type QrPosterRequest = UploadTokenWindow & {
-  token?: string;
-};
-
-export interface QueuedQrSheet {
-  agentOnline: boolean;
-  jobId: string;
-}
-
-export interface RetriedJobs {
-  printer: PrinterSummary;
-  retried: number;
-}
-
-export interface SubmittedJob {
-  agentOnline: boolean;
-  jobId: string;
-  title: string;
-}
-
-export interface UploadAccess {
-  pinEnabled: boolean;
-  /** True when the request carried a Microsoft Entra sign-in allowed to print without a PIN or token. */
-  signedIn: boolean;
-  /** Verification result for the Bearer token sent with the request, or null when none was sent. */
-  token: null | UploadTokenStatus;
-  tokenExpiresAt: null | string;
-}
-
-export interface UploadLimits {
-  maxCopies: number;
-  maxDocuments: number;
-  maxUploadBytes: number;
-}
-
-export type UploadTokenStatus =
-  'expired' | 'invalid' | 'not-yet-valid' | 'valid';
-
-export interface UploadTokenWindow {
-  expiresAt?: string;
-  notBefore?: string;
-}
+import { map } from 'rxjs';
+import { z } from 'zod';
 
 @Service()
 export class PrinterService {
   readonly #http = inject(HttpClient);
 
   createAdminPrinter(input: PrinterInput) {
-    return this.#http.post<CreatedPrinter>(
-      $.api.printers(),
-      input,
-    );
+    return this.#http
+      .post<unknown>($.api.printers(), input)
+      .pipe(map(parseWith(CreatedPrinter)));
   }
 
   /** A short-lived token the printer's computer exchanges for a new printer and its agent token. */
   createEnrollToken() {
-    return this.#http.post<EnrollTokenResponse>(
-      $.api.printers.enrollToken(),
-      {},
-    );
+    return this.#http
+      .post<unknown>($.api.printers.enrollToken(), {})
+      .pipe(map(parseWith(EnrollTokenResponse)));
   }
 
   deleteAdminPrinter(slug: string) {
@@ -126,44 +44,45 @@ export class PrinterService {
   }
 
   deleteAllJobs(slug: string) {
-    return this.#http.delete<DeletedJobs>(
-      $.api.printers.$slug.jobs({ slug }),
-    );
+    return this.#http
+      .delete<unknown>($.api.printers.$slug.jobs({ slug }))
+      .pipe(map(parseWith(DeletedJobs)));
   }
 
   disablePin(slug: string) {
-    return this.#http.delete<PrinterSummary>(
-      $.api.printers.$slug.pin({ slug }),
-    );
+    return this.#http
+      .delete<unknown>($.api.printers.$slug.pin({ slug }))
+      .pipe(map(parseWith(PrinterSummary)));
   }
 
   /** Trades the printer PIN for a short-lived upload token. */
   exchangePin(slug: string, pin: string) {
-    return this.#http.post<IssuedUploadToken>(
-      $.api.printers.$slug.token({ slug }),
-      null,
-      {
-        headers: new HttpHeaders({
-          authorization: `Pin ${pin}`,
-          'x-print-upload': '1',
-        }),
-      },
-    );
+    return this.#http
+      .post<unknown>(
+        $.api.printers.$slug.token({ slug }),
+        null,
+        {
+          headers: new HttpHeaders({
+            authorization: `Pin ${pin}`,
+            'x-print-upload': '1',
+          }),
+        },
+      )
+      .pipe(map(parseWith(IssuedUploadToken)));
   }
 
   getAdminPrinter(slug: string) {
-    return this.#http.get<PrinterSummary>(
-      $.api.printers.$slug({ slug }),
-    );
+    return this.#http
+      .get<unknown>($.api.printers.$slug({ slug }))
+      .pipe(map(parseWith(PrinterSummary)));
   }
 
   getPrinter(slug: string, token?: null | string) {
-    return this.#http.get<PublicPrinter>(
-      $.api.printers.$slug({ slug }),
-      {
+    return this.#http
+      .get<unknown>($.api.printers.$slug({ slug }), {
         headers: token ? bearer(token) : undefined,
-      },
-    );
+      })
+      .pipe(map(parseWith(PublicPrinter)));
   }
 
   /** Fetched as a blob because management routes need the MSAL bearer token, which a plain link cannot send. */
@@ -178,50 +97,58 @@ export class PrinterService {
   }
 
   issueQrToken(slug: string, window: UploadTokenWindow = {}) {
-    return this.#http.post<IssuedQrToken>(
-      $.api.printers.$slug.qrToken({ slug }),
-      window,
-    );
+    return this.#http
+      .post<unknown>(
+        $.api.printers.$slug.qrToken({ slug }),
+        window,
+      )
+      .pipe(map(parseWith(IssuedQrToken)));
   }
 
   listAdminPrinters() {
-    return this.#http.get<PrinterSummary[]>($.api.printers());
+    return this.#http
+      .get<unknown>($.api.printers())
+      .pipe(map(parseWith(z.array(PrinterSummary))));
   }
 
   printQrPoster(slug: string, request: QrPosterRequest = {}) {
-    return this.#http.post<QueuedQrSheet>(
-      $.api.printers.$slug.qrPrint({ slug }),
-      request,
-    );
+    return this.#http
+      .post<unknown>(
+        $.api.printers.$slug.qrPrint({ slug }),
+        request,
+      )
+      .pipe(map(parseWith(QueuedQrSheet)));
   }
 
   refreshPin(slug: string) {
-    return this.#http.post<PrinterSummary>(
-      $.api.printers.$slug.pin({ slug }),
-      {},
-    );
+    return this.#http
+      .post<unknown>($.api.printers.$slug.pin({ slug }), {})
+      .pipe(map(parseWith(PrinterSummary)));
   }
 
   retryFailedJobs(slug: string) {
-    return this.#http.post<RetriedJobs>(
-      $.api.printers.$slug.jobs.retry({ slug }),
-      {},
-    );
+    return this.#http
+      .post<unknown>(
+        $.api.printers.$slug.jobs.retry({ slug }),
+        {},
+      )
+      .pipe(map(parseWith(RetriedJobs)));
   }
 
   /** Invalidates every QR (and PIN) upload token issued so far for this printer. */
   revokeQrCodes(slug: string) {
-    return this.#http.post<PrinterSummary>(
-      $.api.printers.$slug.qrEpoch({ slug }),
-      {},
-    );
+    return this.#http
+      .post<unknown>($.api.printers.$slug.qrEpoch({ slug }), {})
+      .pipe(map(parseWith(PrinterSummary)));
   }
 
   rotateAgentToken(slug: string) {
-    return this.#http.post<CreatedPrinter>(
-      $.api.printers.$slug.agentToken({ slug }),
-      {},
-    );
+    return this.#http
+      .post<unknown>(
+        $.api.printers.$slug.agentToken({ slug }),
+        {},
+      )
+      .pipe(map(parseWith(CreatedPrinter)));
   }
 
   /** Multipart upload; the header proves same-origin intent (see api/middleware/same-origin.ts). */
@@ -232,18 +159,17 @@ export class PrinterService {
     token?: null | string,
   ) {
     const headers = token ? bearer(token) : new HttpHeaders();
-    return this.#http.post<SubmittedJob>(
-      $.api.printers.$slug.jobs({ slug }),
-      form,
-      { headers: headers.set('x-print-upload', '1') },
-    );
+    return this.#http
+      .post<unknown>($.api.printers.$slug.jobs({ slug }), form, {
+        headers: headers.set('x-print-upload', '1'),
+      })
+      .pipe(map(parseWith(SubmittedJob)));
   }
 
   updateAdminPrinter(slug: string, input: PrinterInput) {
-    return this.#http.patch<PrinterSummary>(
-      $.api.printers.$slug({ slug }),
-      input,
-    );
+    return this.#http
+      .patch<unknown>($.api.printers.$slug({ slug }), input)
+      .pipe(map(parseWith(PrinterSummary)));
   }
 }
 

@@ -59,7 +59,7 @@ describe('server config', () => {
   it('derives browser sign-in settings only when Entra is configured', () => {
     expect(loadServerConfig(secret, false).client).toEqual({
       enrollment: false,
-      publicUrl: new URL(secret.PUBLIC_URL),
+      publicUrl: new URL(secret.PUBLIC_URL).href,
     });
     expect(
       loadServerConfig(
@@ -78,7 +78,7 @@ describe('server config', () => {
         clientId: client,
         tenantId: tenant,
       },
-      publicUrl: new URL(secret.PUBLIC_URL),
+      publicUrl: new URL(secret.PUBLIC_URL).href,
     });
     expect(
       loadServerConfig(

@@ -1,8 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { type PrinterSummary } from '@uwacwy/print-shared';
 import { describe, expect, it } from 'vitest';
-
-import type { PrinterSummary } from '../../../../services/printer/printer.service';
 
 import { PrinterAdminActionsComponent } from './printer-admin-actions.component';
 

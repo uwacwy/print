@@ -1,6 +1,5 @@
+import { type PrinterSummary } from '@uwacwy/print-shared';
 import { describe, expect, it } from 'vitest';
-
-import type { PrinterSummary } from '../../../../services/printer/printer.service';
 
 import {
   applyLiveEventToList,

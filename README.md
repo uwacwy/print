@@ -350,6 +350,7 @@ npm run build            # shared, agent (packages/agent/dist/cli.mjs), server (
 npm test                 # test-ng (Angular unit tests), then test-api (vitest in every package)
 npm run typecheck
 npm run extract-i18n -w @uwacwy/print-server  # regenerate packages/server/src/locale/messages.xlf (CI fails if stale)
+npm run dupes            # jscpd copy/paste report (config in .jscpd.json)
 npm run lint             # ESLint (angular-eslint, perfectionist); lint:typed adds type-aware rules
 npm run format:check     # Prettier; `npm run format` rewrites
 npm run compose:check    # validates examples/compose.*.yml and compose.yml

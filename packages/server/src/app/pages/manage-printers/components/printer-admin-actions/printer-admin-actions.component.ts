@@ -1,7 +1,6 @@
 import { Component, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
-
-import type { PrinterSummary } from '../../../../services/printer/printer.service';
+import { type PrinterSummary } from '@uwacwy/print-shared';
 
 /** Management actions in a printer's expanded panel. */
 @Component({

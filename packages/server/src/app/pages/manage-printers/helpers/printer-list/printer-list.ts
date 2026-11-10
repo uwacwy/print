@@ -1,5 +1,7 @@
-import type { LiveEvent } from '../../../../services/live-events/live-events.service';
-import type { PrinterSummary } from '../../../../services/printer/printer.service';
+import {
+  LiveEvent,
+  type PrinterSummary,
+} from '@uwacwy/print-shared';
 
 import { applyLiveEvent } from '../../../../helpers/printer-live-status/printer-live-status';
 

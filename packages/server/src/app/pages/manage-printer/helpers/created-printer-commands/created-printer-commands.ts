@@ -1,9 +1,8 @@
 import {
   agentSetupCommands,
+  type CreatedPrinter,
   type SetupCommand,
 } from '@uwacwy/print-shared';
-
-import type { CreatedPrinter } from '../../../../services/printer/printer.service';
 
 /** The agent token, plus ready-made setup commands when the server knows its public URL. */
 export function createdPrinterCommands({

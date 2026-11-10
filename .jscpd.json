@@ -1,0 +1,17 @@
+{
+  "format": ["typescript", "markup"],
+  "ignore": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/.angular/**",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "**/locale/**",
+    "**/data/**"
+  ],
+  "minLines": 5,
+  "minTokens": 50,
+  "path": ["packages"],
+  "reporters": ["console"],
+  "gitignore": true
+}

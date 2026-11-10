@@ -1,18 +1,11 @@
-import { $ } from '@uwacwy/print-shared';
-import { z } from 'zod';
+import { $, type PrinterInput } from '@uwacwy/print-shared';
 
-import { formatPin } from '../middleware/auth/pin/pin';
-import {
-  type PrinterRow,
-  validatePrinterFields,
+import type {
+  PrinterFields,
+  PrinterRow,
 } from './database/database';
 
-const printerInput = z.object({
-  coverPage: z.boolean().optional().default(false),
-  name: z.string(),
-  queue: z.string(),
-  slug: z.string(),
-});
+import { formatPin } from '../middleware/auth/pin/pin';
 
 /** Fields anyone may see. */
 export const publicPrinter = (printer: PrinterRow) => ({
@@ -39,21 +32,15 @@ export const managedPrinter = (
   queue: printer.queue,
 });
 
-export function validatePrinterInput(input: unknown) {
-  const parsed = printerInput.safeParse(input);
-  if (!parsed.success) {
-    return { error: 'Invalid printer fields.' } as const;
-  }
-  const fields = validatePrinterFields({
-    cover_page: parsed.data.coverPage,
-    name: parsed.data.name,
-    queue: parsed.data.queue,
-    slug: parsed.data.slug,
-  });
-  return typeof fields === 'string'
-    ? ({ error: fields } as const)
-    : ({ fields } as const);
-}
+/** A validated submission as the database stores it. */
+export const toPrinterFields = (
+  input: PrinterInput,
+): PrinterFields => ({
+  cover_page: input.coverPage,
+  name: input.name,
+  queue: input.queue,
+  slug: input.slug,
+});
 
 /** SPA path of a printer's upload page, optionally carrying an upload token. */
 export const printPath = (

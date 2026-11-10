@@ -4,14 +4,14 @@ import {
   convertToParamMap,
   provideRouter,
 } from '@angular/router';
+import {
+  type IssuedQrToken,
+  type PrinterSummary,
+} from '@uwacwy/print-shared';
 import { of, throwError } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  type IssuedQrToken,
-  PrinterService,
-  type PrinterSummary,
-} from '../../services/printer/printer.service';
+import { PrinterService } from '../../services/printer/printer.service';
 import { toLocalInput } from './helpers/qr-window/qr-window';
 import { PrinterQrComponent } from './printer-qr.component';
 

@@ -9,14 +9,14 @@ import {
   type AccountInfo,
   InteractionStatus,
 } from '@azure/msal-browser';
+import {
+  type PublicPrinter,
+  type UploadAccess,
+} from '@uwacwy/print-shared';
 import { of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 
-import {
-  PrinterService,
-  type PublicPrinter,
-  type UploadAccess,
-} from '../../services/printer/printer.service';
+import { PrinterService } from '../../services/printer/printer.service';
 import { PrintComponent } from './print.component';
 
 const printerWith = (

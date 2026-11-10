@@ -67,7 +67,7 @@
     </unit>
     <unit id="authenticated.logged-in-as-middot">
       <notes>
-        <note category="location">packages/server/src/app/pages/authenticated/authenticated.component.ts:18,21</note>
+        <note category="location">packages/server/src/app/pages/authenticated/authenticated.component.ts:16,19</note>
       </notes>
       <segment>
         <source> Logged in as <ph id="0" equiv="INTERPOLATION" disp="{{ name }}"/> · <pc id="1" equivStart="START_LINK" equivEnd="CLOSE_LINK" type="link" dispStart="&lt;a href=&quot;#&quot; (click)=&quot;signOut($event)&quot;&gt;" dispEnd="&lt;/a&gt;">Sign Out</pc></source>
@@ -115,7 +115,7 @@
     </unit>
     <unit id="created-printer.set-up-the-agent">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printer/components/created-printer/created-printer.component.ts:23,25</note>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/created-printer/created-printer.component.ts:22,24</note>
       </notes>
       <segment>
         <source> Set up the agent (token shown once) </source>
@@ -123,7 +123,7 @@
     </unit>
     <unit id="created-printer.run-one-of-these">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printer/components/created-printer/created-printer.component.ts:26,29</note>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/created-printer/created-printer.component.ts:25,28</note>
       </notes>
       <segment>
         <source> Run one of these on the computer next to <ph id="0" equiv="INTERPOLATION" disp="{{ created().printer.name }}"/>, or copy the agent token into its configuration now. The token is not shown again. </source>
@@ -131,7 +131,7 @@
     </unit>
     <unit id="created-printer.on-the-server-to">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printer/components/created-printer/created-printer.component.ts:36,39</note>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/created-printer/created-printer.component.ts:35,38</note>
       </notes>
       <segment>
         <source> Set <pc id="0" equivStart="START_TAG_CODE" equivEnd="CLOSE_TAG_CODE" type="other" dispStart="&lt;code&gt;" dispEnd="&lt;/code&gt;">PUBLIC_URL</pc> on the server to get ready-made setup commands. </source>
@@ -139,7 +139,7 @@
     </unit>
     <unit id="created-printer.done">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printer/components/created-printer/created-printer.component.ts:48,51</note>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/created-printer/created-printer.component.ts:47,50</note>
       </notes>
       <segment>
         <source>Done</source>
@@ -317,7 +317,7 @@
     </unit>
     <unit id="setup-command.agent-token">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printer/helpers/created-printer-commands/created-printer-commands.ts:18</note>
+        <note category="location">packages/server/src/app/pages/manage-printer/helpers/created-printer-commands/created-printer-commands.ts:17</note>
         <note category="location">packages/server/src/app/pages/manage-printers/components/agent-token-notice/agent-token-notice.component.ts:59</note>
       </notes>
       <segment>
@@ -326,7 +326,7 @@
     </unit>
     <unit id="printer-form.title-named">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printer/helpers/printer-form/printer-form.ts:31</note>
+        <note category="location">packages/server/src/app/pages/manage-printer/helpers/printer-form/printer-form.ts:27</note>
       </notes>
       <segment>
         <source>Manage <ph id="0" equiv="name" disp="name"/></source>
@@ -334,7 +334,7 @@
     </unit>
     <unit id="printer-form.title">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printer/helpers/printer-form/printer-form.ts:32</note>
+        <note category="location">packages/server/src/app/pages/manage-printer/helpers/printer-form/printer-form.ts:28</note>
       </notes>
       <segment>
         <source>Manage Printer</source>
@@ -374,7 +374,7 @@
     </unit>
     <unit id="manage-printer.name-required">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printer/manage-printer.component.ts:163</note>
+        <note category="location">packages/server/src/app/pages/manage-printer/manage-printer.component.ts:162</note>
       </notes>
       <segment>
         <source>Enter a display name.</source>
@@ -382,16 +382,16 @@
     </unit>
     <unit id="manage-printer.name-max">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printer/manage-printer.component.ts:166</note>
+        <note category="location">packages/server/src/app/pages/manage-printer/manage-printer.component.ts:165</note>
       </notes>
       <segment>
-        <source>Enter a name of at most <ph id="0" equiv="NAME_MAX_LENGTH" disp="NAME_MAX_LENGTH"/> characters.</source>
+        <source>Enter a name of at most <ph id="0" equiv="PRINTER_NAME_MAX_LENGTH" disp="PRINTER_NAME_MAX_LENGTH"/> characters.</source>
       </segment>
     </unit>
     <unit id="manage-printer.slug-format">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printer/manage-printer.component.ts:169</note>
-        <note category="location">packages/server/src/app/pages/manage-printer/manage-printer.component.ts:172</note>
+        <note category="location">packages/server/src/app/pages/manage-printer/manage-printer.component.ts:168</note>
+        <note category="location">packages/server/src/app/pages/manage-printer/manage-printer.component.ts:171</note>
       </notes>
       <segment>
         <source>Use lowercase letters, numbers, and hyphens.</source>
@@ -399,7 +399,7 @@
     </unit>
     <unit id="manage-printer.queue-required">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printer/manage-printer.component.ts:175</note>
+        <note category="location">packages/server/src/app/pages/manage-printer/manage-printer.component.ts:174</note>
       </notes>
       <segment>
         <source>Enter a CUPS queue or IPP endpoint.</source>
@@ -431,7 +431,7 @@
     </unit>
     <unit id="printer-admin-actions.configure-a-class-btn">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-admin-actions/printer-admin-actions.component.ts:17,20</note>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-admin-actions/printer-admin-actions.component.ts:16,19</note>
       </notes>
       <segment>
         <source><pc id="0" equivStart="START_ITALIC_TEXT" equivEnd="CLOSE_ITALIC_TEXT" type="fmt" dispStart="&lt;i class=&quot;bi bi-gear&quot; aria-hidden=&quot;true&quot;&gt;" dispEnd="&lt;/i&gt;"></pc> Configure </source>
@@ -439,7 +439,7 @@
     </unit>
     <unit id="printer-admin-actions.qr-code-amp-pin">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-admin-actions/printer-admin-actions.component.ts:25,27</note>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-admin-actions/printer-admin-actions.component.ts:24,26</note>
       </notes>
       <segment>
         <source><pc id="0" equivStart="START_ITALIC_TEXT" equivEnd="CLOSE_ITALIC_TEXT" type="fmt" dispStart="&lt;i class=&quot;bi bi-qr-code&quot; aria-hidden=&quot;true&quot;&gt;" dispEnd="&lt;/i&gt;"></pc> QR code &amp; PIN </source>
@@ -447,7 +447,7 @@
     </unit>
     <unit id="printer-admin-actions.rotate-token-if-printer">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-admin-actions/printer-admin-actions.component.ts:35,37</note>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-admin-actions/printer-admin-actions.component.ts:34,36</note>
       </notes>
       <segment>
         <source><pc id="0" equivStart="START_ITALIC_TEXT" equivEnd="CLOSE_ITALIC_TEXT" type="fmt" dispStart="&lt;i class=&quot;bi bi-key&quot; aria-hidden=&quot;true&quot;&gt;" dispEnd="&lt;/i&gt;"></pc> Rotate token </source>
@@ -455,7 +455,7 @@
     </unit>
     <unit id="printer-admin-actions.retry-failed-jobs-button">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-admin-actions/printer-admin-actions.component.ts:47,51</note>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-admin-actions/printer-admin-actions.component.ts:46,50</note>
       </notes>
       <segment>
         <source><pc id="0" equivStart="START_ITALIC_TEXT" equivEnd="CLOSE_ITALIC_TEXT" type="fmt" dispStart="&lt;i
@@ -466,7 +466,7 @@
     </unit>
     <unit id="printer-admin-actions.delete-all-jobs-button">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-admin-actions/printer-admin-actions.component.ts:60,62</note>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-admin-actions/printer-admin-actions.component.ts:59,61</note>
       </notes>
       <segment>
         <source><pc id="0" equivStart="START_ITALIC_TEXT" equivEnd="CLOSE_ITALIC_TEXT" type="fmt" dispStart="&lt;i class=&quot;bi bi-trash3&quot; aria-hidden=&quot;true&quot;&gt;" dispEnd="&lt;/i&gt;"></pc> Delete all jobs </source>
@@ -474,7 +474,7 @@
     </unit>
     <unit id="printer-admin-actions.remove-printer-export-class">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-admin-actions/printer-admin-actions.component.ts:71,73</note>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-admin-actions/printer-admin-actions.component.ts:70,72</note>
       </notes>
       <segment>
         <source><pc id="0" equivStart="START_ITALIC_TEXT" equivEnd="CLOSE_ITALIC_TEXT" type="fmt" dispStart="&lt;i class=&quot;bi bi-x-octagon&quot; aria-hidden=&quot;true&quot;&gt;" dispEnd="&lt;/i&gt;"></pc> Remove printer </source>
@@ -482,7 +482,7 @@
     </unit>
     <unit id="printer-details.upload-page">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-details/printer-details.component.ts:14,16</note>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-details/printer-details.component.ts:13,15</note>
       </notes>
       <segment>
         <source> Upload page </source>
@@ -490,7 +490,7 @@
     </unit>
     <unit id="printer-details.print-nbsp-i-class">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-details/printer-details.component.ts:23,30</note>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-details/printer-details.component.ts:22,29</note>
       </notes>
       <segment>
         <source> /print/<ph id="0" equiv="INTERPOLATION" disp="{{ printer().slug }}"/>  <pc id="1" equivStart="START_ITALIC_TEXT" equivEnd="CLOSE_ITALIC_TEXT" type="fmt" dispStart="&lt;i
@@ -501,7 +501,7 @@
     </unit>
     <unit id="printer-details.upload-pin">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-details/printer-details.component.ts:32,34</note>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-details/printer-details.component.ts:31,33</note>
       </notes>
       <segment>
         <source> Upload PIN </source>
@@ -509,7 +509,7 @@
     </unit>
     <unit id="printer-details.pin">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-details/printer-details.component.ts:35,41</note>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-details/printer-details.component.ts:34,40</note>
       </notes>
       <segment>
         <source><pc id="0" equivStart="START_BLOCK_IF" equivEnd="CLOSE_BLOCK_IF" type="other" dispStart="@if (printer().pin) {" dispEnd="}"><pc id="1" equivStart="START_TAG_SPAN" equivEnd="CLOSE_TAG_SPAN" type="other" dispStart="&lt;span class=&quot;font-monospace&quot;&gt;" dispEnd="&lt;/span&gt;"><ph id="2" equiv="INTERPOLATION" disp="{{ printer().pin }}"/></pc></pc><pc id="3" equivStart="START_BLOCK_ELSE" equivEnd="CLOSE_BLOCK_ELSE" type="other" dispStart="@else {" dispEnd="}"> Off (QR code only) </pc></source>
@@ -517,7 +517,7 @@
     </unit>
     <unit id="printer-details.destination">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-details/printer-details.component.ts:42,44</note>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-details/printer-details.component.ts:41,43</note>
       </notes>
       <segment>
         <source> Destination </source>
@@ -525,7 +525,7 @@
     </unit>
     <unit id="printer-details.cover-page">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-details/printer-details.component.ts:48,50</note>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-details/printer-details.component.ts:47,49</note>
       </notes>
       <segment>
         <source> Cover page </source>
@@ -533,7 +533,7 @@
     </unit>
     <unit id="printer-details.agent-last-seen">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-details/printer-details.component.ts:57,59</note>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-details/printer-details.component.ts:56,58</note>
       </notes>
       <segment>
         <source> Agent last seen </source>
@@ -541,7 +541,7 @@
     </unit>
     <unit id="printer-details.never-connected">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-details/printer-details.component.ts:64,67</note>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-details/printer-details.component.ts:63,66</note>
       </notes>
       <segment>
         <source>Never connected</source>
@@ -549,7 +549,7 @@
     </unit>
     <unit id="printer-list-item.active">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-list-item/printer-list-item.component.ts:50,53</note>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-list-item/printer-list-item.component.ts:49,52</note>
       </notes>
       <segment>
         <source> <ph id="0" equiv="INTERPOLATION" disp="{{ printer().activeJobs }}"/> active <ph id="1" equiv="INTERPOLATION_1" disp="{{ printer().activeJobs === 1 ? &apos;job&apos; : &apos;jobs&apos; }}"/> </source>
@@ -557,7 +557,7 @@
     </unit>
     <unit id="printer-list-item.failed">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-list-item/printer-list-item.component.ts:58,59</note>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-list-item/printer-list-item.component.ts:57,58</note>
       </notes>
       <segment>
         <source> <ph id="0" equiv="INTERPOLATION" disp="{{ printer().failedJobs }}"/> failed </source>
@@ -565,7 +565,7 @@
     </unit>
     <unit id="printer-quick-actions.open-upload-page.title">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-quick-actions/printer-quick-actions.component.ts:21,23</note>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-quick-actions/printer-quick-actions.component.ts:20,22</note>
       </notes>
       <segment>
         <source>Open upload page</source>
@@ -573,7 +573,7 @@
     </unit>
     <unit id="printer-quick-actions.open-upload-page-for">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-quick-actions/printer-quick-actions.component.ts:32,34</note>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-quick-actions/printer-quick-actions.component.ts:31,33</note>
       </notes>
       <segment>
         <source>Open upload page for <ph id="0" equiv="INTERPOLATION" disp="{{ printer().name }}"/> (opens in new tab)</source>
@@ -581,7 +581,7 @@
     </unit>
     <unit id="printer-quick-actions.print-qr-sheet.title">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-quick-actions/printer-quick-actions.component.ts:39,40</note>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-quick-actions/printer-quick-actions.component.ts:38,39</note>
       </notes>
       <segment>
         <source>Print QR sheet</source>
@@ -589,7 +589,7 @@
     </unit>
     <unit id="printer-quick-actions.print-qr-sheet-on">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-quick-actions/printer-quick-actions.component.ts:48,50</note>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-quick-actions/printer-quick-actions.component.ts:47,49</note>
       </notes>
       <segment>
         <source>Print QR sheet on <ph id="0" equiv="INTERPOLATION" disp="{{ printer().name }}"/></source>
@@ -597,7 +597,7 @@
     </unit>
     <unit id="printer-quick-actions.show-qr-code.title">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-quick-actions/printer-quick-actions.component.ts:53,54</note>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-quick-actions/printer-quick-actions.component.ts:52,53</note>
       </notes>
       <segment>
         <source>Show QR code</source>
@@ -605,7 +605,7 @@
     </unit>
     <unit id="printer-quick-actions.show-qr-code-for">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-quick-actions/printer-quick-actions.component.ts:61,63</note>
+        <note category="location">packages/server/src/app/pages/manage-printers/components/printer-quick-actions/printer-quick-actions.component.ts:60,62</note>
       </notes>
       <segment>
         <source>Show QR code for <ph id="0" equiv="INTERPOLATION" disp="{{ printer().name }}"/></source>
@@ -653,7 +653,7 @@
     </unit>
     <unit id="manage-printers.administration">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printers/manage-printers.component.ts:62,64</note>
+        <note category="location">packages/server/src/app/pages/manage-printers/manage-printers.component.ts:60,62</note>
       </notes>
       <segment>
         <source> Administration </source>
@@ -661,7 +661,7 @@
     </unit>
     <unit id="manage-printers.printers">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printers/manage-printers.component.ts:65,67</note>
+        <note category="location">packages/server/src/app/pages/manage-printers/manage-printers.component.ts:63,65</note>
       </notes>
       <segment>
         <source> Printers </source>
@@ -669,7 +669,7 @@
     </unit>
     <unit id="manage-printers.add-printer-if-error">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printers/manage-printers.component.ts:73,75</note>
+        <note category="location">packages/server/src/app/pages/manage-printers/manage-printers.component.ts:71,73</note>
       </notes>
       <segment>
         <source><pc id="0" equivStart="START_ITALIC_TEXT" equivEnd="CLOSE_ITALIC_TEXT" type="fmt" dispStart="&lt;i class=&quot;bi bi-plus-lg&quot; aria-hidden=&quot;true&quot;&gt;" dispEnd="&lt;/i&gt;"></pc> Add printer </source>
@@ -677,7 +677,7 @@
     </unit>
     <unit id="manage-printers.dismiss-error.dismisslabel">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printers/manage-printers.component.ts:81,83</note>
+        <note category="location">packages/server/src/app/pages/manage-printers/manage-printers.component.ts:79,81</note>
       </notes>
       <segment>
         <source>Dismiss error</source>
@@ -685,7 +685,7 @@
     </unit>
     <unit id="manage-printers.dismiss-message.dismisslabel">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printers/manage-printers.component.ts:93,95</note>
+        <note category="location">packages/server/src/app/pages/manage-printers/manage-printers.component.ts:91,93</note>
       </notes>
       <segment>
         <source>Dismiss message</source>
@@ -693,7 +693,7 @@
     </unit>
     <unit id="manage-printers.loading-printers">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printers/manage-printers.component.ts:114,116</note>
+        <note category="location">packages/server/src/app/pages/manage-printers/manage-printers.component.ts:112,114</note>
       </notes>
       <segment>
         <source> Loading printers... </source>
@@ -701,7 +701,7 @@
     </unit>
     <unit id="manage-printers.no-printers-configured">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printers/manage-printers.component.ts:121,124</note>
+        <note category="location">packages/server/src/app/pages/manage-printers/manage-printers.component.ts:119,122</note>
       </notes>
       <segment>
         <source> No printers configured. </source>
@@ -709,7 +709,7 @@
     </unit>
     <unit id="manage-printers.load-error">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printers/manage-printers.component.ts:152</note>
+        <note category="location">packages/server/src/app/pages/manage-printers/manage-printers.component.ts:150</note>
       </notes>
       <segment>
         <source>Unable to load printers.</source>
@@ -912,7 +912,7 @@
     </unit>
     <unit id="datetime-nudge-field.15-min-button">
       <notes>
-        <note category="location">packages/server/src/app/pages/printer-qr/components/datetime-nudge-field/datetime-nudge-field.component.ts:37,41</note>
+        <note category="location">packages/server/src/app/pages/printer-qr/components/datetime-nudge-field/datetime-nudge-field.component.ts:38,42</note>
       </notes>
       <segment>
         <source> −15 min<pc id="0" equivStart="START_TAG_SPAN" equivEnd="CLOSE_TAG_SPAN" type="other" dispStart="&lt;span class=&quot;visually-hidden&quot;&gt;" dispEnd="&lt;/span
@@ -921,7 +921,7 @@
     </unit>
     <unit id="datetime-nudge-field.15-min-if-er">
       <notes>
-        <note category="location">packages/server/src/app/pages/printer-qr/components/datetime-nudge-field/datetime-nudge-field.component.ts:47,51</note>
+        <note category="location">packages/server/src/app/pages/printer-qr/components/datetime-nudge-field/datetime-nudge-field.component.ts:48,52</note>
       </notes>
       <segment>
         <source> +15 min<pc id="0" equivStart="START_TAG_SPAN" equivEnd="CLOSE_TAG_SPAN" type="other" dispStart="&lt;span class=&quot;visually-hidden&quot;&gt;" dispEnd="&lt;/span
@@ -930,7 +930,7 @@
     </unit>
     <unit id="pin-section.upload-pin">
       <notes>
-        <note category="location">packages/server/src/app/pages/printer-qr/components/pin-section/pin-section.component.ts:15,17</note>
+        <note category="location">packages/server/src/app/pages/printer-qr/components/pin-section/pin-section.component.ts:14,16</note>
       </notes>
       <segment>
         <source> Upload PIN </source>
@@ -938,7 +938,7 @@
     </unit>
     <unit id="pin-section.visitors-without-the-qr">
       <notes>
-        <note category="location">packages/server/src/app/pages/printer-qr/components/pin-section/pin-section.component.ts:19,25</note>
+        <note category="location">packages/server/src/app/pages/printer-qr/components/pin-section/pin-section.component.ts:18,24</note>
       </notes>
       <segment>
         <source> Visitors without the QR code can enter this PIN to get a short-lived upload link: <pc id="0" equivStart="START_TAG_STRONG" equivEnd="CLOSE_TAG_STRONG" type="other" dispStart="&lt;strong class=&quot;pin font-monospace fs-4 ms-2&quot;&gt;" dispEnd="&lt;/strong&gt;"><ph id="1" equiv="INTERPOLATION" disp="{{
@@ -948,7 +948,7 @@
     </unit>
     <unit id="pin-section.pin-uploads-are-off">
       <notes>
-        <note category="location">packages/server/src/app/pages/printer-qr/components/pin-section/pin-section.component.ts:30,34</note>
+        <note category="location">packages/server/src/app/pages/printer-qr/components/pin-section/pin-section.component.ts:29,33</note>
       </notes>
       <segment>
         <source> PIN uploads are off. Only QR codes work for this printer. </source>
@@ -956,7 +956,7 @@
     </unit>
     <unit id="pin-section.refresh">
       <notes>
-        <note category="location">packages/server/src/app/pages/printer-qr/components/pin-section/pin-section.component.ts:44,46</note>
+        <note category="location">packages/server/src/app/pages/printer-qr/components/pin-section/pin-section.component.ts:43,45</note>
       </notes>
       <segment>
         <source>Refresh PIN</source>
@@ -964,7 +964,7 @@
     </unit>
     <unit id="pin-section.turn-on">
       <notes>
-        <note category="location">packages/server/src/app/pages/printer-qr/components/pin-section/pin-section.component.ts:48,50</note>
+        <note category="location">packages/server/src/app/pages/printer-qr/components/pin-section/pin-section.component.ts:47,49</note>
       </notes>
       <segment>
         <source>Turn on PIN</source>
@@ -972,7 +972,7 @@
     </unit>
     <unit id="pin-section.turn-off-pin">
       <notes>
-        <note category="location">packages/server/src/app/pages/printer-qr/components/pin-section/pin-section.component.ts:60,62</note>
+        <note category="location">packages/server/src/app/pages/printer-qr/components/pin-section/pin-section.component.ts:59,61</note>
       </notes>
       <segment>
         <source> Turn off PIN </source>
@@ -980,7 +980,7 @@
     </unit>
     <unit id="qr-issued.valid-to">
       <notes>
-        <note category="location">packages/server/src/app/pages/printer-qr/components/qr-issued/qr-issued.component.ts:37,40</note>
+        <note category="location">packages/server/src/app/pages/printer-qr/components/qr-issued/qr-issued.component.ts:36,39</note>
       </notes>
       <segment>
         <source> Valid <ph id="0" equiv="INTERPOLATION" disp="{{ issued().notBefore | date: &apos;medium&apos; }}"/> to <ph id="1" equiv="INTERPOLATION_1" disp="{{ issued().expiresAt | date: &apos;medium&apos; }}"/> </source>
@@ -988,7 +988,7 @@
     </unit>
     <unit id="qr-issued.open-print-page-i">
       <notes>
-        <note category="location">packages/server/src/app/pages/printer-qr/components/qr-issued/qr-issued.component.ts:49,58</note>
+        <note category="location">packages/server/src/app/pages/printer-qr/components/qr-issued/qr-issued.component.ts:48,57</note>
       </notes>
       <segment>
         <source> Open print page <pc id="0" equivStart="START_ITALIC_TEXT" equivEnd="CLOSE_ITALIC_TEXT" type="fmt" dispStart="&lt;i
@@ -1001,7 +1001,7 @@
     </unit>
     <unit id="qr-issued.copy-link-button-type">
       <notes>
-        <note category="location">packages/server/src/app/pages/printer-qr/components/qr-issued/qr-issued.component.ts:70,72</note>
+        <note category="location">packages/server/src/app/pages/printer-qr/components/qr-issued/qr-issued.component.ts:69,71</note>
       </notes>
       <segment>
         <source><pc id="0" equivStart="START_ITALIC_TEXT" equivEnd="CLOSE_ITALIC_TEXT" type="fmt" dispStart="&lt;i class=&quot;bi bi-clipboard&quot; aria-hidden=&quot;true&quot;&gt;" dispEnd="&lt;/i&gt;"></pc> Copy link </source>
@@ -1009,7 +1009,7 @@
     </unit>
     <unit id="qr-issued.open-poster-pdf-span">
       <notes>
-        <note category="location">packages/server/src/app/pages/printer-qr/components/qr-issued/qr-issued.component.ts:81,88</note>
+        <note category="location">packages/server/src/app/pages/printer-qr/components/qr-issued/qr-issued.component.ts:80,87</note>
       </notes>
       <segment>
         <source><pc id="0" equivStart="START_ITALIC_TEXT" equivEnd="CLOSE_ITALIC_TEXT" type="fmt" dispStart="&lt;i
@@ -1022,7 +1022,7 @@
     </unit>
     <unit id="qr-issued.print-poster-on-export">
       <notes>
-        <note category="location">packages/server/src/app/pages/printer-qr/components/qr-issued/qr-issued.component.ts:96,98</note>
+        <note category="location">packages/server/src/app/pages/printer-qr/components/qr-issued/qr-issued.component.ts:95,97</note>
       </notes>
       <segment>
         <source><pc id="0" equivStart="START_ITALIC_TEXT" equivEnd="CLOSE_ITALIC_TEXT" type="fmt" dispStart="&lt;i class=&quot;bi bi-printer&quot; aria-hidden=&quot;true&quot;&gt;" dispEnd="&lt;/i&gt;"></pc> Print poster on <ph id="1" equiv="INTERPOLATION" disp="{{ printer().name }}"/> </source>
@@ -1430,7 +1430,7 @@
     </unit>
     <unit id="live-events.sign-in-required">
       <notes>
-        <note category="location">packages/server/src/app/services/live-events/live-events.service.ts:126</note>
+        <note category="location">packages/server/src/app/services/live-events/live-events.service.ts:132</note>
       </notes>
       <segment>
         <source>Sign in to receive live updates.</source>

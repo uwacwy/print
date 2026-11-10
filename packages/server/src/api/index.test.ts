@@ -65,7 +65,7 @@ describe('API root', () => {
       client: {
         enrollment: true,
         msal,
-        publicUrl: testPublicUrl,
+        publicUrl: testPublicUrl.href,
       },
     });
     expect((await clientConfig()).body).toEqual({

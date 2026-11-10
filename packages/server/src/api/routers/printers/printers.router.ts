@@ -1,6 +1,11 @@
 import type { EnrollTokenResponse } from '@uwacwy/print-shared';
+import type { ParamsDictionary } from 'express-serve-static-core';
 
-import { printers } from '@uwacwy/print-shared';
+import {
+  PrinterInput,
+  printers,
+  QrPosterRequest,
+} from '@uwacwy/print-shared';
 import express, {
   type Request,
   type RequestHandler,
@@ -9,7 +14,6 @@ import express, {
 import { access as fileAccess, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createRouting } from 'ts-routes';
-import { z } from 'zod';
 
 import type {
   EnrollmentConfig,
@@ -52,7 +56,7 @@ import {
   managedPrinter,
   printPath,
   publicPrinter,
-  validatePrinterInput,
+  toPrinterFields,
 } from '../../helpers/printers';
 import {
   formatPin,
@@ -77,6 +81,7 @@ import {
   uploadRateLimit,
 } from '../../middleware/rate-limits/rate-limits';
 import { requireSameOrigin } from '../../middleware/same-origin/same-origin';
+import { validate } from '../../middleware/validate/validate';
 
 const routes = createRouting(printers);
 
@@ -94,16 +99,6 @@ export interface PrintersRouterOptions {
 const DEFAULT_ENROLL_TOKEN_TTL_MINUTES = 30;
 
 const DEFAULT_QR_LIFETIME_MS = 24 * 3_600_000;
-
-/** Either reuse an issued QR token (so a tested link matches the poster) or issue one for a window. */
-const qrTokenInput = z
-  .object({
-    expiresAt: z.iso.datetime({ offset: true }).optional(),
-    notBefore: z.iso.datetime({ offset: true }).optional(),
-    token: z.string().min(1).optional(),
-  })
-  .optional()
-  .default({});
 
 /** The printer loaded by the `:slug` parameter handler. */
 const printerOf = (response: Response) =>
@@ -160,20 +155,10 @@ export default function printersRouter({
 
   /** Reuses a still-usable QR token from the body, or issues one for the requested window. */
   const resolveQrToken = async (
-    request: Request,
     response: Response,
+    { expiresAt, notBefore, token }: QrPosterRequest,
   ): Promise<undefined | UploadToken> => {
     const printer = printerOf(response);
-    const parsed = qrTokenInput.safeParse(
-      request.body ?? undefined,
-    );
-    if (!parsed.success) {
-      response
-        .status(400)
-        .json({ error: 'Invalid QR code request.' });
-      return undefined;
-    }
-    const { expiresAt, notBefore, token } = parsed.data;
     if (token) {
       // Check at the later of now and the start so codes for a future event are accepted.
       const claims = inspectUploadToken(access, token);
@@ -244,12 +229,13 @@ export default function printersRouter({
       validUntil: issued.expiresAt,
     });
 
-  const sendPoster: RequestHandler = async (
-    request,
-    response,
-  ) => {
+  const sendPoster: RequestHandler<
+    ParamsDictionary,
+    unknown,
+    QrPosterRequest
+  > = async (request, response) => {
     const printer = printerOf(response);
-    const issued = await resolveQrToken(request, response);
+    const issued = await resolveQrToken(response, request.body);
     if (!issued) {
       return;
     }
@@ -387,23 +373,24 @@ export default function printersRouter({
           ),
         );
       })
-      .post('/', admin, (request, response) => {
-        const parsed = validatePrinterInput(request.body);
-        if ('error' in parsed) {
-          response.status(400).json(parsed);
-          return;
-        }
-        const created = createPrinter(db, parsed.fields);
-        if (typeof created === 'string') {
-          response.status(409).json({ error: created });
-          return;
-        }
-        response.status(201).json({
-          agentToken: created.token,
-          printer: summary(getPrinterById(db, created.id)!),
-          serverUrl,
-        });
-      })
+      .post(
+        '/',
+        admin,
+        validate({ body: PrinterInput }),
+        (request, response) => {
+          const fields = toPrinterFields(request.body);
+          const created = createPrinter(db, fields);
+          if (typeof created === 'string') {
+            response.status(409).json({ error: created });
+            return;
+          }
+          response.status(201).json({
+            agentToken: created.token,
+            printer: summary(getPrinterById(db, created.id)!),
+            serverUrl,
+          });
+        },
+      )
       // A short-lived token an agent exchanges for its own printer; see POST /api/agent/enroll.
       .post(
         routes.enrollToken.pattern,
@@ -470,16 +457,13 @@ export default function printersRouter({
       .patch(
         routes.$slug.pattern,
         admin,
+        validate({ body: PrinterInput }),
         (request, response) => {
-          const parsed = validatePrinterInput(request.body);
-          if ('error' in parsed) {
-            response.status(400).json(parsed);
-            return;
-          }
+          const fields = toPrinterFields(request.body);
           const updated = updatePrinter(
             db,
             printerOf(response).id,
-            parsed.fields,
+            fields,
           );
           if (typeof updated === 'string') {
             response.status(409).json({ error: updated });
@@ -604,13 +588,27 @@ export default function printersRouter({
         },
       )
 
-      .get(routes.$slug.qrPdf.pattern, admin, sendPoster)
-      .post(routes.$slug.qrPdf.pattern, admin, sendPoster)
+      .get(
+        routes.$slug.qrPdf.pattern,
+        admin,
+        validate({ body: QrPosterRequest.default({}) }),
+        sendPoster,
+      )
+      .post(
+        routes.$slug.qrPdf.pattern,
+        admin,
+        validate({ body: QrPosterRequest.default({}) }),
+        sendPoster,
+      )
       .post(
         routes.$slug.qrToken.pattern,
         admin,
+        validate({ body: QrPosterRequest.default({}) }),
         async (request, response) => {
-          const issued = await resolveQrToken(request, response);
+          const issued = await resolveQrToken(
+            response,
+            request.body,
+          );
           if (!issued) {
             return;
           }
@@ -633,9 +631,13 @@ export default function printersRouter({
       .post(
         routes.$slug.qrPrint.pattern,
         admin,
+        validate({ body: QrPosterRequest.default({}) }),
         async (request, response) => {
           const printer = printerOf(response);
-          const issued = await resolveQrToken(request, response);
+          const issued = await resolveQrToken(
+            response,
+            request.body,
+          );
           if (!issued) {
             return;
           }

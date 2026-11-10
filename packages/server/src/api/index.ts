@@ -54,7 +54,7 @@ export default (options: ApiRootOptions) => {
         options.client ??
           ({
             enrollment: !!options.enrollment?.serverUrl,
-            publicUrl: options.publicUrl,
+            publicUrl: options.publicUrl.href,
           } satisfies ClientConfig),
       );
     })

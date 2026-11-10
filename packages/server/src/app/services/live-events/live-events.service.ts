@@ -10,16 +10,15 @@ import { MsalService } from '@azure/msal-angular';
 import {
   $,
   LIVE_NAMESPACE,
-  type LiveEvent,
+  LiveEvent,
   type LiveServerEvents,
 } from '@uwacwy/print-shared';
 import { firstValueFrom, Observable, share } from 'rxjs';
 import { io, type Socket } from 'socket.io-client';
+import { z } from 'zod';
 
 import { CLIENT_ENVIRONMENT } from '../../auth/client-environment';
 import { getApiScope } from '../../auth/msal.config';
-
-export type { LiveEvent };
 
 /** The socket.io client factory; replaced in tests. */
 export const SOCKET_IO = new InjectionToken<typeof io>(
@@ -89,9 +88,17 @@ export class LiveEventsService {
           retry();
         }
       });
-      socket.on('live', (event) => {
-        this.#apply(event);
-        subscriber.next(event);
+      socket.on('live', (payload) => {
+        const parsed = LiveEvent.safeParse(payload);
+        if (!parsed.success) {
+          console.warn(
+            'Ignoring malformed live event:',
+            z.prettifyError(parsed.error),
+          );
+          return;
+        }
+        this.#apply(parsed.data);
+        subscriber.next(parsed.data);
       });
 
       return () => {

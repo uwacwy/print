@@ -1,11 +1,10 @@
 import { DatePipe } from '@angular/common';
 import { Component, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
-
-import type {
-  IssuedQrToken,
-  PrinterSummary,
-} from '../../../../services/printer/printer.service';
+import {
+  type IssuedQrToken,
+  type PrinterSummary,
+} from '@uwacwy/print-shared';
 
 /** An issued QR code with its link and poster actions. */
 @Component({

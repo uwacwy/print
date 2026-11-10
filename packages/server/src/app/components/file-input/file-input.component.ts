@@ -1,20 +1,6 @@
-import {
-  Component,
-  effect,
-  ElementRef,
-  inject,
-  input,
-  model,
-  output,
-} from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import {
-  DisabledReason,
-  FormValueControl,
-  ValidationError,
-  WithOptionalFieldTree,
-} from '@angular/forms/signals';
-import { fromEvent } from 'rxjs';
+import { Component, model } from '@angular/core';
+
+import { FileControl } from '../file-control/file-control';
 
 /** Binds a single-file `<input type="file">` to a signal form field. */
 @Component({
@@ -23,50 +9,14 @@ import { fromEvent } from 'rxjs';
   selector: 'input[type=file]:not([multiple])',
   template: ``,
 })
-export class FileInput implements FormValueControl<File | null> {
-  readonly dirty = input<boolean>(false);
-
-  readonly disabled = input<boolean>(false);
-
-  readonly disabledReasons = input<
-    readonly WithOptionalFieldTree<DisabledReason>[]
-  >([]);
-  readonly errors = input<
-    readonly WithOptionalFieldTree<ValidationError>[]
-  >([]);
-
-  readonly hidden = input<boolean>(false);
-  readonly invalid = input<boolean>(false);
-  readonly name = input<string>('');
-  readonly pending = input<boolean>(false);
-  readonly readonly = input<boolean>(false);
-  readonly required = input<boolean>(false);
-  readonly touch = output<void>();
-  readonly touched = input<boolean>(false);
+export class FileInput extends FileControl<File | null> {
   readonly value = model<File | null>(null);
-  readonly #host =
-    inject<ElementRef<HTMLInputElement>>(ElementRef);
 
-  constructor() {
-    const host = this.#host.nativeElement;
-
-    // A native file input can only be cleared programmatically.
-    effect(() => {
-      if (this.value() === null) {
-        host.value = '';
-      }
-    });
-
-    fromEvent(host, 'change')
-      .pipe(takeUntilDestroyed())
-      .subscribe(() => this.value.set(host.files?.[0] ?? null));
+  protected override fromFiles(files: FileList | null) {
+    return files?.[0] ?? null;
   }
 
-  focus(options?: FocusOptions): void {
-    this.#host.nativeElement.focus(options);
-  }
-
-  reset(): void {
-    this.value.set(null);
+  protected override isEmpty(value: File | null) {
+    return value === null;
   }
 }

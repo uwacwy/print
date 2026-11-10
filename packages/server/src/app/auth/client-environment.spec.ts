@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { environment } from '../../environments/environment';
 import {
   loadClientEnvironment,
-  toClientEnvironment,
+  resolveClientConfig,
 } from './client-environment';
 
 const msal = {
@@ -17,10 +17,10 @@ const respond = (response: Response) =>
   vi.fn<typeof fetch>().mockResolvedValue(response);
 
 describe('client environment', () => {
-  const publicUrl = new URL('https://print.example.org');
+  const publicUrl = new URL('https://print.example.org').href;
   it('uses the server settings with a callback on the current origin', () => {
     expect(
-      toClientEnvironment(
+      resolveClientConfig(
         {
           enrollment: true,
           msal,
@@ -34,31 +34,39 @@ describe('client environment', () => {
         ...msal,
         redirectUri: 'https://print.example.org/auth/callback',
       },
+      publicUrl,
     });
   });
 
   it('falls back to the build-time sign-in when the server has none', () => {
     expect(
-      toClientEnvironment(
+      resolveClientConfig(
         {
           enrollment: false,
           publicUrl,
         },
         'https://print.example.org',
       ),
-    ).toEqual({ ...environment, enrollment: false });
+    ).toEqual({
+      enrollment: false,
+      msal: {
+        ...environment.msal,
+        redirectUri: 'https://print.example.org/auth/callback',
+      },
+      publicUrl,
+    });
   });
 
   it('passes the server logo through', () => {
     const logo = { alt: 'United Way', src: '/logo.svg?v=1' };
     expect(
-      toClientEnvironment(
+      resolveClientConfig(
         { enrollment: false, logo, publicUrl },
         'https://print.example.org',
       ).logo,
     ).toEqual(logo);
     expect(
-      toClientEnvironment(
+      resolveClientConfig(
         { enrollment: false, logo, msal, publicUrl },
         'https://print.example.org',
       ).logo,
@@ -77,6 +85,7 @@ describe('client environment', () => {
         ...msal,
         redirectUri: 'http://localhost:4200/auth/callback',
       },
+      publicUrl,
     });
     expect(ok).toHaveBeenCalledWith('/api/client-config', {
       cache: 'no-cache',

@@ -1,7 +1,6 @@
 import { Component, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
-
-import type { PrinterSummary } from '../../../../services/printer/printer.service';
+import { type PrinterSummary } from '@uwacwy/print-shared';
 
 /** Icon-only shortcuts shown beside a printer's row. */
 @Component({

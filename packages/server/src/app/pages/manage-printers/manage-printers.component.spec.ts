@@ -1,16 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { type PrinterSummary } from '@uwacwy/print-shared';
+import { LiveEvent } from '@uwacwy/print-shared';
 import { of, Subject, throwError } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  type LiveEvent,
-  LiveEventsService,
-} from '../../services/live-events/live-events.service';
-import {
-  PrinterService,
-  type PrinterSummary,
-} from '../../services/printer/printer.service';
+import { LiveEventsService } from '../../services/live-events/live-events.service';
+import { PrinterService } from '../../services/printer/printer.service';
 import { ManagePrintersComponent } from './manage-printers.component';
 
 const frontOffice: PrinterSummary = {

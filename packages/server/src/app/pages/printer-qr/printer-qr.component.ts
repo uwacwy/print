@@ -14,15 +14,15 @@ import {
   validate,
 } from '@angular/forms/signals';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import {
+  type IssuedQrToken,
+  type PrinterSummary,
+} from '@uwacwy/print-shared';
 import { firstValueFrom, type Observable } from 'rxjs';
 
 import { AlertComponent } from '../../components/alert/alert.component';
 import { apiErrorMessage } from '../../helpers/api-error/api-error';
-import {
-  type IssuedQrToken,
-  PrinterService,
-  type PrinterSummary,
-} from '../../services/printer/printer.service';
+import { PrinterService } from '../../services/printer/printer.service';
 import { PinSectionComponent } from './components/pin-section/pin-section.component';
 import { QrIssuedComponent } from './components/qr-issued/qr-issued.component';
 import { QrWindowFormComponent } from './components/qr-window-form/qr-window-form.component';

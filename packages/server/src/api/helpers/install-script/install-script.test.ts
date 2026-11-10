@@ -12,6 +12,7 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
+  NODE_MIN_VERSION,
   renderErrorScript,
   renderInstallScript,
 } from './install-script';
@@ -212,4 +213,22 @@ describe('install script run', () => {
       ]);
     },
   );
+});
+
+describe('NODE_MIN_VERSION', () => {
+  it('matches the agent engines.node floor', () =>
+    readFile(
+      new URL(
+        '../../../../../agent/package.json',
+        import.meta.url,
+      ),
+      'utf8',
+    ).then((text) => {
+      const { engines } = JSON.parse(text) as {
+        engines: { node: string };
+      };
+      expect(engines.node).toBe(
+        `>=${NODE_MIN_VERSION.replace(/\.0$/, '')}`,
+      );
+    }));
 });

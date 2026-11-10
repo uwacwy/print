@@ -1,4 +1,4 @@
-import type { LiveEvent } from '../../services/live-events/live-events.service';
+import { LiveEvent } from '@uwacwy/print-shared';
 
 export interface PrinterLiveStatus {
   activeJobs: number;

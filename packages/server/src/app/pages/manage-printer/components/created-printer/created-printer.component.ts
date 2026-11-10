@@ -1,7 +1,6 @@
 import { Component, computed, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
-
-import type { CreatedPrinter } from '../../../../services/printer/printer.service';
+import { type CreatedPrinter } from '@uwacwy/print-shared';
 
 import { SetupCommandsComponent } from '../../../../components/setup-commands/setup-commands.component';
 import { createdPrinterCommands } from '../../helpers/created-printer-commands/created-printer-commands';

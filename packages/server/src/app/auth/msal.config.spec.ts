@@ -52,7 +52,7 @@ describe('MSAL configuration', () => {
       ...developmentEnvironment,
       msal: {
         ...developmentEnvironment.msal,
-        apiScope: undefined,
+        apiScope: '',
       },
     };
     const guard = getMsalGuardConfiguration(noApiEnvironment);

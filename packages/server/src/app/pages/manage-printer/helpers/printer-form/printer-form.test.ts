@@ -1,18 +1,20 @@
+import { PRINTER_SLUG_PATTERN } from '@uwacwy/print-shared';
 import { describe, expect, it } from 'vitest';
 
 import {
   emptyPrinterModel,
   printerPageTitle,
-  SLUG_PATTERN,
   toPrinterModel,
 } from './printer-form';
 
 describe('printer form helpers', () => {
   it('accepts lowercase slugs with inner hyphens only', () => {
-    expect(SLUG_PATTERN.test('front-office-2')).toBe(true);
-    expect(SLUG_PATTERN.test('Front')).toBe(false);
-    expect(SLUG_PATTERN.test('-front')).toBe(false);
-    expect(SLUG_PATTERN.test('front-')).toBe(false);
+    expect(PRINTER_SLUG_PATTERN.test('front-office-2')).toBe(
+      true,
+    );
+    expect(PRINTER_SLUG_PATTERN.test('Front')).toBe(false);
+    expect(PRINTER_SLUG_PATTERN.test('-front')).toBe(false);
+    expect(PRINTER_SLUG_PATTERN.test('front-')).toBe(false);
   });
 
   it('maps a summary to the editable fields', () => {

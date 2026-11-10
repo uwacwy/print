@@ -1,16 +1,14 @@
+import type { ClientConfig } from '@uwacwy/print-shared';
+
 import { TestBed } from '@angular/core/testing';
 import { describe, expect, it } from 'vitest';
-
-import type { PrintServerClientEnvironment } from '../../../environments/environment.interface';
 
 import { environment } from '../../../environments/environment';
 import { CLIENT_ENVIRONMENT } from '../../auth/client-environment';
 import { SiteLogoComponent } from './site-logo.component';
 
 describe('SiteLogoComponent', () => {
-  function render(
-    clientEnvironment: PrintServerClientEnvironment,
-  ) {
+  function render(clientEnvironment: ClientConfig) {
     TestBed.configureTestingModule({
       imports: [SiteLogoComponent],
       providers: [

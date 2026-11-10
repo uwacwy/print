@@ -1,6 +1,5 @@
 import { Component, input, output } from '@angular/core';
-
-import type { PrinterSummary } from '../../../../services/printer/printer.service';
+import { type PrinterSummary } from '@uwacwy/print-shared';
 
 /** The printer's upload PIN, with turn on/refresh/off controls. */
 @Component({

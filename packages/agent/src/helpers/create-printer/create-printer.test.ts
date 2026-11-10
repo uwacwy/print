@@ -1,4 +1,3 @@
-import { parseAgentJobs } from '@uwacwy/print-shared';
 import { NEVER } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -15,12 +14,6 @@ vi.mock('../ipp/ipp', () => ({
 }));
 
 describe('createPrinter', () => {
-  it('accepts assembled jobs without a printer-level copy count', () => {
-    expect(
-      parseAgentJobs([{ id: 'job-1', title: 'W-2' }]),
-    ).toEqual([{ id: 'job-1', title: 'W-2' }]);
-  });
-
   it('constructs every driver from a connection string and a request stream', () => {
     const drivers: PrinterConstructor[] = [
       CupsPrinter,

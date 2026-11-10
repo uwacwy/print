@@ -10,15 +10,13 @@ import {
   takeUntilDestroyed,
 } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
+import { type PrinterSummary } from '@uwacwy/print-shared';
 import { firstValueFrom, type Observable } from 'rxjs';
 
 import { AlertComponent } from '../../components/alert/alert.component';
 import { apiErrorMessage } from '../../helpers/api-error/api-error';
 import { LiveEventsService } from '../../services/live-events/live-events.service';
-import {
-  PrinterService,
-  type PrinterSummary,
-} from '../../services/printer/printer.service';
+import { PrinterService } from '../../services/printer/printer.service';
 import { PrinterListItemComponent } from './components/printer-list-item/printer-list-item.component';
 import {
   applyLiveEventToList,

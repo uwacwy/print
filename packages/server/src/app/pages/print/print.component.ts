@@ -8,10 +8,7 @@ import {
   PLATFORM_ID,
   signal,
 } from '@angular/core';
-import {
-  rxResource,
-  toSignal,
-} from '@angular/core/rxjs-interop';
+import { rxResource } from '@angular/core/rxjs-interop';
 import {
   applyEach,
   type FieldTree,
@@ -24,19 +21,10 @@ import {
 } from '@angular/forms/signals';
 import { Title } from '@angular/platform-browser';
 import { Router } from '@angular/router';
-import {
-  MsalBroadcastService,
-  MsalService,
-} from '@azure/msal-angular';
-import { InteractionStatus } from '@azure/msal-browser';
-import {
-  filter,
-  firstValueFrom,
-  map,
-  of,
-  startWith,
-} from 'rxjs';
+import { type AccountInfo } from '@azure/msal-browser';
+import { firstValueFrom } from 'rxjs';
 
+import { activeAccount } from '../../auth/active-account/active-account';
 import { AlertComponent } from '../../components/alert/alert.component';
 import {
   apiErrorCode,
@@ -99,24 +87,10 @@ export class PrintComponent {
   );
   readonly #browser = isPlatformBrowser(inject(PLATFORM_ID));
 
-  readonly #msal = inject(MsalService);
-
   /** The MSAL account, re-read whenever an interaction finishes; always null during SSR. */
-  readonly #account = toSignal(
-    this.#browser
-      ? inject(MsalBroadcastService).inProgress$.pipe(
-          filter((status) => status === InteractionStatus.None),
-          startWith(InteractionStatus.None),
-          map(
-            () =>
-              this.#msal.instance.getActiveAccount() ??
-              this.#msal.instance.getAllAccounts()[0] ??
-              null,
-          ),
-        )
-      : of(null),
-    { initialValue: null },
-  );
+  readonly #account = this.#browser
+    ? activeAccount()
+    : signal<AccountInfo | null>(null);
 
   /** Upload tokens take precedence; otherwise a signed-in user the server accepts prints as themselves. */
   readonly #tokenValid = computed(

@@ -4,6 +4,8 @@ import {
   FormField,
 } from '@angular/forms/signals';
 
+import { fieldError } from '../../helpers/signal-forms/field-error';
+
 /** A labelled text input bound to a signal form field, with a hint and its first error once touched. */
 @Component({
   imports: [FormField],
@@ -50,10 +52,5 @@ export class TextFieldComponent {
     this.hint() ? `${this.inputId()}-hint` : null,
   );
 
-  protected readonly error = computed(() => {
-    const state = this.field()();
-    return state.touched()
-      ? (state.errors()[0]?.message ?? '')
-      : '';
-  });
+  protected readonly error = fieldError(() => this.field());
 }

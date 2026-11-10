@@ -1,9 +1,10 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, input } from '@angular/core';
 import {
   type FieldTree,
   FormField,
 } from '@angular/forms/signals';
 
+import { fieldError } from '../../../../helpers/signal-forms/field-error';
 import {
   NUDGE_MINUTES,
   shiftLocalInput,
@@ -67,12 +68,7 @@ export class DatetimeNudgeFieldComponent {
   readonly inputId = input.required<string>();
   readonly label = input.required<string>();
 
-  protected readonly error = computed(() => {
-    const state = this.field()();
-    return state.touched()
-      ? (state.errors()[0]?.message ?? '')
-      : '';
-  });
+  protected readonly error = fieldError(() => this.field());
   protected readonly minutes = NUDGE_MINUTES;
 
   protected nudge(minutes: number): void {

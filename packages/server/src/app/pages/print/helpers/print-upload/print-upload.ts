@@ -1,4 +1,4 @@
-import type { UploadTokenStatus } from '../../../../services/printer/printer.service';
+import { type UploadTokenStatus } from '@uwacwy/print-shared';
 
 export interface DocumentRow {
   /** Kept as a string because native selects bind string values. */

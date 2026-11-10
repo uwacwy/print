@@ -23,6 +23,11 @@ import {
   Router,
   RouterLink,
 } from '@angular/router';
+import {
+  type CreatedPrinter,
+  PRINTER_NAME_MAX_LENGTH,
+  PRINTER_SLUG_PATTERN,
+} from '@uwacwy/print-shared';
 import { firstValueFrom, map, type Observable, tap } from 'rxjs';
 
 import { CLIENT_ENVIRONMENT } from '../../auth/client-environment';
@@ -33,10 +38,7 @@ import {
   type PrinterLiveStatus,
 } from '../../helpers/printer-live-status/printer-live-status';
 import { LiveEventsService } from '../../services/live-events/live-events.service';
-import {
-  type CreatedPrinter,
-  PrinterService,
-} from '../../services/printer/printer.service';
+import { PrinterService } from '../../services/printer/printer.service';
 import {
   type AddMode,
   AddModeChoiceComponent,
@@ -47,9 +49,7 @@ import { PrinterFormComponent } from './components/printer-form/printer-form.com
 import { PrinterStatusComponent } from './components/printer-status/printer-status.component';
 import {
   emptyPrinterModel,
-  NAME_MAX_LENGTH,
   printerPageTitle,
-  SLUG_PATTERN,
   toPrinterModel,
 } from './helpers/printer-form/printer-form';
 
@@ -129,8 +129,7 @@ import {
 export class ManagePrinterComponent {
   readonly created = signal<CreatedPrinter | null>(null);
   /** The server has `PUBLIC_URL`, so printers can enroll from their own computers. */
-  readonly enrollment =
-    inject(CLIENT_ENVIRONMENT).enrollment ?? false;
+  readonly enrollment = inject(CLIENT_ENVIRONMENT).enrollment;
   readonly #route = inject(ActivatedRoute);
   readonly slug =
     this.#route.snapshot.paramMap.get('slug') ?? '';
@@ -162,13 +161,13 @@ export class ManagePrinterComponent {
       required(path.name, {
         message: $localize`:@@manage-printer.name-required:Enter a display name.`,
       });
-      maxLength(path.name, NAME_MAX_LENGTH, {
-        message: $localize`:@@manage-printer.name-max:Enter a name of at most ${NAME_MAX_LENGTH}:NAME_MAX_LENGTH: characters.`,
+      maxLength(path.name, PRINTER_NAME_MAX_LENGTH, {
+        message: $localize`:@@manage-printer.name-max:Enter a name of at most ${PRINTER_NAME_MAX_LENGTH}:PRINTER_NAME_MAX_LENGTH: characters.`,
       });
       required(path.slug, {
         message: $localize`:@@manage-printer.slug-format:Use lowercase letters, numbers, and hyphens.`,
       });
-      pattern(path.slug, SLUG_PATTERN, {
+      pattern(path.slug, PRINTER_SLUG_PATTERN, {
         message: $localize`:@@manage-printer.slug-format:Use lowercase letters, numbers, and hyphens.`,
       });
       required(path.queue, {
