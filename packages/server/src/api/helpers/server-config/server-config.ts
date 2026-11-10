@@ -174,6 +174,8 @@ export function isAngularDevServer(
 
 export function loadServerConfig(
   env: NodeJS.ProcessEnv = process.env,
+  // Feeds the SOCKET_DEV_PORT default, which is commented out below.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   devServer = isAngularDevServer(),
 ): ServerConfig {
   const e = ServerEnvironment.parse(env);

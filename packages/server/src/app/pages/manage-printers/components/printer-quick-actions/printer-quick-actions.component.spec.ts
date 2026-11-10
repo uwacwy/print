@@ -44,9 +44,9 @@ describe('PrinterQuickActionsComponent', () => {
   });
 
   it('links to the upload page and QR code', () => {
-    const [upload, qr] = Array.from(
+    const [upload, qr] = Array.from<HTMLAnchorElement>(
       create().nativeElement.querySelectorAll('a'),
-    ) as HTMLAnchorElement[];
+    );
     expect(upload.getAttribute('href')).toBe('/print/front-office');
     expect(upload.getAttribute('target')).toBe('_blank');
     expect(qr.getAttribute('href')).toBe('/front-office/qr');

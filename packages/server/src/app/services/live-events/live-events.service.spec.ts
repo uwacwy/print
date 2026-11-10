@@ -68,14 +68,16 @@ describe('LiveEventsService', () => {
       string,
       {
         path: string;
-        auth: (send: (data: object) => void) => Promise<void>;
+        auth: (send: (data: object) => void) => void;
       },
     ];
     expect(namespace).toBe('/live');
     expect(options.path).toBe('/ws');
     const auth = vi.fn();
-    await options.auth(auth);
-    expect(auth).toHaveBeenCalledWith({ token: 'token-123' });
+    options.auth(auth);
+    await vi.waitFor(() =>
+      expect(auth).toHaveBeenCalledWith({ token: 'token-123' }),
+    );
 
     socket.fire('connect');
     expect(service.connected()).toBe(true);

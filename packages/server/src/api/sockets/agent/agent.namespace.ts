@@ -6,14 +6,16 @@ import type { Namespace } from 'socket.io';
 import { handshake, type SocketData } from '../handshake/handshake';
 import type { WebSocketOptions } from '../sockets';
 
+export type AgentNamespace = Namespace<
+  AgentClientEvents,
+  AgentServerEvents,
+  Record<string, never>,
+  SocketData
+>;
+
 /** Print agents: one live socket per printer, fed by the hub. */
 export const agentNamespace = (
-  namespace: Namespace<
-    AgentClientEvents,
-    AgentServerEvents,
-    Record<string, never>,
-    SocketData
-  >,
+  namespace: AgentNamespace,
   { getHub, verify }: WebSocketOptions,
 ) =>
   namespace

@@ -143,17 +143,25 @@ export type PrinterFields = Pick<
   cover_page: boolean;
 };
 
+// Form and JSON bodies only carry scalars; anything else is treated as missing.
+const fieldText = (value: unknown): string =>
+  typeof value === 'string' ||
+  typeof value === 'number' ||
+  typeof value === 'boolean'
+    ? String(value)
+    : '';
+
 export function validatePrinterFields(
   input: Partial<Record<keyof PrinterFields, unknown>>,
 ): PrinterFields | string {
-  const slug = String(input.slug ?? '')
+  const slug = fieldText(input.slug)
     .trim()
     .toLowerCase();
-  const name = String(input.name ?? '').trim();
-  const queue = String(input.queue ?? '').trim();
+  const name = fieldText(input.name).trim();
+  const queue = fieldText(input.queue).trim();
   // HTML checkboxes submit "on" when ticked and nothing otherwise.
   const cover_page = ['on', 'true', '1'].includes(
-    String(input.cover_page ?? ''),
+    fieldText(input.cover_page),
   );
   if (!PRINTER_SLUG_PATTERN.test(slug)) {
     return 'Slug must be lowercase letters, numbers, and hyphens (max 63).';

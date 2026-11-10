@@ -1,5 +1,4 @@
 import { spawn } from 'node:child_process';
-import { log } from './logging';
 
 const GHOSTSCRIPT_TIMEOUT_MS = 120_000;
 
@@ -9,6 +8,8 @@ class GhostscriptMissingError extends Error {}
 function ghostscript(
   args: readonly string[],
   pdf: Buffer,
+  // The output cap below is disabled for now; callers still pass the limit.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   maximumBytes: number,
 ): Promise<Buffer> {
   return new Promise((resolve, reject) => {

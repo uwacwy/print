@@ -30,7 +30,7 @@ function fakeLp(
 ) {
   let next = 0;
   vi.mocked(spawn).mockImplementation((command, args) => {
-    const argv = args as readonly string[];
+    const argv = args;
     let code = 0;
     let stdout = '';
     if (command === 'lp') {

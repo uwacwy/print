@@ -47,11 +47,26 @@ export interface Authenticate {
   /** Like `authenticate`, but continues anonymously when every strategy declines. */
   optional(...strategies: StrategyName[]): AuthMiddleware;
   /** Checks an `Authorization` value outside HTTP routing, e.g. a socket handshake. */
-  verify(
+  verify: (
     authorization: string | undefined,
     ...strategies: StrategyName[]
-  ): Promise<Principal | AuthChallenge>;
+  ) => Promise<Principal | AuthChallenge>;
 }
+
+// @types/passport returns `any`; with a callback the result is always a request handler.
+type Authenticator = (
+  strategies: StrategyName[],
+  options: { session: false },
+  callback: (
+    error: unknown,
+    user: Express.User | false,
+    info: unknown,
+  ) => void,
+) => (
+  request: Request<unknown>,
+  response: Response,
+  next: NextFunction,
+) => void;
 
 const UNKNOWN: AuthChallenge = {
   code: 'unauthorized',
@@ -103,7 +118,7 @@ export function createAuthenticate({
     (optional: boolean) =>
     (...strategies: StrategyName[]): AuthMiddleware =>
     (request, response, next) =>
-      passport.authenticate(
+      (passport.authenticate as Authenticator)(
         strategies,
         { session: false },
         (
@@ -157,7 +172,7 @@ export function createAuthenticate({
             ? authorization
             : undefined,
       } as unknown as Request;
-      passport.authenticate(
+      (passport.authenticate as Authenticator)(
         strategies,
         { session: false },
         (
@@ -166,7 +181,13 @@ export function createAuthenticate({
           info: unknown,
         ) =>
           error
-            ? reject(error)
+            ? reject(
+                error instanceof Error
+                  ? error
+                  : new Error('Authentication failed', {
+                      cause: error,
+                    }),
+              )
             : resolve(
                 user
                   ? (user as Principal)

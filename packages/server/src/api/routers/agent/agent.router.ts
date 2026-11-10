@@ -115,7 +115,7 @@ export default ({
         updatePrinter(db, printer.id, fields);
         response.json(agentView(getPrinterById(db, printer.id)!));
       })
-      .param('id', (req, res, next, id) => {
+      .param('id', (req, res, next, id: string) => {
         if (!JOB_ID_PATTERN.test(id)) {
           res.status(400).json({ error: 'Invalid job ID' });
           return;

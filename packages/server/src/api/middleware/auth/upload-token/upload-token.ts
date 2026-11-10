@@ -100,6 +100,8 @@ const tag = (key: UploadTokenKey, body: Buffer) =>
     .digest()
     .subarray(0, TAG_LENGTH);
 
+// async so window validation errors surface as rejections, which callers rely on.
+// eslint-disable-next-line @typescript-eslint/require-await
 export async function signUploadToken(
   key: UploadTokenKey,
   printer: UploadTokenPrinter,
@@ -226,6 +228,7 @@ export function inspectUploadToken(
 }
 
 /** Verifies the MAC, printer binding, revocation epoch, and time window. */
+// eslint-disable-next-line @typescript-eslint/require-await -- async to match signUploadToken.
 export async function verifyUploadToken(
   key: UploadTokenKey,
   printer: UploadTokenPrinter,

@@ -38,6 +38,10 @@
     "dev": "tsx --watch src/index.ts run --config .env",
     "test-api": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
+    "lint": "eslint .",
+    "lint:typed": "eslint -c ../../eslint.typecheck.config.mjs .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "prepack": "npm run build && node ../../scripts/prepack.mjs dist/cli.mjs",
     "postpack": "node ../../scripts/prepack.mjs --clean"
   },

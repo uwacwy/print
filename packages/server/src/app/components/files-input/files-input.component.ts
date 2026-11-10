@@ -21,6 +21,8 @@ import { fromEvent } from 'rxjs';
  * Currently unused: some mobile browsers handle multi-select poorly.
  */
 @Component({
+  // Enhances native file inputs, so the selector matches the element itself.
+  // eslint-disable-next-line @angular-eslint/component-selector
   selector: 'input[type=file][multiple]',
   template: ``,
 })

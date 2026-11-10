@@ -278,9 +278,10 @@ async function startServer(): Promise<void> {
     console.log('Shutting down');
     shutdownPrintRuntime();
     // Also closes the HTTP server.
-    const serverClosed = new Promise<void>((resolve) =>
-      io.close(() => resolve()),
-    );
+    const serverClosed = new Promise<void>((resolve) => {
+      // The returned promise settles before the HTTP server finishes closing; the callback doesn't.
+      void io.close(() => resolve());
+    });
     void Promise.all([serverClosed, accessLog?.close()]).then(() =>
       process.exit(0),
     );

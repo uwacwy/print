@@ -7,8 +7,15 @@ import {
 import { Server } from 'socket.io';
 import type { Authenticate } from '../middleware/auth/passport/passport';
 import type { PrintServerEvents } from '../types';
-import type { AgentHub, AgentSocket } from './agent-hub/agent-hub';
-import { handshake } from './handshake/handshake';
+import type { AgentHub } from './agent-hub/agent-hub';
+import {
+  agentNamespace,
+  type AgentNamespace,
+} from './agent/agent.namespace';
+import {
+  liveNamespace,
+  type LiveNamespace,
+} from './live/live.namespace';
 
 export interface WebSocketOptions {
   getHub: () => AgentHub;
@@ -35,34 +42,9 @@ export const attachWebSockets = (
     next(new Error('Invalid namespace')),
   );
 
-  io.of(AGENT_NAMESPACE)
-    .use(handshake(options.verify, 'agentToken'))
-    .on('connection', (socket) => {
-      const { principal } = socket.data;
-      if (principal.kind === 'agent') {
-        options
-          .getHub()
-          .connect(socket as AgentSocket, principal.printer);
-      } else {
-        socket.disconnect(true);
-      }
-    });
-
-  io.of(LIVE_NAMESPACE)
-    .use(handshake(options.verify, 'entraUser'))
-    .on('connection', (socket) => {
-      const hub = options.getHub();
-      socket.emit('live', {
-        type: 'snapshot',
-        onlinePrinterIds: hub.onlinePrinterIds(),
-      });
-      // When the hub is replaced (dev reload) the client reconnects for a fresh snapshot.
-      const unsubscribe = hub.subscribe(
-        (event) => socket.emit('live', event),
-        () => socket.disconnect(true),
-      );
-      socket.on('disconnect', unsubscribe);
-    });
+  // socket.io types events per server, not per namespace.
+  agentNamespace(io.of(AGENT_NAMESPACE) as AgentNamespace, options);
+  liveNamespace(io.of(LIVE_NAMESPACE) as LiveNamespace, options);
 
   console.log('[WebSockets] attached');
 

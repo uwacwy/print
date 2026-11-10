@@ -59,11 +59,12 @@ export class LiveEventsService {
         {
           path: $.ws(),
           // Called on every attempt, so reconnects pick up refreshed tokens.
-          auth: (send) =>
-            this.#accessToken().then(
+          auth: (send) => {
+            void this.#accessToken().then(
               (token) => send({ token }),
               () => send({}),
-            ),
+            );
+          },
           reconnectionDelay: MIN_RETRY_MS,
           reconnectionDelayMax: MAX_RETRY_MS,
         },

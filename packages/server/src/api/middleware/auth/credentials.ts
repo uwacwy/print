@@ -13,7 +13,7 @@ export function credential(
     request.header('authorization') ?? '',
   );
   return match
-    ? { scheme: match[1]!.toLowerCase(), value: match[2]! }
+    ? { scheme: match[1].toLowerCase(), value: match[2] }
     : undefined;
 }
 

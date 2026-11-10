@@ -36,6 +36,7 @@ describe('printInOrder', () => {
 
   it('reports non-Error rejections generically', async () => {
     const results$ = printInOrder(from([request('a')]), () =>
+      // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors -- the case under test.
       Promise.reject('nope'),
     );
     expect(await firstValueFrom(results$)).toEqual({

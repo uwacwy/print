@@ -8,7 +8,7 @@ export function jobTitle({
   const submitted = (title ?? '').trim();
   const fromFiles =
     documents.length === 1
-      ? documents[0]!.fileName.replace(/\.[^.]+$/, '').trim()
+      ? documents[0].fileName.replace(/\.[^.]+$/, '').trim()
       : `${documents.length} documents`;
   return (submitted || fromFiles || 'Print job').slice(0, 120);
 }

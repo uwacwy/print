@@ -2,6 +2,8 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    // Drops the base mapping so shared cannot import itself.
+    "paths": {},
     "module": "preserve",
     "moduleResolution": "bundler",
     "noEmit": true

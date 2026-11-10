@@ -1,40 +1,33 @@
 {
-  "oxc.enable": true,
-  "oxc.enable.oxlint": true,
-  "oxc.enable.oxfmt": true,
-  "oxc.lint.run": "onType",
-  "oxc.fixKind": "safe_fix",
-
-  // Lint fixes run first, then oxfmt reformats whatever they changed (e.g. inserted braces).
-  "editor.formatOnSave": false,
+  // ESLint fixes run as a code action, then Prettier formats the result.
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
   "editor.codeActionsOnSave": {
-    "source.fixAll.oxc": "always",
-    "source.format.oxc": "always",
-    "source.organizeImports": "always",
-    "source.removeUnusedImports": "always"
+    "source.fixAll.eslint": "explicit",
+    "source.removeUnusedImports": "explicit"
   },
-  "editor.defaultFormatter": "oxc.oxc-vscode",
 
-  // Per-language entries beat user-level ones like "[typescript]": { prettier }.
-  "[javascript]": { "editor.defaultFormatter": "oxc.oxc-vscode" },
-  "[javascriptreact]": {
-    "editor.defaultFormatter": "oxc.oxc-vscode"
-  },
-  "[typescript]": { "editor.defaultFormatter": "oxc.oxc-vscode" },
-  "[typescriptreact]": {
-    "editor.defaultFormatter": "oxc.oxc-vscode"
-  },
-  "[json]": { "editor.defaultFormatter": "oxc.oxc-vscode" },
-  "[jsonc]": { "editor.defaultFormatter": "oxc.oxc-vscode" },
-  "[html]": { "editor.defaultFormatter": "oxc.oxc-vscode" },
-  "[css]": { "editor.defaultFormatter": "oxc.oxc-vscode" },
-  "[scss]": { "editor.defaultFormatter": "oxc.oxc-vscode" },
-  "[markdown]": { "editor.defaultFormatter": "oxc.oxc-vscode" },
-  "[yaml]": { "editor.defaultFormatter": "oxc.oxc-vscode" },
+  // Per-language entries beat user-level ones.
+  "[javascript]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[typescript]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[json]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[jsonc]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[html]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[css]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[scss]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[markdown]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[yaml]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
 
-  // This repo has no ESLint or Prettier config; keep those extensions from competing.
-  "eslint.enable": false,
-  "prettier.enable": false,
+  "eslint.useFlatConfig": true,
+  "eslint.validate": ["javascript", "typescript", "html"],
+  "eslint.workingDirectories": [{ "mode": "auto" }],
+
+  "js/ts.preferences.importModuleSpecifier": "shortest",
+  // Shared must never import itself; elsewhere import the package, not its built output.
+  "js/ts.preferences.autoImportFileExcludePatterns": [
+    "**/packages/shared/dist/**",
+    "**/node_modules/@uwacwy/print-shared/**"
+  ],
   "js/ts.preferences.organizeImports": {
     "unicodeCollation": "unicode"
   }

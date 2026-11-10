@@ -41,11 +41,9 @@ const SECRET_PARAMS = new Set([
 const UNLOGGED_PATHS = new Set(['/api/healthz']);
 
 type ParamSegmentSpec = { type: 'param'; name: string };
-type StaticSegmentSpec = { type: 'static'; value: string };
-const isParamSegmentSpec = (s: any): s is ParamSegmentSpec =>
-  s.type === 'param';
-const isStaticSegmentSpec = (s: any): s is StaticSegmentSpec =>
-  s.type === 'static';
+const isParamSegmentSpec = (s: {
+  type: string;
+}): s is ParamSegmentSpec => s.type === 'param';
 
 type RouteCodec = {
   parse(url: string | URL): Record<string, string> | null;
@@ -59,7 +57,7 @@ type RouteCodec = {
 const route = (urlSpec: string): RouteCodec => {
   const segments = urlSpec.split('/');
 
-  const segmentSpecs = segments.map((s, idx) => {
+  const segmentSpecs = segments.map((s) => {
     if (s.startsWith(':')) {
       return { type: 'param', name: s.slice(1) };
     }

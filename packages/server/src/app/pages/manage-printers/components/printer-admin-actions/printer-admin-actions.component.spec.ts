@@ -31,9 +31,9 @@ describe('PrinterAdminActionsComponent', () => {
     Array.from(el.querySelectorAll('button'));
 
   it('links to configuration and the QR code page', () => {
-    const [configure, qr] = Array.from(
+    const [configure, qr] = Array.from<HTMLAnchorElement>(
       create().nativeElement.querySelectorAll('a'),
-    ) as HTMLAnchorElement[];
+    );
     expect(configure.getAttribute('href')).toBe('/front-office');
     expect(qr.getAttribute('href')).toBe('/front-office/qr');
   });

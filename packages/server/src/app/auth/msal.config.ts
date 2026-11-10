@@ -48,7 +48,7 @@ export function getMsalInterceptorConfiguration(
   clientEnvironment: PrintServerClientEnvironment = environment,
 ): MsalInterceptorConfiguration {
   const scope = getApiScope(clientEnvironment);
-  const protectedResourceMap = new Map();
+  const protectedResourceMap = new Map<string, string[]>();
   const redirectUri = clientEnvironment.msal.redirectUri;
   if (scope && URL.canParse(redirectUri)) {
     const apiOrigin = new URL(redirectUri).origin;

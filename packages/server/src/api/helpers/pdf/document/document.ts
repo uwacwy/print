@@ -124,8 +124,8 @@ export async function combineDocuments(
   if (documents.length === 0) {
     throw new Error('Choose at least one document to print.');
   }
-  if (documents.length === 1 && documents[0]!.copies === 1) {
-    return (await normalizeDocument(documents[0]!.buffer, options))
+  if (documents.length === 1 && documents[0].copies === 1) {
+    return (await normalizeDocument(documents[0].buffer, options))
       .pdf;
   }
 

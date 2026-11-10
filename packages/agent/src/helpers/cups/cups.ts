@@ -21,6 +21,8 @@ export const CUPS_RETRY_DELAYS_MS: readonly number[] = [
 
 const LP_OPTION_PREFIX = 'option_';
 const LP_OPTION_NAME = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$/;
+// Control characters are exactly what this pattern rejects.
+// eslint-disable-next-line no-control-regex
 const LP_OPTION_VALUE = /^[^\s\0-\x1f\x7f]{0,256}$/;
 const CUPS_QUEUE = /^[A-Za-z0-9_.-]{1,128}$/;
 

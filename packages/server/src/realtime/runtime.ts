@@ -1,4 +1,4 @@
-import { createServer, type Server } from 'node:http';
+import type { Server } from 'node:http';
 import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { Server as SocketServer } from 'socket.io';
@@ -10,10 +10,7 @@ import {
 } from '../api/helpers/database/database';
 import type { ServerConfig } from '../api/helpers/server-config/server-config';
 import { AgentHub } from '../api/sockets/agent-hub/agent-hub';
-import {
-  attachWebSockets,
-  type WebSocketOptions,
-} from '../api/sockets/sockets';
+import type { WebSocketOptions } from '../api/sockets/sockets';
 
 /**
  * Process-wide state for the print server.
@@ -81,7 +78,7 @@ export function startJobCleanup(
   if (runtime.cleanupTimer) {
     clearInterval(runtime.cleanupTimer);
   }
-  runtime.cleanupTimer = setInterval(async () => {
+  runtime.cleanupTimer = setInterval(() => {
     const now = Date.now();
     const expired = expireStaleJobs(
       runtime.db,
@@ -91,9 +88,11 @@ export function startJobCleanup(
       runtime.db,
       new Date(now - config.retentionMs).toISOString(),
     );
-    for (const id of [...expired, ...removed]) {
-      await rm(join(runtime.jobsDir, `${id}.pdf`), { force: true });
-    }
+    void Promise.all(
+      [...expired, ...removed].map((id) =>
+        rm(join(runtime.jobsDir, `${id}.pdf`), { force: true }),
+      ),
+    );
   }, 10 * 60_000);
   runtime.cleanupTimer.unref();
 }

@@ -28,7 +28,7 @@ const sign = (
 
 const flipByte = (token: string, index: number) => {
   const bytes = Buffer.from(token, 'base64url');
-  bytes[index]! ^= 0x01;
+  bytes[index] ^= 0x01;
   return bytes.toString('base64url');
 };
 

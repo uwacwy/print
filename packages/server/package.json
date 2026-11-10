@@ -40,6 +40,10 @@
     "test-ng": "ng test print-server --watch=false",
     "test-api": "vitest run",
     "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.test.json",
+    "lint": "eslint .",
+    "lint:typed": "eslint -c ../../eslint.typecheck.config.mjs .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "prepack": "node ../../scripts/prepack.mjs dist/server/server.mjs",
     "postpack": "node ../../scripts/prepack.mjs --clean"
   },

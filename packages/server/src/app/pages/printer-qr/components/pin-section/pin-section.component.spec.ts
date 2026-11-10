@@ -1,12 +1,11 @@
 import { TestBed } from '@angular/core/testing';
 import { describe, expect, it } from 'vitest';
-import type { PrinterSummary } from '../../../../services/printer/printer.service';
 import { PinSectionComponent } from './pin-section.component';
 
 describe('PinSectionComponent', () => {
   const create = (pin: string | null, busy = false) => {
     const fixture = TestBed.createComponent(PinSectionComponent);
-    fixture.componentRef.setInput('printer', { pin } as PrinterSummary);
+    fixture.componentRef.setInput('printer', { pin });
     fixture.componentRef.setInput('busy', busy);
     fixture.detectChanges();
     return fixture;

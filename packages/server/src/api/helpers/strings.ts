@@ -1,7 +1,8 @@
 /** Strips path separators and control characters from an uploaded file name. */
 export function cleanFileName(name: string): string {
-  // eslint-disable-next-line no-control-regex
   return (
+    // Control characters are exactly what this strips.
+    // eslint-disable-next-line no-control-regex
     name.replace(/[\\/\0-\x1f]/g, '').slice(0, 180) || 'document'
   );
 }

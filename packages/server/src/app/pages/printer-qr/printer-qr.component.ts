@@ -161,10 +161,10 @@ export class PrinterQrComponent {
       required(path.expiresAt, {
         message: 'Choose when the QR code stops working.',
       });
-      validate(path.expiresAt, ({ value, valueOf }) => {
+      validate(path.expiresAt, (field) => {
         const message = windowOrderError(
-          valueOf(path.notBefore),
-          value(),
+          field.valueOf(path.notBefore),
+          field.value(),
         );
         return message ? { kind: 'window', message } : undefined;
       });

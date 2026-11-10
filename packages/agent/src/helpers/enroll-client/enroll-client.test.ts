@@ -65,7 +65,7 @@ describe('enroll-client', () => {
     expect(
       (init.headers as Record<string, string>)['authorization'],
     ).toBe('Bearer enroll-token');
-    expect(JSON.parse(String(init.body))).toEqual({
+    expect(JSON.parse(init.body as string)).toEqual({
       name: 'n',
       slug: 's',
       queue: 'cups://Q',

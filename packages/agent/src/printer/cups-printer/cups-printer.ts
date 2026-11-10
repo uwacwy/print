@@ -19,7 +19,6 @@ import { jobTitle } from '../../helpers/text/text';
 import type {
   IPrinter,
   PrinterOptions,
-  PrintJob,
   PrintRequest,
   PrintResult,
 } from '../../types';

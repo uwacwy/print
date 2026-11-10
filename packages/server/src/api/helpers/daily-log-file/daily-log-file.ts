@@ -104,9 +104,9 @@ export class DailyLogFile extends Writable {
     const [year, month, date] = today.split('-').map(Number);
     const oldestKept = formatLogDate(
       new Date(
-        year!,
-        month! - 1,
-        date! - (this.options.maxDays - 1),
+        year,
+        month - 1,
+        date - (this.options.maxDays - 1),
       ),
     );
     for (const name of readdirSync(this.options.dir)) {

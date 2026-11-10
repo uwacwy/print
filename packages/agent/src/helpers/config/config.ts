@@ -1,4 +1,6 @@
 import { posix } from 'node:path';
+// Experimental before Node 24.10, but present and quiet from 20.12, below the agent's 20.17 floor.
+// eslint-disable-next-line n/no-unsupported-features/node-builtins
 import { parseEnv } from 'node:util';
 import { isAllowedServerUrl } from '@uwacwy/print-shared';
 import {

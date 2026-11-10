@@ -24,7 +24,7 @@ function fakeCups(
   reply: (command: string, args: string[]) => Reply,
 ) {
   vi.mocked(spawn).mockImplementation((command, args) => {
-    const result = reply(command, [...(args as readonly string[])]);
+    const result = reply(command, [...(args)]);
     const { code, stdout, stderr } =
       typeof result === 'string'
         ? { code: 0, stdout: result, stderr: '' }
@@ -158,7 +158,7 @@ describe('CupsClient', () => {
   it('runs CUPS commands untranslated with sbin on PATH', async () => {
     fakeCups(() => ENABLED);
     await cups.queueState();
-    const env = vi.mocked(spawn).mock.calls[0]![2]!.env!;
+    const env = vi.mocked(spawn).mock.calls[0]![2].env!;
     expect(env['LC_ALL']).toBe('C');
     expect(env['PATH']).toMatch(/:\/usr\/sbin:\/sbin$/);
   });

@@ -16,6 +16,10 @@
     "build": "tsc -b && node build.mjs",
     "dev": "tsc -b --watch --preserveWatchOutput",
     "test-api": "vitest run",
-    "typecheck": "tsc -p tsconfig.test.json"
+    "typecheck": "tsc -p tsconfig.test.json",
+    "lint": "eslint .",
+    "lint:typed": "eslint -c ../../eslint.typecheck.config.mjs .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   }
 }

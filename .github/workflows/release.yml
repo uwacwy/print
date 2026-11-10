@@ -34,8 +34,9 @@ jobs:
           version="${GITHUB_REF_NAME#v}"
           echo "version=$version" >> "$GITHUB_OUTPUT"
           if [[ "$version" == *-* ]]; then echo "prerelease=true"; else echo "prerelease=false"; fi >> "$GITHUB_OUTPUT"
-      - run: npm run fmt:check
+      - run: npm run format:check
       - run: npm run lint
+      - run: npm run lint:typed
       - run: npm run typecheck
       - run: npm test
       - run: npm run build

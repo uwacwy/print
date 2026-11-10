@@ -341,7 +341,7 @@ it on a Pi set up as a user service. For a first install, copy a `npm pack` tarb
 ## Building and testing
 
 Every package under `packages/` uses the same script names (`build`, `dev`, `test-ng`, `test-api`,
-`typecheck`, …), so the root runs each one across all packages with
+`typecheck`, `lint`, `lint:typed`, `format`, …), so the root runs each one across all packages with
 `npm run <script> --workspaces --if-present`; packages without a script skip it. To target one package,
 use `npm run <script> -w @uwacwy/print-<shared|agent|server>`, e.g. `npm run dev -w @uwacwy/print-agent`.
 
@@ -349,7 +349,8 @@ use `npm run <script> -w @uwacwy/print-<shared|agent|server>`, e.g. `npm run dev
 npm run build            # shared, agent (packages/agent/dist/cli.mjs), server (packages/server/dist)
 npm test                 # test-ng (Angular unit tests), then test-api (vitest in every package)
 npm run typecheck
-npm run lint && npm run fmt:check
+npm run lint             # ESLint (angular-eslint, perfectionist); lint:typed adds type-aware rules
+npm run format:check     # Prettier; `npm run format` rewrites
 npm run compose:check    # validates examples/compose.*.yml and compose.yml
 ```
 

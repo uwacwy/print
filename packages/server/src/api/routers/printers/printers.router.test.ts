@@ -459,7 +459,7 @@ describe('printers router', () => {
           headers: admin,
         })
       ).json()) as { failedJobs: number }[];
-      expect(list[0]!.failedJobs).toBe(2);
+      expect(list[0].failedJobs).toBe(2);
 
       const retry = () =>
         fetch(

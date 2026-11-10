@@ -3,14 +3,16 @@ import type { Namespace } from 'socket.io';
 import { handshake, type SocketData } from '../handshake/handshake';
 import type { WebSocketOptions } from '../sockets';
 
+export type LiveNamespace = Namespace<
+  Record<string, never>,
+  LiveServerEvents,
+  Record<string, never>,
+  SocketData
+>;
+
 /** Management UI: a snapshot of online agents, then every agent and job change. */
 export const liveNamespace = (
-  namespace: Namespace<
-    Record<string, never>,
-    LiveServerEvents,
-    Record<string, never>,
-    SocketData
-  >,
+  namespace: LiveNamespace,
   { getHub, verify }: WebSocketOptions,
 ) =>
   namespace
