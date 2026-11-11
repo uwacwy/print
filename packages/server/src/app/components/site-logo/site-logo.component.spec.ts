@@ -26,7 +26,10 @@ describe('SiteLogoComponent', () => {
   it('shows the logo with its text alternative', () => {
     const element = render({
       ...environment,
-      logo: { alt: 'United Way', src: '/logo.svg?v=1' },
+      brand: {
+        ...environment.brand,
+        logo: { alt: 'United Way', src: '/logo.svg?v=1' },
+      },
     });
     const img = element.querySelector('img');
     expect(img?.getAttribute('src')).toBe('/logo.svg?v=1');

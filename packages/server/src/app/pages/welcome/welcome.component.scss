@@ -23,6 +23,11 @@ section:nth-of-type(3) {
   font-weight: 500;
 }
 
+// Closes the sentence before the retry link, cancelling the pill's flex gap.
+.status-stop {
+  margin-inline-start: -0.5rem;
+}
+
 .status-dot {
   position: relative;
   width: 0.75rem;

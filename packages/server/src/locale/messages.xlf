@@ -41,14 +41,6 @@
         <source>Manage Printer</source>
       </segment>
     </unit>
-    <unit id="app.united-way-quick-print-2">
-      <notes>
-        <note category="location">packages/server/src/app/app.ts:24,26</note>
-      </notes>
-      <segment>
-        <source> United Way Quick Print </source>
-      </segment>
-    </unit>
     <unit id="agent-badge.online">
       <notes>
         <note category="location">packages/server/src/app/components/agent-badge/agent-badge.component.ts:11,14</note>
@@ -1238,7 +1230,7 @@
     </unit>
     <unit id="welcome.how-this-works">
       <notes>
-        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:36,38</note>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:37,39</note>
       </notes>
       <segment>
         <source> How this works </source>
@@ -1246,7 +1238,7 @@
     </unit>
     <unit id="welcome.scan-the-qr-code">
       <notes>
-        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:46,48</note>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:47,49</note>
       </notes>
       <segment>
         <source>Scan the QR code</source>
@@ -1254,7 +1246,7 @@
     </unit>
     <unit id="welcome.point-your-phone-s">
       <notes>
-        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:49,52</note>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:50,53</note>
       </notes>
       <segment>
         <source> Point your phone’s camera at the code posted next to the printer and tap the link that appears. </source>
@@ -1262,7 +1254,7 @@
     </unit>
     <unit id="welcome.choose-your-documents">
       <notes>
-        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:61,63</note>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:62,64</note>
       </notes>
       <segment>
         <source>Choose your documents</source>
@@ -1270,7 +1262,7 @@
     </unit>
     <unit id="welcome.add-pdfs-or-photos">
       <notes>
-        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:64,67</note>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:65,68</note>
       </notes>
       <segment>
         <source> Add PDFs or photos, give the job a name you’ll recognize, and set the number of copies. </source>
@@ -1278,7 +1270,7 @@
     </unit>
     <unit id="welcome.collect-your-pages">
       <notes>
-        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:76,79</note>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:77,80</note>
       </notes>
       <segment>
         <source>Collect your pages</source>
@@ -1286,7 +1278,7 @@
     </unit>
     <unit id="welcome.and-your-job-goes">
       <notes>
-        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:82,85</note>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:83,86</note>
       </notes>
       <segment>
         <source> Tap <pc id="0" equivStart="START_EMPHASISED_TEXT" equivEnd="CLOSE_EMPHASISED_TEXT" type="fmt" dispStart="&lt;em&gt;" dispEnd="&lt;/em&gt;">Print</pc> and your job goes straight to that printer. Pick it up from the tray in a moment. </source>
@@ -1294,7 +1286,7 @@
     </unit>
     <unit id="welcome.frequently-asked-questions">
       <notes>
-        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:96,99</note>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:97,100</note>
       </notes>
       <segment>
         <source> Frequently asked questions </source>
@@ -1430,7 +1422,7 @@
     </unit>
     <unit id="live-events.sign-in-required">
       <notes>
-        <note category="location">packages/server/src/app/services/live-events/live-events.service.ts:132</note>
+        <note category="location">packages/server/src/app/services/live-events/live-events.service.ts:130</note>
       </notes>
       <segment>
         <source>Sign in to receive live updates.</source>

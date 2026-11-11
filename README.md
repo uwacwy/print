@@ -129,8 +129,13 @@ and each package's `.env.example` lists every setting.
   reads them at startup from `GET /api/client-config`, so one prebuilt image or package works for any
   tenant.
 - A `logo.svg`, `logo.png`, or `logo.jpg` in the server's `dist/browser` folder (or `packages/server/public`
-  before building) is shown in the page header. `LOGO_ALT` (default `United Way`) is its text for screen
+  before building) is shown in the page header. `LOGO_ALT` (default `Contoso`) is its text for screen
   readers. The server looks for the logo at startup, so restart it after adding or replacing the file.
+  `CLIENT_BRAND_LOGO` (a root-relative URL) overrides the file lookup.
+- `CLIENT_LEGAL_ORG_NAME` (default `Contoso`) is the organization named in the footer copyright notice.
+  `CLIENT_BRAND_LINKS` adds footer links (for example privacy and terms) as a query string:
+  `label=Privacy&url=https://example.com/privacy&label=Terms&url=/terms` (URLs must be http(s), mailto, or
+  root-relative). `CLIENT_SHOW_ATTRIBUTION=false` hides the package name and version in the footer.
 - `TRUST_PROXY=true` only behind a reverse proxy; otherwise clients could spoof their IP to dodge rate limits.
 
 ## Development server

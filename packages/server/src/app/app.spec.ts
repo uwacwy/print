@@ -24,7 +24,7 @@ describe('App', () => {
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('h1')?.textContent).toContain(
-      'United Way Quick Print',
+      environment.brand.siteTitle,
     );
   });
 
@@ -32,7 +32,10 @@ describe('App', () => {
     TestBed.overrideProvider(CLIENT_ENVIRONMENT, {
       useValue: {
         ...environment,
-        logo: { alt: 'United Way', src: '/logo.png?v=1' },
+        brand: {
+          ...environment.brand,
+          logo: { alt: 'United Way', src: '/logo.png?v=1' },
+        },
       },
     });
     const fixture = TestBed.createComponent(App);

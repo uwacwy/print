@@ -50,7 +50,13 @@ describe('API root', () => {
         }),
       );
     expect(await clientConfig()).toEqual({
-      body: { enrollment: false, publicUrl: testPublicUrl.href },
+      body: {
+        brand: { siteTitle: expect.any(String) },
+        enrollment: false,
+        legal: { organizationName: 'Contoso' },
+        publicUrl: testPublicUrl.href,
+        showAttribution: true,
+      },
       cache: 'no-cache',
       status: 200,
     });
@@ -63,15 +69,21 @@ describe('API root', () => {
     };
     await api.start({
       client: {
+        brand: { siteTitle: 'Test' },
         enrollment: true,
+        legal: { organizationName: 'Test Org' },
         msal,
         publicUrl: testPublicUrl.href,
+        showAttribution: false,
       },
     });
     expect((await clientConfig()).body).toEqual({
+      brand: { siteTitle: 'Test' },
       enrollment: true,
+      legal: { organizationName: 'Test Org' },
       msal,
       publicUrl: testPublicUrl.href,
+      showAttribution: false,
     });
   });
 });

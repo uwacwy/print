@@ -58,8 +58,11 @@ describe('server config', () => {
 
   it('derives browser sign-in settings only when Entra is configured', () => {
     expect(loadServerConfig(secret, false).client).toEqual({
+      brand: { siteTitle: 'VITA Secure Print' },
       enrollment: false,
+      legal: { organizationName: 'Contoso' },
       publicUrl: new URL(secret.PUBLIC_URL).href,
+      showAttribution: true,
     });
     expect(
       loadServerConfig(
@@ -71,7 +74,9 @@ describe('server config', () => {
         false,
       ).client,
     ).toEqual({
+      brand: { siteTitle: 'VITA Secure Print' },
       enrollment: false,
+      legal: { organizationName: 'Contoso' },
       msal: {
         apiScope: `api://${client}/Printers.Manage`,
         authority: `https://login.microsoftonline.com/${tenant}`,
@@ -79,6 +84,7 @@ describe('server config', () => {
         tenantId: tenant,
       },
       publicUrl: new URL(secret.PUBLIC_URL).href,
+      showAttribution: true,
     });
     expect(
       loadServerConfig(
@@ -92,6 +98,42 @@ describe('server config', () => {
         false,
       ).client.msal?.apiScope,
     ).toBe('api://print.example.org/Print.Admin');
+  });
+
+  it('derives branding and legal settings from CLIENT_* variables', () => {
+    const { client } = loadServerConfig(
+      {
+        ...secret,
+        CLIENT_BRAND_LINKS:
+          'label=Privacy&url=https://example.com/privacy',
+        CLIENT_BRAND_LOGO: '/brand.svg',
+        CLIENT_LEGAL_ORG_NAME: 'United Way',
+        CLIENT_SHOW_ATTRIBUTION: 'false',
+        LOGO_ALT: 'United Way logo',
+      },
+      false,
+    );
+    expect(client.brand).toEqual({
+      links: [
+        { label: 'Privacy', url: 'https://example.com/privacy' },
+      ],
+      logo: { alt: 'United Way logo', src: '/brand.svg' },
+      siteTitle: 'VITA Secure Print',
+    });
+    expect(client.legal.organizationName).toBe('United Way');
+    expect(client.showAttribution).toBe(false);
+  });
+
+  it('rejects unsafe CLIENT_BRAND_LINKS', () => {
+    expect(() =>
+      loadServerConfig(
+        {
+          ...secret,
+          CLIENT_BRAND_LINKS: 'label=x&url=javascript:alert(1)',
+        },
+        false,
+      ),
+    ).toThrow('CLIENT_BRAND_LINKS');
   });
 
   it('enables enrollment only for an https (or loopback http) PUBLIC_URL', () => {

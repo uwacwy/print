@@ -97,7 +97,7 @@ describe('agent enrollment', () => {
       await (
         await fetch(`${api.baseUrl}${$.api.clientConfig()}`)
       ).json(),
-    ).toEqual({
+    ).toMatchObject({
       enrollment: false,
       publicUrl: testPublicUrl.href,
     });

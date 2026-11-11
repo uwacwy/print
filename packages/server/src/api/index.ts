@@ -53,8 +53,11 @@ export default (options: ApiRootOptions) => {
       response.set('cache-control', 'no-cache').json(
         options.client ??
           ({
+            brand: { siteTitle: options.upload.siteTitle },
             enrollment: !!options.enrollment?.serverUrl,
+            legal: { organizationName: 'Contoso' },
             publicUrl: options.publicUrl.href,
+            showAttribution: true,
           } satisfies ClientConfig),
       );
     })

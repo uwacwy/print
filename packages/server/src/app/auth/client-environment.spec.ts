@@ -13,6 +13,12 @@ const msal = {
   tenantId: 'tenant',
 };
 
+const site = {
+  brand: { siteTitle: 'Print' },
+  legal: { organizationName: 'Example Org' },
+  showAttribution: true,
+};
+
 const respond = (response: Response) =>
   vi.fn<typeof fetch>().mockResolvedValue(response);
 
@@ -22,6 +28,7 @@ describe('client environment', () => {
     expect(
       resolveClientConfig(
         {
+          ...site,
           enrollment: true,
           msal,
           publicUrl,
@@ -29,6 +36,7 @@ describe('client environment', () => {
         'https://print.example.org',
       ),
     ).toEqual({
+      ...site,
       enrollment: true,
       msal: {
         ...msal,
@@ -42,12 +50,14 @@ describe('client environment', () => {
     expect(
       resolveClientConfig(
         {
+          ...site,
           enrollment: false,
           publicUrl,
         },
         'https://print.example.org',
       ),
     ).toEqual({
+      ...site,
       enrollment: false,
       msal: {
         ...environment.msal,
@@ -59,27 +69,34 @@ describe('client environment', () => {
 
   it('passes the server logo through', () => {
     const logo = { alt: 'United Way', src: '/logo.svg?v=1' };
+    const brand = { ...site.brand, logo };
     expect(
       resolveClientConfig(
-        { enrollment: false, logo, publicUrl },
+        { ...site, brand, enrollment: false, publicUrl },
         'https://print.example.org',
-      ).logo,
+      ).brand.logo,
     ).toEqual(logo);
     expect(
       resolveClientConfig(
-        { enrollment: false, logo, msal, publicUrl },
+        { ...site, brand, enrollment: false, msal, publicUrl },
         'https://print.example.org',
-      ).logo,
+      ).brand.logo,
     ).toEqual(logo);
   });
 
   it('loads /api/client-config and falls back when it fails', async () => {
     const ok = respond(
-      Response.json({ enrollment: false, msal, publicUrl }),
+      Response.json({
+        ...site,
+        enrollment: false,
+        msal,
+        publicUrl,
+      }),
     );
     await expect(
       loadClientEnvironment(ok, 'http://localhost:4200'),
     ).resolves.toEqual({
+      ...site,
       enrollment: false,
       msal: {
         ...msal,

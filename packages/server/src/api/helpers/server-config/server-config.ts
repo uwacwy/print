@@ -13,10 +13,35 @@ import {
   DEFAULT_UPLOAD_TOKEN_ISSUER,
   type UploadTokenKey,
 } from '../../middleware/auth/upload-token/upload-token';
+import { parseBrandLinks } from '../brand-links/brand-links';
 
 const ServerEnvironment = z.object({
   /** Days of daily access logs kept in DATA_DIR/logs; 0 disables the access log. */
   ACCESS_LOG_DAYS: z.coerce.number().int().min(0).default(14),
+  /** Footer links as a query string: `label=Privacy&url=https://example.com/privacy&label=...`. */
+  CLIENT_BRAND_LINKS: z
+    .string()
+    .optional()
+    .transform((value, ctx) => {
+      try {
+        return value ? parseBrandLinks(value) : undefined;
+      } catch (error) {
+        ctx.addIssue({
+          code: 'custom',
+          message:
+            error instanceof Error
+              ? error.message
+              : String(error),
+        });
+        return z.NEVER;
+      }
+    }),
+  /** Root-relative URL of the logo; when unset the server looks for `logo.{svg,png,jpg}` in the browser folder. */
+  CLIENT_BRAND_LOGO: z.string().min(1).optional(),
+  /** Organization named in the footer copyright notice. */
+  CLIENT_LEGAL_ORG_NAME: z.string().min(1).default('Contoso'),
+  /** Show the package name and version in the footer. */
+  CLIENT_SHOW_ATTRIBUTION: z.stringbool().default(true),
   /** Relative paths resolve from the working directory. */
   DATA_DIR: z.string().default('data'),
   /** Lifetime of enrollment tokens that let a print agent add its own printer. */
@@ -298,16 +323,31 @@ export function readServerVersion(
 export function toClientConfig(
   e: Pick<
     ServerEnvironment,
+    | 'CLIENT_BRAND_LINKS'
+    | 'CLIENT_BRAND_LOGO'
+    | 'CLIENT_LEGAL_ORG_NAME'
+    | 'CLIENT_SHOW_ATTRIBUTION'
     | 'ENTRA_ADMIN_SCOPE'
     | 'ENTRA_API_AUDIENCE'
     | 'ENTRA_CLIENT_ID'
     | 'ENTRA_TENANT_ID'
+    | 'LOGO_ALT'
     | 'PUBLIC_URL'
+    | 'SITE_TITLE'
   >,
 ): ClientConfig {
   return {
+    brand: {
+      links: e.CLIENT_BRAND_LINKS,
+      logo: e.CLIENT_BRAND_LOGO
+        ? { alt: e.LOGO_ALT, src: e.CLIENT_BRAND_LOGO }
+        : undefined,
+      siteTitle: e.SITE_TITLE,
+    },
     enrollment: !!serverOrigin(e.PUBLIC_URL),
+    legal: { organizationName: e.CLIENT_LEGAL_ORG_NAME },
     publicUrl: new URL(e.PUBLIC_URL).href,
+    showAttribution: e.CLIENT_SHOW_ATTRIBUTION,
     ...(e.ENTRA_TENANT_ID &&
       e.ENTRA_CLIENT_ID && {
         msal: {

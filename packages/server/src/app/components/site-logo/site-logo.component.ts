@@ -16,9 +16,9 @@ import { CLIENT_ENVIRONMENT } from '../../auth/client-environment';
     :host {
       display: block;
       position: relative;
-      flex: none;
+      flex: 0 0 100%;
       height: 4rem;
-      width: min(12rem, 40vw);
+      width: 100%;
     }
     img {
       object-fit: contain;
@@ -32,5 +32,6 @@ import { CLIENT_ENVIRONMENT } from '../../auth/client-environment';
   `,
 })
 export class SiteLogoComponent {
-  protected readonly logo = inject(CLIENT_ENVIRONMENT).logo;
+  protected readonly logo = inject(CLIENT_ENVIRONMENT).brand
+    .logo;
 }

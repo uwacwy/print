@@ -14,17 +14,18 @@
   <div class="status" [attr.data-state]="state()">
     <span class="status-dot" aria-hidden="true"></span>
     <span role="status" aria-live="polite">{{ summary() }}</span>
+    @if (state() === 'down' && !statusResource.isLoading()) {
+      <span class="status-stop" aria-hidden="true">.</span>
+      <button
+        i18n="@@welcome.try-again"
+        type="button"
+        class="btn btn-link link-secondary p-0 align-baseline"
+        (click)="statusResource.reload()"
+      >
+        Try again
+      </button>
+    }
   </div>
-  @if (state() === 'down' && !statusResource.isLoading()) {
-    <button
-      i18n="@@welcome.try-again"
-      type="button"
-      class="btn btn-outline-primary btn-sm"
-      (click)="statusResource.reload()"
-    >
-      Try again
-    </button>
-  }
 </section>
 
 <section class="mt-4" aria-labelledby="how-heading">
