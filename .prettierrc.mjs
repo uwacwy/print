@@ -1,12 +1,12 @@
-export default{
-  "overrides": [
+export default {
+  overrides: [
     {
-      "files": "*.html",
-      "options": {
-        "parser": "angular"
-      }
-    }
+      files: '*.html',
+      options: {
+        parser: 'angular',
+      },
+    },
   ],
-  "printWidth": 65,
-  "singleQuote": true
-}
+  printWidth: 65,
+  singleQuote: true,
+};
