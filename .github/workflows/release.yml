@@ -1,6 +1,7 @@
 # Publishes @uwacwy/print-server and @uwacwy/print-agent to npm and their images to
-# ghcr.io when a vX.Y.Z tag is pushed. Tags with a prerelease suffix (v0.2.0-rc.1)
-# publish to the npm "next" dist-tag and do not move the "latest" image tag.
+# ghcr.io when a vX.Y.Z tag is pushed. Releases move the npm "latest" dist-tag.
+# Prereleases (v0.2.0-rc.1, v0.2.0-beta.0) publish to a dist-tag named after the
+# prerelease (rc, beta) and do not move the "latest" npm or image tags.
 name: Release
 
 on:
@@ -24,6 +25,7 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
       prerelease: ${{ steps.version.outputs.prerelease }}
+      dist_tag: ${{ steps.version.outputs.dist_tag }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -37,7 +39,22 @@ jobs:
         run: |
           version="${GITHUB_REF_NAME#v}"
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          if [[ "$version" == *-* ]]; then echo "prerelease=true"; else echo "prerelease=false"; fi >> "$GITHUB_OUTPUT"
+          if [[ "$version" == *-* ]]; then
+            echo "prerelease=true"
+            # npm dist-tag from the prerelease name: 1.2.0-rc.1 -> rc, 1.2.0-beta -> beta.
+            # npm rejects tags that parse as semver ranges (1.2.0-0 -> "0"), so those use next.
+            id="${version#*-}"
+            id="${id%%.*}"
+            if [[ "$id" =~ ^[A-Za-z][A-Za-z0-9-]*$ && "$id" != latest ]]; then
+              echo "dist_tag=$id"
+            else
+              echo "dist_tag=next"
+            fi
+          else
+            echo "prerelease=false"
+            echo "dist_tag=latest"
+          fi >> "$GITHUB_OUTPUT"
+      - run: echo "npm dist-tag ${{ steps.version.outputs.dist_tag }}"
       - run: npm run format:check
       - run: npm run lint
       - run: npm run lint:typed
@@ -70,7 +87,7 @@ jobs:
       - run: npm run build
       - name: Publish
         env:
-          DIST_TAG: ${{ needs.verify.outputs.prerelease == 'true' && 'next' || 'latest' }}
+          DIST_TAG: ${{ needs.verify.outputs.dist_tag }}
           VERSION: ${{ needs.verify.outputs.version }}
         run: |
           for pkg in @uwacwy/print-server @uwacwy/print-agent; do

@@ -32,7 +32,7 @@ Server:
 ```yaml
 services:
   print-server:
-    image: ghcr.io/uwacwy/print-server:0.1 # or :latest, or an exact :0.1.0
+    image: ghcr.io/uwacwy/print-server:1.0 # or :latest, or an exact :1.0.0
     restart: unless-stopped
     init: true
     environment:
@@ -64,7 +64,7 @@ Agent for a network printer that speaks IPP (most AirPrint/Mopria printers):
 ```yaml
 services:
   print-agent:
-    image: ghcr.io/uwacwy/print-agent:0.1
+    image: ghcr.io/uwacwy/print-agent:1.0
     restart: unless-stopped
     init: true
     environment:
@@ -79,7 +79,7 @@ includes `lp`, which talks to the host's CUPS through its socket:
 ```yaml
 services:
   print-agent:
-    image: ghcr.io/uwacwy/print-agent:0.1
+    image: ghcr.io/uwacwy/print-agent:1.0
     restart: unless-stopped
     init: true
     environment:
@@ -482,8 +482,10 @@ git tag v0.2.0
 git push origin main v0.2.0
 ```
 
-A prerelease such as `v0.2.0-rc.1` publishes to the npm `next` dist-tag and pushes only the exact image
-tag, leaving `latest` and `0.2` alone. [`ci.yml`](.github/workflows/ci.yml) runs the same checks, plus
+A release moves the npm `latest` dist-tag. A prerelease publishes to a dist-tag named after it, so
+`v0.2.0-rc.1` is installed with `npm install @uwacwy/print-server@rc` (and `-beta.0` with `@beta`); a
+purely numeric prerelease such as `v0.2.0-0` uses `next`. Prereleases push only the exact image tag,
+leaving `latest` and `0.2` alone. [`ci.yml`](.github/workflows/ci.yml) runs the same checks, plus
 image builds without pushing, on every pull request and push to `main`.
 
 ### One-time setup
