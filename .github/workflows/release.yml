@@ -14,6 +14,10 @@ concurrency:
   group: release
   cancel-in-progress: false
 
+env:
+  PUBLIC_URL: http://print.contoso.com
+  UPLOAD_TOKEN_SECRET: build-time-placeholder-not-a-secret-0000
+
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -42,9 +46,6 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
-        env:
-          PUBLIC_URL: http://localhost:8080
-          UPLOAD_TOKEN_SECRET: build-time-placeholder-not-a-secret-0000
       - run: npm pack --dry-run -w @uwacwy/print-server -w @uwacwy/print-agent
 
   npm:
