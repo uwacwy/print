@@ -1,6 +1,6 @@
 {
   "name": "@uwacwy/print-server",
-  "version": "1.0.0-beta.1",
+  "version": "1.0.0-rc.0",
   "description": "United Way Quick Print server: the web app, REST API, and print-agent gateway in one Node.js process.",
   "keywords": [
     "angular",
@@ -80,7 +80,7 @@
     "@types/passport-jwt": "^4.0.1",
     "@types/passport-strategy": "^0.2.38",
     "@types/qrcode": "^1.5.6",
-    "@uwacwy/print-shared": "1.0.0-beta.1",
+    "@uwacwy/print-shared": "1.0.0-rc.0",
     "bootstrap": "^5.3.8",
     "bootstrap-icons": "^1.13.2",
     "busboy": "^1.6.0",
