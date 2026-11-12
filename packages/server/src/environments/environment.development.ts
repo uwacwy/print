@@ -1,8 +1,8 @@
 import type { ClientConfig } from '@uwacwy/print-shared';
 
 export const environment = {
-  brand: {
-    siteTitle: 'Quick Print',
+  site: {
+    title: 'Quick Print',
   },
   enrollment: false,
   legal: {

@@ -12,6 +12,7 @@ import type {
 import type { EntraUserOptions } from './middleware/auth/entra-user/entra-user.strategy';
 import type { AgentHub } from './sockets/agent-hub/agent-hub';
 
+import { DEFAULT_ORG_NAME } from './helpers/server-config/server-config';
 import { createAuthenticate } from './middleware/auth/passport/passport';
 import agentRouter from './routers/agent/agent.router';
 import printersRouter from './routers/printers/printers.router';
@@ -53,9 +54,14 @@ export default (options: ApiRootOptions) => {
       response.set('cache-control', 'no-cache').json(
         options.client ??
           ({
-            brand: { siteTitle: options.upload.siteTitle },
+            site: {
+              title: options.upload.siteTitle,
+              url: options.publicUrl.href,
+              organizationName: DEFAULT_ORG_NAME,
+              showAttribution: true,
+            },
             enrollment: !!options.enrollment?.serverUrl,
-            legal: { organizationName: 'Contoso' },
+            legal: { organizationName: DEFAULT_ORG_NAME },
             publicUrl: options.publicUrl.href,
             showAttribution: true,
           } satisfies ClientConfig),

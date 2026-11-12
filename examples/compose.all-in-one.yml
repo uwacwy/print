@@ -14,6 +14,8 @@ services:
     environment:
       UPLOAD_TOKEN_SECRET: ${UPLOAD_TOKEN_SECRET:?set UPLOAD_TOKEN_SECRET}
       PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8080}
+      SITE_TITLE: ${SITE_TITLE:-Quick Print}
+      ORG_NAME: ${ORG_NAME:-Contoso}
       TIME_ZONE: ${TIME_ZONE:-America/Denver}
     ports:
       - '8080:8080'

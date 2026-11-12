@@ -64,7 +64,7 @@ export function parseServerUrl(value: string): string {
     url = new URL(value.trim());
   } catch {
     throw new Error(
-      'must be a URL such as https://print.example.org',
+      'must be a URL such as https://print.contoso.com',
     );
   }
   if (url.protocol !== 'https:' && url.protocol !== 'http:') {

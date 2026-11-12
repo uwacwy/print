@@ -101,7 +101,7 @@ export const installCommand = buildCommand<
       },
       printServerUrl: {
         brief:
-          'Print server address, e.g. https://print.example.org',
+          'Print server address, e.g. https://print.contoso.com',
         kind: 'parsed',
         optional: true,
         parse: parseServerUrl,

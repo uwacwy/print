@@ -53,7 +53,7 @@ describe('API root', () => {
       body: {
         brand: { siteTitle: expect.any(String) },
         enrollment: false,
-        legal: { organizationName: 'Contoso' },
+        legal: { organizationName: 'Update env:ORG_NAME' },
         publicUrl: testPublicUrl.href,
         showAttribution: true,
       },
@@ -69,7 +69,11 @@ describe('API root', () => {
     };
     await api.start({
       client: {
-        brand: { siteTitle: 'Test' },
+        site: {
+          title: 'Test',
+          organizationName: 'Test Org',
+          url: testPublicUrl.href,
+        },
         enrollment: true,
         legal: { organizationName: 'Test Org' },
         msal,

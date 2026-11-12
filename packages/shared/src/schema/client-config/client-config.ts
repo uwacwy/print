@@ -11,7 +11,7 @@ export type SiteLogo = z.infer<typeof SiteLogo>;
 
 /** `GET /api/client-config`: browser sign-in settings the server reads from its environment at runtime. */
 export const ClientConfig = z.object({
-  brand: z.object({
+  site: z.object({
     /**
      * Extra links for the footer of the web app, as label/url pairs in a query string
      * @example label=Link text&url=https://example.com&label=Another&url=https://...
@@ -28,13 +28,20 @@ export const ClientConfig = z.object({
     /** Present when the server's static folder has a `logo.{svg,png,jpg}`. */
     logo: SiteLogo.optional(),
 
-    siteTitle: z.string(),
+    title: z.string(),
+    url: z.url(),
+    organizationName: z.string(),
+    showAttribution: z.boolean().default(true),
   }),
 
   /** `PUBLIC_URL` is set, so the server can mint enrollment tokens and install commands. */
   enrollment: z.boolean(),
 
+  /**
+   * @deprecated
+   */
   legal: z.object({
+    /** @deprecated use config.site.organizationName */
     organizationName: z.string(),
   }),
 
@@ -51,8 +58,14 @@ export const ClientConfig = z.object({
     })
     .optional(),
 
+  /**
+   * @deprecated use config.site.url
+   */
   publicUrl: z.string(),
 
+  /**
+   * @deprecated use config.site.showAttribution
+   */
   showAttribution: z.boolean().default(true),
 });
 export type ClientConfig = z.infer<typeof ClientConfig>;

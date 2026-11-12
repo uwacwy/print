@@ -11,7 +11,7 @@ services:
     restart: unless-stopped
     init: true
     environment:
-      PRINT_SERVER_URL: ${PRINT_SERVER_URL:?set PRINT_SERVER_URL, e.g. https://print.example.org}
+      PRINT_SERVER_URL: ${PRINT_SERVER_URL:?set PRINT_SERVER_URL, e.g. https://print.contoso.com}
       # Shown once when the printer is added in /manage.
       PRINT_AGENT_TOKEN: ${PRINT_AGENT_TOKEN_IPP:?set PRINT_AGENT_TOKEN_IPP}
       PRINTER_URI: ${PRINTER_URI_IPP:-ipp://printer.local:631/ipp/print}
@@ -24,7 +24,7 @@ services:
     restart: unless-stopped
     init: true
     environment:
-      PRINT_SERVER_URL: ${PRINT_SERVER_URL:?set PRINT_SERVER_URL, e.g. https://print.example.org}
+      PRINT_SERVER_URL: ${PRINT_SERVER_URL:?set PRINT_SERVER_URL, e.g. https://print.contoso.com}
       PRINT_AGENT_TOKEN: ${PRINT_AGENT_TOKEN_CUPS:?set PRINT_AGENT_TOKEN_CUPS}
       PRINTER_URI: ${PRINTER_URI_CUPS:-cups://Queue_Name}
       CUPS_SERVER: /run/cups/cups.sock

@@ -74,9 +74,6 @@
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true,
-              "security": {
-                "allowedHosts": ["print.zombarista.io"]
-              },
               "fileReplacements": [
                 {
                   "replace": "packages/server/src/environments/environment.ts",
@@ -93,7 +90,7 @@
             "port": 4200,
             "proxyConfig": "proxy.conf.mjs",
             "host": "0.0.0.0",
-            "allowedHosts": ["print.zombarista.io"]
+            "allowedHosts": ["*"]
           },
           "configurations": {
             "production": {

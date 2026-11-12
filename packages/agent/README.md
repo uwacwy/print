@@ -15,13 +15,13 @@ On the print server, open **/manage → Add printer → Set up on the printer's 
 one-liner it shows. It installs Node.js if needed, then this package, then runs `install`:
 
 ```bash
-curl -fsSL https://print.example.org/printer/<enroll-token>/install | bash
+curl -fsSL https://print.contoso.com/printer/<enroll-token>/install | bash
 ```
 
 Or with npm directly:
 
 ```bash
-npx @uwacwy/print-agent install --print-server-url https://print.example.org --print-enroll-token <token>
+npx @uwacwy/print-agent install --print-server-url https://print.contoso.com --print-enroll-token <token>
 ```
 
 `install` asks whether the printer is a CUPS queue or a network (IPP) printer, lists the ones it finds,
@@ -54,7 +54,7 @@ it lists what is missing (and the printers it can see) and exits with status 2.
 
 | Variable             | Purpose                                                             |
 | -------------------- | ------------------------------------------------------------------- |
-| `PRINT_SERVER_URL`   | Server address, for example `https://print.example.org`             |
+| `PRINT_SERVER_URL`   | Server address, for example `https://print.contoso.com`             |
 | `PRINT_AGENT_TOKEN`  | The printer's agent token, shown once when it is added in `/manage` |
 | `PRINTER_URI`        | `cups://Queue_Name`, or `ipp://` / `ipps://` for a network printer  |
 | `PRINT_ENROLL_TOKEN` | `install` only: an enrollment token from "Add printer"              |

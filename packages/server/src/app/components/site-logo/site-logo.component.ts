@@ -32,6 +32,5 @@ import { CLIENT_ENVIRONMENT } from '../../auth/client-environment';
   `,
 })
 export class SiteLogoComponent {
-  protected readonly logo = inject(CLIENT_ENVIRONMENT).brand
-    .logo;
+  protected readonly logo = inject(CLIENT_ENVIRONMENT).site.logo;
 }

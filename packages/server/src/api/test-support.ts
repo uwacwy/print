@@ -1,6 +1,6 @@
 import type { Server as SocketServer } from 'socket.io';
 
-import { $ } from '@uwacwy/print-shared';
+import { $, ClientConfig } from '@uwacwy/print-shared';
 import express from 'express';
 import { createServer, type Server } from 'node:http';
 import { PDFDocument } from 'pdf-lib';
@@ -53,7 +53,7 @@ export async function uploadForm(
 export const testPublicUrl = new URL('http://print.test');
 
 export interface StartOptions {
-  client?: ApiRootOptions['client'];
+  client?: ClientConfig;
   enrollment?: ApiRootOptions['enrollment'];
   entra?: ApiRootOptions['entra'];
   upload?: UploadConfig;

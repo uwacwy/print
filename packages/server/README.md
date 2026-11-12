@@ -36,7 +36,9 @@ The important ones:
 | `PORT`                               | `4000`                      | HTTP port for pages, API, and `/ws` (8080 in the image)                                                                |
 | `DATA_DIR`                           | `./data`                    | `print.db`, queued jobs, and `logs/`                                                                                   |
 | `ACCESS_LOG_DAYS`                    | `14`                        | Days of daily JSON access logs in `DATA_DIR/logs` (`access.log` links to today); `0` disables                          |
-| `PUBLIC_URL`                         |                             | Public address; used in QR codes and allowed for server rendering                                                      |
+| `PUBLIC_URL`                         | `https://localhost:4200`    | Public address, e.g. `https://print.contoso.com`; used in QR codes and allowed for server rendering                    |
+| `SITE_TITLE`                         | `Update env:SITE_TITLE`     | Site name in the page title, header, and printed pages, e.g. `Quick Print`                                             |
+| `ORG_NAME`                           | `Update env:ORG_NAME`       | Organization in the footer copyright notice and the logo's text alternative, e.g. `Contoso`                            |
 | `NG_ALLOWED_HOSTS`                   |                             | Other host names (comma-separated) pages may be requested by                                                           |
 | `TRUST_PROXY`                        | loopback and private ranges | `true` behind a reverse proxy so rate limits see the real client IP; `false` trusts none; or a list of proxy addresses |
 | `ENTRA_TENANT_ID`, `ENTRA_CLIENT_ID` |                             | Enable Entra sign-in and `/manage`; the browser reads them from `/api/client-config`                                   |

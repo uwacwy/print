@@ -15,6 +15,12 @@ import {
 } from '../../middleware/auth/upload-token/upload-token';
 import { parseBrandLinks } from '../brand-links/brand-links';
 
+/** Shown until SITE_TITLE is set, so an unconfigured server is obvious. */
+export const DEFAULT_SITE_TITLE = 'Update env:SITE_TITLE';
+/** Shown until ORG_NAME is set, so an unconfigured server is obvious. */
+export const DEFAULT_ORG_NAME = 'Update env:ORG_NAME';
+export const DEFAULT_PUBLIC_URL = 'https://localhost:4200';
+
 const ServerEnvironment = z.object({
   /** Days of daily access logs kept in DATA_DIR/logs; 0 disables the access log. */
   ACCESS_LOG_DAYS: z.coerce.number().int().min(0).default(14),
@@ -38,8 +44,8 @@ const ServerEnvironment = z.object({
     }),
   /** Root-relative URL of the logo; when unset the server looks for `logo.{svg,png,jpg}` in the browser folder. */
   CLIENT_BRAND_LOGO: z.string().min(1).optional(),
-  /** Organization named in the footer copyright notice. */
-  CLIENT_LEGAL_ORG_NAME: z.string().min(1).default('Contoso'),
+  /** Former name of ORG_NAME, still read when ORG_NAME is unset. */
+  CLIENT_LEGAL_ORG_NAME: z.string().min(1).optional(),
   /** Show the package name and version in the footer. */
   CLIENT_SHOW_ATTRIBUTION: z.stringbool().default(true),
   /** Relative paths resolve from the working directory. */
@@ -68,8 +74,8 @@ const ServerEnvironment = z.object({
     .max(600)
     .default(150),
   JOB_TTL_HOURS: z.coerce.number().positive().default(24),
-  /** Text alternative for the header logo (`logo.{svg,png,jpg}` in the browser folder). */
-  LOGO_ALT: z.string().min(1).default('Contoso'),
+  /** Text alternative for the header logo (`logo.{svg,png,jpg}` in the browser folder); defaults to ORG_NAME. */
+  LOGO_ALT: z.string().min(1).optional(),
   MAX_COPIES: z.coerce.number().int().min(1).max(5).default(5),
   MAX_DOCUMENTS_PER_JOB: z.coerce
     .number()
@@ -81,6 +87,8 @@ const ServerEnvironment = z.object({
     .positive()
     .max(100)
     .default(20),
+  /** Organization named in the footer copyright notice and the default logo text alternative. */
+  ORG_NAME: z.string().min(1).optional(),
   /** Wrong PIN attempts allowed per client and printer every 15 minutes. */
   PIN_MAX_FAILURES: z.coerce.number().int().min(1).default(3),
   /** Each client (IP) may exchange a PIN for a token at most once per this many minutes. */
@@ -98,7 +106,7 @@ const ServerEnvironment = z.object({
    * Canonical public origin for QR posters (defaults to the request's origin). Also the server URL
    * in agent install commands and scripts, which are only offered when it is https (or loopback http).
    */
-  PUBLIC_URL: z.url(),
+  PUBLIC_URL: z.url().default(DEFAULT_PUBLIC_URL),
   /** IPv6 clients are rate limited per subnet of this size, so address rotation cannot evade limits. */
   RATE_LIMIT_IPV6_SUBNET: z.coerce
     .number()
@@ -107,7 +115,7 @@ const ServerEnvironment = z.object({
     .max(64)
     .default(56),
   RETENTION_DAYS: z.coerce.number().positive().default(7),
-  SITE_TITLE: z.string().default('VITA Secure Print'),
+  SITE_TITLE: z.string().min(1).default(DEFAULT_SITE_TITLE),
   TIME_ZONE: z.string().default('America/Denver'),
   /** `true`/`false`, or a comma-separated list of trusted proxy addresses or Express presets. */
   TRUST_PROXY: z
@@ -261,7 +269,7 @@ export function loadServerConfig(
       tenantId: e.ENTRA_TENANT_ID,
     },
     jobTtlMs: e.JOB_TTL_HOURS * 3_600_000,
-    logoAlt: e.LOGO_ALT,
+    logoAlt: e.LOGO_ALT ?? orgName(e),
     port: e.PORT,
     publicUrl,
     retentionMs: e.RETENTION_DAYS * 86_400_000,
@@ -310,6 +318,18 @@ export function readServerVersion(
     : undefined;
 }
 
+/** ORG_NAME, else its former name CLIENT_LEGAL_ORG_NAME, else a reminder to set it. */
+function orgName(
+  e: Pick<
+    ServerEnvironment,
+    'CLIENT_LEGAL_ORG_NAME' | 'ORG_NAME'
+  >,
+): string {
+  return (
+    e.ORG_NAME ?? e.CLIENT_LEGAL_ORG_NAME ?? DEFAULT_ORG_NAME
+  );
+}
+
 /** The browser-safe subset of the server's settings, served by `GET /api/client-config`. */
 export function toClientConfig(
   e: Pick<
@@ -323,20 +343,27 @@ export function toClientConfig(
     | 'ENTRA_CLIENT_ID'
     | 'ENTRA_TENANT_ID'
     | 'LOGO_ALT'
+    | 'ORG_NAME'
     | 'PUBLIC_URL'
     | 'SITE_TITLE'
   >,
 ): ClientConfig {
   return {
-    brand: {
+    site: {
       links: e.CLIENT_BRAND_LINKS,
       logo: e.CLIENT_BRAND_LOGO
-        ? { alt: e.LOGO_ALT, src: e.CLIENT_BRAND_LOGO }
+        ? {
+            alt: e.LOGO_ALT ?? orgName(e),
+            src: e.CLIENT_BRAND_LOGO,
+          }
         : undefined,
-      siteTitle: e.SITE_TITLE,
+      title: e.SITE_TITLE,
+      organizationName: orgName(e),
+      url: e.PUBLIC_URL,
+      showAttribution: e.CLIENT_SHOW_ATTRIBUTION,
     },
     enrollment: !!serverOrigin(e.PUBLIC_URL),
-    legal: { organizationName: e.CLIENT_LEGAL_ORG_NAME },
+    legal: { organizationName: orgName(e) },
     publicUrl: new URL(e.PUBLIC_URL).href,
     showAttribution: e.CLIENT_SHOW_ATTRIBUTION,
     ...(e.ENTRA_TENANT_ID &&
@@ -348,5 +375,5 @@ export function toClientConfig(
           tenantId: e.ENTRA_TENANT_ID,
         },
       }),
-  };
+  } satisfies ClientConfig;
 }

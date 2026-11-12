@@ -78,9 +78,9 @@ describe('server config', () => {
 
   it('derives browser sign-in settings only when Entra is configured', () => {
     expect(loadServerConfig(secret).client).toEqual({
-      brand: { siteTitle: 'VITA Secure Print' },
+      brand: { siteTitle: 'Update env:SITE_TITLE' },
       enrollment: false,
-      legal: { organizationName: 'Contoso' },
+      legal: { organizationName: 'Update env:ORG_NAME' },
       publicUrl: new URL(secret.PUBLIC_URL).href,
       showAttribution: true,
     });
@@ -91,9 +91,9 @@ describe('server config', () => {
         ENTRA_TENANT_ID: tenant,
       }).client,
     ).toEqual({
-      brand: { siteTitle: 'VITA Secure Print' },
+      brand: { siteTitle: 'Update env:SITE_TITLE' },
       enrollment: false,
-      legal: { organizationName: 'Contoso' },
+      legal: { organizationName: 'Update env:ORG_NAME' },
       msal: {
         apiScope: `api://${client}/Printers.Manage`,
         authority: `https://login.microsoftonline.com/${tenant}`,
@@ -124,12 +124,12 @@ describe('server config', () => {
       CLIENT_SHOW_ATTRIBUTION: 'false',
       LOGO_ALT: 'United Way logo',
     });
-    expect(client.brand).toEqual({
+    expect(client.site).toEqual({
       links: [
         { label: 'Privacy', url: 'https://example.com/privacy' },
       ],
       logo: { alt: 'United Way logo', src: '/brand.svg' },
-      siteTitle: 'VITA Secure Print',
+      siteTitle: 'Update env:SITE_TITLE',
     });
     expect(client.legal.organizationName).toBe('United Way');
     expect(client.showAttribution).toBe(false);
@@ -174,11 +174,40 @@ describe('server config', () => {
     ).toBe(5);
   });
 
-  it('requires a valid PUBLIC_URL', () => {
+  it('names ORG_NAME in the footer and logo, falling back to CLIENT_LEGAL_ORG_NAME', () => {
+    const brand = (env: NodeJS.ProcessEnv) =>
+      loadServerConfig({
+        ...secret,
+        CLIENT_BRAND_LOGO: '/brand.svg',
+        ...env,
+      });
+    const contoso = brand({
+      ORG_NAME: 'Contoso',
+      SITE_TITLE: 'Quick Print',
+    });
+    expect(contoso.client.legal.organizationName).toBe(
+      'Contoso',
+    );
+    expect(contoso.client.site.logo?.alt).toBe('Contoso');
+    expect(contoso.logoAlt).toBe('Contoso');
+    expect(contoso.client.site.title).toBe('Quick Print');
+    expect(contoso.upload.siteTitle).toBe('Quick Print');
+    expect(
+      brand({ CLIENT_LEGAL_ORG_NAME: 'Legacy' }).client.legal
+        .organizationName,
+    ).toBe('Legacy');
+    expect(
+      brand({ CLIENT_LEGAL_ORG_NAME: 'Legacy', ORG_NAME: 'New' })
+        .client.legal.organizationName,
+    ).toBe('New');
+    expect(brand({}).logoAlt).toBe('Update env:ORG_NAME');
+  });
+
+  it('defaults PUBLIC_URL to https://localhost:4200 and rejects invalid ones', () => {
     const { UPLOAD_TOKEN_SECRET } = secret;
-    expect(() =>
-      loadServerConfig({ UPLOAD_TOKEN_SECRET }),
-    ).toThrow('PUBLIC_URL');
+    expect(
+      loadServerConfig({ UPLOAD_TOKEN_SECRET }).publicUrl.href,
+    ).toBe('https://localhost:4200/');
     expect(() =>
       loadServerConfig({
         PUBLIC_URL: 'not a url',
@@ -219,9 +248,9 @@ describe('server config', () => {
   });
 
   it('requires a long upload token secret and derives access limits', () => {
-    expect(() =>
-      loadServerConfig({ PUBLIC_URL: secret.PUBLIC_URL }),
-    ).toThrow('UPLOAD_TOKEN_SECRET is required');
+    expect(() => loadServerConfig({})).toThrow(
+      'UPLOAD_TOKEN_SECRET is required',
+    );
     expect(() =>
       loadServerConfig({
         ...secret,

@@ -1,10 +1,13 @@
 import type { ClientConfig } from '@uwacwy/print-shared';
 
 /** Placeholder sign-in settings; the server's `GET /api/client-config` replaces them at startup. */
-export const environment = {
-  brand: {
+export const environment: ClientConfig = {
+  site: {
     links: [],
-    siteTitle: 'Quick Print',
+    title: 'Quick Print',
+    organizationName: 'Contoso',
+    url: 'https://print.contoso.com',
+    showAttribution: true,
   },
   enrollment: false,
   legal: {
@@ -21,4 +24,4 @@ export const environment = {
   },
   publicUrl: 'https://print.contoso.com',
   showAttribution: true,
-} satisfies ClientConfig;
+};

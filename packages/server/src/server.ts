@@ -140,10 +140,10 @@ app.use(
   apiRoot({
     client: {
       ...config.client,
-      brand: {
-        ...config.client.brand,
+      site: {
+        ...config.client.site,
         logo:
-          config.client.brand.logo ??
+          config.client.site.logo ??
           findLogo(browserDistFolder, config.logoAlt),
       },
     },

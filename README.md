@@ -37,7 +37,9 @@ services:
     init: true
     environment:
       UPLOAD_TOKEN_SECRET: ${UPLOAD_TOKEN_SECRET:?set UPLOAD_TOKEN_SECRET} # openssl rand -base64 48
-      PUBLIC_URL: https://print.example.org
+      PUBLIC_URL: https://print.contoso.com
+      SITE_TITLE: Quick Print
+      ORG_NAME: Contoso
       TRUST_PROXY: 'true' # only behind a reverse proxy
       TIME_ZONE: America/Denver
     ports:
@@ -68,7 +70,7 @@ services:
     restart: unless-stopped
     init: true
     environment:
-      PRINT_SERVER_URL: https://print.example.org
+      PRINT_SERVER_URL: https://print.contoso.com
       PRINT_AGENT_TOKEN: ${PRINT_AGENT_TOKEN:?copy it from /manage}
       PRINTER_URI: ipp://printer.local:631/ipp/print
 ```
@@ -83,7 +85,7 @@ services:
     restart: unless-stopped
     init: true
     environment:
-      PRINT_SERVER_URL: https://print.example.org
+      PRINT_SERVER_URL: https://print.contoso.com
       PRINT_AGENT_TOKEN: ${PRINT_AGENT_TOKEN:?copy it from /manage}
       PRINTER_URI: cups://HP-LaserJet-MFP-M129-M134 # lpstat -p on the host
       CUPS_SERVER: /run/cups/cups.sock
@@ -103,7 +105,7 @@ Both packages need Node.js 24 (server) or 20.17+ (agent):
 npm install --global @uwacwy/print-server
 uwacwy-print-server /etc/uwacwy-print-server.env   # or set the variables in the environment
 
-npx @uwacwy/print-agent install --print-server-url https://print.example.org --print-enroll-token <token>
+npx @uwacwy/print-agent install --print-server-url https://print.contoso.com --print-enroll-token <token>
 ```
 
 The server takes an optional env file; existing environment variables win over it. The agent's
@@ -121,21 +123,24 @@ and each package's `.env.example` lists every setting.
   follows it across rotations. Upload tokens and other query credentials are redacted, `/api/healthz` is
   skipped, and agent socket traffic on `/ws` is not logged. Logs hold client IP addresses, so keep the
   retention short.
-- `PUBLIC_URL` is the address people use. It is printed in QR codes and agent setup commands, and its
+- `PUBLIC_URL` (default `https://localhost:4200`) is the address people use, for example
+  `https://print.contoso.com`. It is printed in QR codes and agent setup commands, and its
   host name is allowed for server-side rendering. When it is `https://` (or localhost), **Add printer**
   can enroll printers from their own computers with `curl … | bash` or `npx` setup commands, which
   work for `ENROLL_TOKEN_TTL_MINUTES` (default 30).
+- `SITE_TITLE` (for example `Quick Print`) names the site in the page title, header, and printed pages.
+  `ORG_NAME` (for example `Contoso`) is the organization named in the footer copyright notice. Until
+  they are set, the pages show `Update env:SITE_TITLE` and `Update env:ORG_NAME`.
 - `NG_ALLOWED_HOSTS` lists other comma-separated host names the app may be reached by, for example a
   LAN IP. Pages requested with any other `Host` header get `400 Bad Request` (the API is unaffected).
 - `ENTRA_TENANT_ID` and `ENTRA_CLIENT_ID` enable Microsoft Entra sign-in and `/manage`. The browser
   reads them at startup from `GET /api/client-config`, so one prebuilt image or package works for any
   tenant.
 - A `logo.svg`, `logo.png`, or `logo.jpg` in the server's `dist/browser` folder (or `packages/server/public`
-  before building) is shown in the page header. `LOGO_ALT` (default `Contoso`) is its text for screen
+  before building) is shown in the page header. `LOGO_ALT` (default `ORG_NAME`) is its text for screen
   readers. The server looks for the logo at startup, so restart it after adding or replacing the file.
   `CLIENT_BRAND_LOGO` (a root-relative URL) overrides the file lookup.
-- `CLIENT_LEGAL_ORG_NAME` (default `Contoso`) is the organization named in the footer copyright notice.
-  `CLIENT_BRAND_LINKS` adds footer links (for example privacy and terms) as a query string:
+- `CLIENT_BRAND_LINKS` adds footer links (for example privacy and terms) as a query string:
   `label=Privacy&url=https://example.com/privacy&label=Terms&url=/terms` (URLs must be http(s), mailto, or
   root-relative). `CLIENT_SHOW_ATTRIBUTION=false` hides the package name and version in the footer.
 - `TRUST_PROXY=true` only behind a reverse proxy; otherwise clients could spoof their IP to dodge rate limits.
@@ -284,7 +289,7 @@ Setup in Microsoft Entra:
 TOKEN=$(curl -s "https://login.microsoftonline.com/$TENANT_ID/oauth2/v2.0/token" \
   -d grant_type=client_credentials -d client_id="$APP_ID" -d client_secret="$APP_SECRET" \
   -d scope="api://$ENTRA_CLIENT_ID/.default" | jq -r .access_token)
-API=https://print.example.org/api/printers/event-room
+API=https://print.contoso.com/api/printers/event-room
 
 curl -X POST -H "Authorization: Bearer $TOKEN" "$API/pin"        # rotate the PIN
 curl -X POST -H "Authorization: Bearer $TOKEN" "$API/qr-print"   # QR info sheet with the new PIN
@@ -361,8 +366,8 @@ In `/manage`, choose **Add printer → Set up on the printer's computer → Crea
 the one-liner on the Pi:
 
 ```bash
-curl -sSL https://print.example.org/printer/<enroll-token>/install | bash          # user service
-curl -sSL https://print.example.org/printer/<enroll-token>/install | sudo bash     # system service
+curl -sSL https://print.contoso.com/printer/<enroll-token>/install | bash          # user service
+curl -sSL https://print.contoso.com/printer/<enroll-token>/install | sudo bash     # system service
 ```
 
 The script installs Node.js (into `~/.local`, or `/usr/local` as root) if there is no Node.js 20.17 or
@@ -396,8 +401,8 @@ A healthy start logs:
 [agent] uwacwy-print-agent 0.1.0
 [printer] Connected: cups://<Queue-Name>
 [server] Reported printer queue.
-[ws] Connected: https://print.example.org/ws
-[ws] Listening to queue: 'https://print.example.org/print/<slug>' => '<printer name>'
+[ws] Connected: https://print.contoso.com/ws
+[ws] Listening to queue: 'https://print.contoso.com/print/<slug>' => '<printer name>'
 ```
 
 `/manage` shows the printer online, with the queue the agent reported. `uwacwy-print-agent run` exits

@@ -18,6 +18,8 @@ services:
       DATA_DIR: /data
       # Required, at least 32 characters: openssl rand -base64 48
       UPLOAD_TOKEN_SECRET: ${UPLOAD_TOKEN_SECRET:?set UPLOAD_TOKEN_SECRET}
+      # For example https://print.contoso.com; branding (SITE_TITLE=Quick Print, ORG_NAME=Contoso)
+      # goes in print-server.env.
       PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8080}
       # Extra host names the web app may be served under (comma-separated).
       # PUBLIC_URL's host name is always allowed.
