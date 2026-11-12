@@ -52,3 +52,11 @@ execFileSync(
     stdio: 'inherit',
   },
 );
+
+execFileSync('git', ['add', '.'], { cwd: repoRoot });
+
+execFileSync('git', ['commit', '-m', `v${version}`], {
+  cwd: repoRoot,
+});
+
+execFileSync('git', ['tag', `v${version}`], { cwd: repoRoot });
