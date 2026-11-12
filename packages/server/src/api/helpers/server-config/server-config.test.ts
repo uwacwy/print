@@ -32,7 +32,6 @@ describe('server config', () => {
         value === undefined
           ? { ...secret }
           : { ...secret, TRUST_PROXY: value },
-        false,
       ).trustProxy;
     expect(trust('true')).toBe(true);
     expect(trust('false')).toBe(false);
@@ -61,7 +60,7 @@ describe('server config', () => {
     };
 
     loadLocalEnvFile(env, file);
-    const config = loadServerConfig(env, false);
+    const config = loadServerConfig(env);
 
     expect(config.entra.tenantId).toBe(tenant);
     expect(config.entra.audience).toEqual([
@@ -78,7 +77,7 @@ describe('server config', () => {
   });
 
   it('derives browser sign-in settings only when Entra is configured', () => {
-    expect(loadServerConfig(secret, false).client).toEqual({
+    expect(loadServerConfig(secret).client).toEqual({
       brand: { siteTitle: 'VITA Secure Print' },
       enrollment: false,
       legal: { organizationName: 'Contoso' },
@@ -86,14 +85,11 @@ describe('server config', () => {
       showAttribution: true,
     });
     expect(
-      loadServerConfig(
-        {
-          ...secret,
-          ENTRA_CLIENT_ID: client,
-          ENTRA_TENANT_ID: tenant,
-        },
-        false,
-      ).client,
+      loadServerConfig({
+        ...secret,
+        ENTRA_CLIENT_ID: client,
+        ENTRA_TENANT_ID: tenant,
+      }).client,
     ).toEqual({
       brand: { siteTitle: 'VITA Secure Print' },
       enrollment: false,
@@ -108,32 +104,26 @@ describe('server config', () => {
       showAttribution: true,
     });
     expect(
-      loadServerConfig(
-        {
-          ...secret,
-          ENTRA_ADMIN_SCOPE: 'Print.Admin',
-          ENTRA_API_AUDIENCE: 'api://print.example.org',
-          ENTRA_CLIENT_ID: client,
-          ENTRA_TENANT_ID: tenant,
-        },
-        false,
-      ).client.msal?.apiScope,
+      loadServerConfig({
+        ...secret,
+        ENTRA_ADMIN_SCOPE: 'Print.Admin',
+        ENTRA_API_AUDIENCE: 'api://print.example.org',
+        ENTRA_CLIENT_ID: client,
+        ENTRA_TENANT_ID: tenant,
+      }).client.msal?.apiScope,
     ).toBe('api://print.example.org/Print.Admin');
   });
 
   it('derives branding and legal settings from CLIENT_* variables', () => {
-    const { client } = loadServerConfig(
-      {
-        ...secret,
-        CLIENT_BRAND_LINKS:
-          'label=Privacy&url=https://example.com/privacy',
-        CLIENT_BRAND_LOGO: '/brand.svg',
-        CLIENT_LEGAL_ORG_NAME: 'United Way',
-        CLIENT_SHOW_ATTRIBUTION: 'false',
-        LOGO_ALT: 'United Way logo',
-      },
-      false,
-    );
+    const { client } = loadServerConfig({
+      ...secret,
+      CLIENT_BRAND_LINKS:
+        'label=Privacy&url=https://example.com/privacy',
+      CLIENT_BRAND_LOGO: '/brand.svg',
+      CLIENT_LEGAL_ORG_NAME: 'United Way',
+      CLIENT_SHOW_ATTRIBUTION: 'false',
+      LOGO_ALT: 'United Way logo',
+    });
     expect(client.brand).toEqual({
       links: [
         { label: 'Privacy', url: 'https://example.com/privacy' },
@@ -147,19 +137,16 @@ describe('server config', () => {
 
   it('rejects unsafe CLIENT_BRAND_LINKS', () => {
     expect(() =>
-      loadServerConfig(
-        {
-          ...secret,
-          CLIENT_BRAND_LINKS: 'label=x&url=javascript:alert(1)',
-        },
-        false,
-      ),
+      loadServerConfig({
+        ...secret,
+        CLIENT_BRAND_LINKS: 'label=x&url=javascript:alert(1)',
+      }),
     ).toThrow('CLIENT_BRAND_LINKS');
   });
 
   it('enables enrollment only for an https (or loopback http) PUBLIC_URL', () => {
     const enrollment = (PUBLIC_URL: string) =>
-      loadServerConfig({ ...secret, PUBLIC_URL }, false);
+      loadServerConfig({ ...secret, PUBLIC_URL });
     expect(
       enrollment('http://print.example.org').enrollment,
     ).toEqual({
@@ -180,87 +167,73 @@ describe('server config', () => {
       enrollment('http://print.example.org').client.enrollment,
     ).toBe(false);
     expect(
-      loadServerConfig(
-        { ...secret, ENROLL_TOKEN_TTL_MINUTES: '5' },
-        false,
-      ).enrollment.tokenTtlMinutes,
+      loadServerConfig({
+        ...secret,
+        ENROLL_TOKEN_TTL_MINUTES: '5',
+      }).enrollment.tokenTtlMinutes,
     ).toBe(5);
   });
 
   it('requires a valid PUBLIC_URL', () => {
     const { UPLOAD_TOKEN_SECRET } = secret;
     expect(() =>
-      loadServerConfig({ UPLOAD_TOKEN_SECRET }, false),
+      loadServerConfig({ UPLOAD_TOKEN_SECRET }),
     ).toThrow('PUBLIC_URL');
     expect(() =>
-      loadServerConfig(
-        { PUBLIC_URL: 'not a url', UPLOAD_TOKEN_SECRET },
-        false,
-      ),
+      loadServerConfig({
+        PUBLIC_URL: 'not a url',
+        UPLOAD_TOKEN_SECRET,
+      }),
     ).toThrow('PUBLIC_URL');
-    expect(loadServerConfig(secret, false).publicUrl.href).toBe(
+    expect(loadServerConfig(secret).publicUrl.href).toBe(
       'http://print.example.org/',
     );
   });
 
   it('resolves DATA_DIR from the working directory', () => {
-    expect(loadServerConfig(secret, false).dataDir).toBe(
+    expect(loadServerConfig(secret).dataDir).toBe(
       join(process.cwd(), 'data'),
     );
     expect(
-      loadServerConfig(
-        { ...secret, DATA_DIR: '/srv/print' },
-        false,
-      ).dataDir,
+      loadServerConfig({ ...secret, DATA_DIR: '/srv/print' })
+        .dataDir,
     ).toBe('/srv/print');
   });
 
   it('keeps 14 days of access logs in DATA_DIR/logs unless ACCESS_LOG_DAYS is 0', () => {
     expect(
-      loadServerConfig(
-        { ...secret, DATA_DIR: '/srv/print' },
-        false,
-      ).accessLog,
+      loadServerConfig({ ...secret, DATA_DIR: '/srv/print' })
+        .accessLog,
     ).toEqual({ dir: '/srv/print/logs', maxDays: 14 });
     expect(
-      loadServerConfig(
-        { ...secret, ACCESS_LOG_DAYS: '30' },
-        false,
-      ).accessLog?.maxDays,
+      loadServerConfig({ ...secret, ACCESS_LOG_DAYS: '30' })
+        .accessLog?.maxDays,
     ).toBe(30);
     expect(
-      loadServerConfig(
-        { ...secret, ACCESS_LOG_DAYS: '0' },
-        false,
-      ).accessLog,
+      loadServerConfig({ ...secret, ACCESS_LOG_DAYS: '0' })
+        .accessLog,
     ).toBeUndefined();
     expect(() =>
-      loadServerConfig(
-        { ...secret, ACCESS_LOG_DAYS: '-1' },
-        false,
-      ),
+      loadServerConfig({ ...secret, ACCESS_LOG_DAYS: '-1' }),
     ).toThrow();
   });
 
   it('requires a long upload token secret and derives access limits', () => {
     expect(() =>
-      loadServerConfig({ PUBLIC_URL: secret.PUBLIC_URL }, false),
+      loadServerConfig({ PUBLIC_URL: secret.PUBLIC_URL }),
     ).toThrow('UPLOAD_TOKEN_SECRET is required');
     expect(() =>
-      loadServerConfig(
-        { ...secret, UPLOAD_TOKEN_SECRET: 'short' },
-        false,
-      ),
+      loadServerConfig({
+        ...secret,
+        UPLOAD_TOKEN_SECRET: 'short',
+      }),
     ).toThrow('at least 32');
     expect(
-      loadServerConfig(
-        {
-          ...secret,
-          PIN_MAX_FAILURES: '4',
-          PIN_TOKEN_INTERVAL_MINUTES: '5',
-        },
-        false,
-      ).upload.access,
+      loadServerConfig({
+        ...secret,
+        PIN_MAX_FAILURES: '4',
+        PIN_TOKEN_INTERVAL_MINUTES: '5',
+      }).upload.access,
     ).toEqual({
       ipv6Subnet: 56,
       pinMaxFailures: 4,
