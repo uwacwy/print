@@ -154,7 +154,8 @@ main() {
   set -- "$@" %{args[@]+"%{args[@]}"}
 
   # On PATH, this node's own path (not its resolved, versioned directory) goes into the service.
-  export PATH="$(dirname "$NODE"):$PATH"
+  PATH="$(dirname "$NODE"):$PATH"
+  export PATH
   # curl owns stdin; prompts read from the terminal when there is one.
   if { : </dev/tty; } 2>/dev/null; then
     exec "$NODE" "$cli" "$@" </dev/tty
