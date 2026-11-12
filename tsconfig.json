@@ -32,6 +32,18 @@
     },
     {
       "path": "./packages/server/tsconfig.test.json"
+    },
+    {
+      "path": "./packages/shared/tsconfig.json"
+    },
+    {
+      "path": "./packages/shared/tsconfig.test.json"
+    },
+    {
+      "path": "./packages/agent/tsconfig.json"
+    },
+    {
+      "path": "./packages/agent/tsconfig.test.json"
     }
   ]
 }

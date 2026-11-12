@@ -47,7 +47,6 @@ describe('IppPrinter', () => {
     );
     expect(convertPdfToPclm).toHaveBeenCalledWith(
       Buffer.from('%PDF-test'),
-      4096,
     );
     expect(printDocument).toHaveBeenCalledWith(
       expect.any(URL),
