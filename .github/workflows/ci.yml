@@ -31,6 +31,11 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+        # Angular imports server.ts to extract routes, which validates the config; these values
+        # exist only for the build.
+        env:
+          PUBLIC_URL: http://localhost:8080
+          UPLOAD_TOKEN_SECRET: build-time-placeholder-not-a-secret-0000
       - name: Pack (dry run)
         run: npm pack --dry-run -w @uwacwy/print-server -w @uwacwy/print-agent
       - run: npm run compose:check
