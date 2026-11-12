@@ -717,7 +717,7 @@
     </unit>
     <unit id="pin-form.enter-the-pin-posted">
       <notes>
-        <note category="location">packages/server/src/app/pages/print/components/pin-form/pin-form.component.ts:20,23</note>
+        <note category="location">packages/server/src/app/pages/print/components/pin-form/pin-form.component.ts:21,24</note>
       </notes>
       <segment>
         <source> Enter the PIN posted at the printer, or scan its QR code. </source>
@@ -725,7 +725,7 @@
     </unit>
     <unit id="pin-form.printer-pin">
       <notes>
-        <note category="location">packages/server/src/app/pages/print/components/pin-form/pin-form.component.ts:31,34</note>
+        <note category="location">packages/server/src/app/pages/print/components/pin-form/pin-form.component.ts:32,35</note>
       </notes>
       <segment>
         <source>Printer PIN</source>
@@ -733,7 +733,7 @@
     </unit>
     <unit id="pin-form.9-digits">
       <notes>
-        <note category="location">packages/server/src/app/pages/print/components/pin-form/pin-form.component.ts:53,55</note>
+        <note category="location">packages/server/src/app/pages/print/components/pin-form/pin-form.component.ts:54,56</note>
       </notes>
       <segment>
         <source> 9 digits </source>
@@ -741,7 +741,7 @@
     </unit>
     <unit id="upload-document-row.document">
       <notes>
-        <note category="location">packages/server/src/app/pages/print/components/upload-document-row/upload-document-row.component.ts:30,32</note>
+        <note category="location">packages/server/src/app/pages/print/components/upload-document-row/upload-document-row.component.ts:31,33</note>
       </notes>
       <segment>
         <source> Document <ph id="0" equiv="INTERPOLATION" disp="{{ index() + 1 }}"/> </source>
@@ -749,7 +749,7 @@
     </unit>
     <unit id="upload-document-row.copies">
       <notes>
-        <note category="location">packages/server/src/app/pages/print/components/upload-document-row/upload-document-row.component.ts:50,53</note>
+        <note category="location">packages/server/src/app/pages/print/components/upload-document-row/upload-document-row.component.ts:51,54</note>
       </notes>
       <segment>
         <source>Copies</source>
@@ -757,7 +757,7 @@
     </unit>
     <unit id="upload-document-row.remove">
       <notes>
-        <note category="location">packages/server/src/app/pages/print/components/upload-document-row/upload-document-row.component.ts:71,74</note>
+        <note category="location">packages/server/src/app/pages/print/components/upload-document-row/upload-document-row.component.ts:72,75</note>
       </notes>
       <segment>
         <source> Remove </source>

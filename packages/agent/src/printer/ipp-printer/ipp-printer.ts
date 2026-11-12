@@ -63,7 +63,7 @@ export class IppPrinter implements IPrinter {
     const format = await this.format();
     const data =
       format === 'application/PCLm'
-        ? await convertPdfToPclm(pdf, this.options.maxBytes)
+        ? await convertPdfToPclm(pdf)
         : pdf;
     await printDocument(this.uri, data, job, format, {
       quality: this.options.quality,

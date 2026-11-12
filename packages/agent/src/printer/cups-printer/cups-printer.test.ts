@@ -88,7 +88,6 @@ describe('CupsPrinter', () => {
     await printer.print(pdf, { id: 'job-1', title: 'W-2' });
     expect(simplifyPdf).toHaveBeenCalledWith(pdf, {
       dpi: 150,
-      maximumBytes: 100 * 1024 * 1024,
     });
     expect(spawn).toHaveBeenCalledWith(
       'lp',

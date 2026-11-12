@@ -67,14 +67,12 @@ export class CupsPrinter implements IPrinter {
   }
 
   async print(pdf: Buffer, job: AgentJob): Promise<void> {
-    const { dpi = 0, maxBytes } = this.options;
+    const { dpi = 0 } = this.options;
     const title = jobTitle(job);
     log(
       `[cups:${this.queue}] Received: '${title}' (${pdf.length.toLocaleString()} bytes)`,
     );
-    const document = dpi
-      ? await simplifyPdf(pdf, { dpi, maximumBytes: maxBytes })
-      : pdf;
+    const document = dpi ? await simplifyPdf(pdf, { dpi }) : pdf;
     await this.cups.ensureEnabled();
     log(`[cups:${this.queue}] Submitting: ${title}`);
     const jobId = await this.#submit(document, title);
