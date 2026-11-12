@@ -116,7 +116,6 @@ export default ({
         },
       )
       .get(
-        // '/jobs/:id/file',
         $.jobs.$id.file.pattern as ':id',
         agent,
         validate({ params: jobParams }),
@@ -154,7 +153,6 @@ export default ({
       )
 
       .post(
-        // '/jobs/:id/status',
         $.jobs.$id.status.pattern as ':id',
         agent,
         validate({ body: JobReport, params: jobParams }),

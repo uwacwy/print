@@ -15,14 +15,17 @@ RUN npm ci --no-audit --no-fund
 FROM deps AS dev
 ENV NODE_ENV=development
 RUN cp package-lock.json .installed-package-lock.json
-CMD ["/bin/sh", "-ec", "if ! cmp -s package-lock.json .installed-package-lock.json; then npm ci --no-audit --no-fund; cp package-lock.json .installed-package-lock.json; fi; ./node_modules/.bin/tsc -b packages/shared; SOCKET_DEV_PORT=${SOCKET_DEV_PORT:-4201} exec ./node_modules/.bin/ng serve print-server --host 0.0.0.0 --port 4200"]
+CMD ["/bin/sh", "-ec", "if ! cmp -s package-lock.json .installed-package-lock.json; then npm ci --no-audit --no-fund; cp package-lock.json .installed-package-lock.json; fi; npm run build -w @uwacwy/print-shared; SOCKET_DEV_PORT=${SOCKET_DEV_PORT:-4201} exec ./node_modules/.bin/ng serve print-server --host 0.0.0.0 --port 4200"]
 
 FROM deps AS build
 COPY LICENSE ./
 COPY scripts ./scripts
 COPY packages/shared ./packages/shared
 COPY packages/server ./packages/server
-RUN npm run build -w @uwacwy/print-shared -w @uwacwy/print-server && npm pack -w @uwacwy/print-server --pack-destination /tmp
+# Angular imports server.ts to extract routes, which validates the config. These placeholders
+# exist only for this RUN; real values are supplied when the container starts.
+RUN PUBLIC_URL=http://localhost:8080 UPLOAD_TOKEN_SECRET=build-time-placeholder-not-a-secret-0000 \
+    npm run build -w @uwacwy/print-shared -w @uwacwy/print-server && npm pack -w @uwacwy/print-server --pack-destination /tmp
 
 # Installs the same tarball that is published to npm, with production dependencies only.
 FROM deps AS install

@@ -5,8 +5,6 @@ import {
   rgb,
 } from 'pdf-lib';
 
-// export const PAGE_WIDTH = 612;
-// export const PAGE_HEIGHT = 792;
 export const [PAGE_WIDTH, PAGE_HEIGHT] = PageSizes.Letter;
 export const MARGIN = 54;
 export const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;

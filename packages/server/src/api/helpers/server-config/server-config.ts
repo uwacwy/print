@@ -109,9 +109,16 @@ const ServerEnvironment = z.object({
   RETENTION_DAYS: z.coerce.number().positive().default(7),
   SITE_TITLE: z.string().default('VITA Secure Print'),
   TIME_ZONE: z.string().default('America/Denver'),
+  /** `true`/`false`, or a comma-separated list of trusted proxy addresses or Express presets. */
   TRUST_PROXY: z
     .string()
-    .transform((v) => v.split(','))
+    .transform((v) =>
+      v === 'true'
+        ? true
+        : v === 'false'
+          ? false
+          : v.split(',').map((item) => item.trim()),
+    )
     .default(['loopback', 'linklocal', 'uniquelocal']),
   /** Longest validity window an admin may give a QR token. */
   UPLOAD_TOKEN_MAX_DAYS: z.coerce
@@ -129,16 +136,6 @@ const ServerEnvironment = z.object({
       'UPLOAD_TOKEN_SECRET must be at least 32 characters.',
     ),
   UPLOADS_PER_MINUTE: z.coerce.number().int().min(1).default(10),
-  /** Comma-separated client IDs of service apps (e.g. Windmill) allowed to submit print jobs. */
-  // ENTRA_AUTOMATION_CLIENT_IDS: z.string().optional(),
-  // ENTRA_AUTOMATION_ROLE: z.string().min(1).default('Jobs.Submit'),
-  /** `ng serve` only: side port for socket.io, reached through proxy.conf.mjs. 0 disables it. */
-  // SOCKET_DEV_PORT: z.coerce
-  //   .number()
-  //   .int()
-  //   .min(0)
-  //   .max(65535)
-  //   .optional(),
 });
 
 export interface EnrollmentConfig {
@@ -162,7 +159,6 @@ export interface ServerConfig {
   retentionMs: number;
   trustProxy: boolean | string[];
   upload: UploadConfig;
-  // socketDevPort: number | undefined;
 }
 
 export interface UploadAccessConfig extends UploadTokenKey {
@@ -230,9 +226,6 @@ export function loadLocalEnvFile(
 
 export function loadServerConfig(
   env: NodeJS.ProcessEnv = process.env,
-  // Feeds the SOCKET_DEV_PORT default, which is commented out below.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  devServer = isAngularDevServer(),
 ): ServerConfig {
   const e = ServerEnvironment.parse(env);
   const apiAudience =
@@ -294,8 +287,6 @@ export function loadServerConfig(
       timeZone: e.TIME_ZONE,
       uploadsPerMinute: e.UPLOADS_PER_MINUTE,
     },
-    // socketDevPort:
-    //   (e.SOCKET_DEV_PORT ?? (devServer ? 4201 : 0)) || undefined,
   };
 }
 

@@ -10,9 +10,10 @@ import {
 } from '@angular/forms/signals';
 
 import { FileInput } from '../../../../components/file-input/file-input.component';
+import { firstErrorOrDefault } from '../../../../helpers/signal-forms/first-error-or-default';
 import {
   ACCEPTED_TYPES,
-  type DocumentRow,
+  DocumentRow,
 } from '../../helpers/print-upload/print-upload';
 
 /** One document's file picker, copy count and remove button. */
@@ -94,9 +95,7 @@ export class UploadDocumentRowComponent {
   protected readonly acceptedTypes = ACCEPTED_TYPES;
   protected readonly fileError = computed(() => {
     const state = this.document().file();
-    return state.touched()
-      ? (state.errors()[0]?.message ?? '')
-      : '';
+    return firstErrorOrDefault(state);
   });
   protected readonly id = computed(() =>
     this.document().id().value(),

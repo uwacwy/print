@@ -64,7 +64,6 @@ export class PrinterService {
         {
           headers: new HttpHeaders({
             authorization: `Pin ${pin}`,
-            'x-print-upload': '1',
           }),
         },
       )
@@ -151,18 +150,18 @@ export class PrinterService {
       .pipe(map(parseWith(CreatedPrinter)));
   }
 
-  /** Multipart upload; the header proves same-origin intent (see api/middleware/same-origin.ts). */
-  /** Without an upload token, the MSAL interceptor supplies the signed-in user's access token. */
+  /** Multipart upload. Without an upload token, the MSAL interceptor supplies the signed-in user's access token. */
   submitJob(
     slug: string,
     form: FormData,
     token?: null | string,
   ) {
-    const headers = token ? bearer(token) : new HttpHeaders();
     return this.#http
-      .post<unknown>($.api.printers.$slug.jobs({ slug }), form, {
-        headers: headers.set('x-print-upload', '1'),
-      })
+      .post<unknown>(
+        $.api.printers.$slug.jobs({ slug }),
+        form,
+        token ? { headers: bearer(token) } : {},
+      )
       .pipe(map(parseWith(SubmittedJob)));
   }
 

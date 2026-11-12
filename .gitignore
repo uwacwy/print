@@ -56,4 +56,6 @@ packages/*/LICENSE
 packages/*/dist
 
 # Local deployment helper
-redeploy-agent.sh
+*.sh
+*.ts
+# !vite.*.ts

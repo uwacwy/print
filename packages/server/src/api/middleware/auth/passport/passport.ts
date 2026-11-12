@@ -9,6 +9,14 @@ import type { UploadTokenKey } from '../upload-token/upload-token';
 import { AgentTokenStrategy } from '../agent-token/agent-token.strategy';
 import { EnrollTokenStrategy } from '../enroll-token/enroll-token.strategy';
 import {
+  ENTRA_APP_ROLES,
+  type EntraAppRole,
+} from '../entra-app/entra-app';
+import {
+  createEntraAppStrategy,
+  entraAppStrategyName,
+} from '../entra-app/entra-app.strategy';
+import {
   createEntraUserStrategy,
   type EntraUserOptions,
 } from '../entra-user/entra-user.strategy';
@@ -43,7 +51,7 @@ export interface AuthOptions {
   db: PrintDatabase;
   /** Registers `enrollToken`. */
   enrollToken?: EnrollTokenKey;
-  /** Registers `entraUser` (unconfigured tenants answer 503 to presented JWTs). */
+  /** Registers `entraUser` and `entraApp:<role>` (unconfigured tenants answer 503 to presented JWTs). */
   entra?: EntraUserOptions;
   /** Registers `uploadToken`. */
   uploadToken?: UploadTokenKey;
@@ -54,7 +62,8 @@ export type StrategyName =
   | 'enrollToken'
   | 'entraUser'
   | 'pin'
-  | 'uploadToken';
+  | 'uploadToken'
+  | `entraApp:${EntraAppRole}`;
 
 // @types/passport returns `any`; with a callback the result is always a request handler.
 type Authenticator = (
@@ -90,6 +99,12 @@ export function createAuthenticate({
   passport.use('pin', new PinStrategy());
   if (entra) {
     passport.use('entraUser', createEntraUserStrategy(entra));
+    for (const role of ENTRA_APP_ROLES) {
+      passport.use(
+        entraAppStrategyName(role),
+        createEntraAppStrategy(entra, role),
+      );
+    }
   }
   if (uploadToken) {
     passport.use(

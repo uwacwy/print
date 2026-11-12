@@ -173,8 +173,6 @@ export const redactUrl = (
   return includeOrigin
     ? redacted.toString()
     : omitOrigin(redacted);
-
-  // return redactQuery(url.toString().slice(u.origin.length));
 };
 
 export interface AccessLogFileOptions {
@@ -243,7 +241,6 @@ function redactQuery(u: URL): URL {
     }, new URLSearchParams())
     .toString();
 
-  // return u.origin;
   return u;
 }
 

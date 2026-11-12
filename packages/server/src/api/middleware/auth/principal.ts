@@ -19,6 +19,12 @@ export interface AuthChallenge {
 
 /** Who a request was authenticated as; set on `req.user` by `authenticate()`. */
 export type Principal =
+  | {
+      clientId: string;
+      id: string;
+      kind: 'entraApp';
+      roles: string[];
+    }
   | { expiresAt: Date; kind: 'enroll' }
   | {
       expiresAt: Date;
@@ -27,6 +33,7 @@ export type Principal =
       printer: PrinterRow;
       source: UploadTokenSource;
     }
+  /** An application using client credentials; `id` is its service principal object ID. */
   | { id: string; kind: 'entraUser'; roles: string[] }
   | { kind: 'agent'; printer: PrinterRow }
   | { kind: 'pin'; printer: PrinterRow };
@@ -67,6 +74,8 @@ export function submittedBy(who: Principal): string {
       return 'agent';
     case 'enroll':
       return 'enroll';
+    case 'entraApp':
+      return `app:${who.clientId}`;
     case 'entraUser':
       return `entra:${who.id}`;
     case 'pin':

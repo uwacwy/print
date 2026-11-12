@@ -1,6 +1,4 @@
-{
-  "printWidth": 65,
-  "singleQuote": true,
+export default{
   "overrides": [
     {
       "files": "*.html",
@@ -8,5 +6,7 @@
         "parser": "angular"
       }
     }
-  ]
+  ],
+  "printWidth": 65,
+  "singleQuote": true
 }

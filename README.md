@@ -54,8 +54,10 @@ UPLOAD_TOKEN_SECRET=$(openssl rand -base64 48) docker compose -f examples/compos
 ```
 
 Keep `UPLOAD_TOKEN_SECRET` stable (store it in an env file or secret store): changing it invalidates
-every QR code and PIN link. The image runs as user `node` (uid 1000), listens on 8080, and has a
-health check on `/api/healthz`.
+every QR code and PIN link. Other settings, such as the Entra sign-in variables, go in an env file:
+`cp packages/server/.env.example print-server.env` and `compose.server.yml` reads it (values set in
+the compose file, including `DATA_DIR`, win). The image runs as user `node` (uid 1000), listens on
+8080, and has a health check on `/api/healthz`.
 
 Agent for a network printer that speaks IPP (most AirPrint/Mopria printers):
 
@@ -195,7 +197,7 @@ Everything the Angular server runs lives in `packages/server/src`:
     - `agent-hub/`: tracks each printer's agent socket, dispatches queued jobs, and publishes live events
     - `handshake/`: authenticates `auth.token` with the same Passport strategies as the REST API
   - `middleware/auth/`: Passport strategies and `authenticate(...)`, plus the upload token and PIN code they verify
-  - `middleware/`: rate limits and the same-origin upload guard
+  - `middleware/`: rate limits and request validation
   - `helpers/`: helpers grouped by topic
     - `database/`: the SQLite database and job file storage
     - `pdf/`: PDF builders for uploads (`document` normalisation, `cover-page`, `qr-poster`, shared `pdf-layout`)
@@ -215,38 +217,129 @@ Each route lists the credentials it accepts with `authenticate(...)`. The first 
 succeeds wins; when none succeed, the response explains the most relevant failure as
 `{ code, error }`.
 
-| Strategy      | Credential                              | Principal                                   |
-| ------------- | --------------------------------------- | ------------------------------------------- |
-| `entraUser`   | `Authorization: Bearer <Entra JWT>`     | A manager (API scope plus admin role/group) |
-| `uploadToken` | `Authorization: Bearer <42-char token>` | A QR or PIN upload grant for one printer    |
-| `pin`         | `Authorization: Pin 111-222-333`        | Someone who knows the printer's PIN         |
-| `agentToken`  | `Authorization: Bearer <agent token>`   | The print agent for one printer             |
+| Strategy          | Credential                              | Principal                                            |
+| ----------------- | --------------------------------------- | ---------------------------------------------------- |
+| `entraUser`       | `Authorization: Bearer <Entra JWT>`     | A manager (API scope plus admin role/group)          |
+| `entraApp:<role>` | `Authorization: Bearer <Entra JWT>`     | An application (client credentials) granted `<role>` |
+| `uploadToken`     | `Authorization: Bearer <42-char token>` | A QR or PIN upload grant for one printer             |
+| `pin`             | `Authorization: Pin 111-222-333`        | Someone who knows the printer's PIN                  |
+| `agentToken`      | `Authorization: Bearer <agent token>`   | The print agent for one printer                      |
 
-| Endpoint                                                          | Accepts                                          |
-| ----------------------------------------------------------------- | ------------------------------------------------ |
-| `GET /api/healthz`                                                | anyone                                           |
-| `GET /api/status` (`printersOnline`)                              | anyone                                           |
-| `GET /api/session`                                                | `entraUser`                                      |
-| `GET, POST /api/printers`                                         | `entraUser`                                      |
-| `GET /api/printers/:slug`                                         | anyone (`entraUser` also gets management fields) |
-| `PATCH, DELETE /api/printers/:slug`                               | `entraUser`                                      |
-| `POST /api/printers/:slug/token`                                  | `pin` (rate limited; returns an upload token)    |
-| `POST /api/printers/:slug/jobs`                                   | `uploadToken`, `pin`, `entraUser`                |
-| `DELETE /api/printers/:slug/jobs`                                 | `entraUser`                                      |
-| `GET, POST /api/printers/:slug/qr.pdf`                            | `entraUser`                                      |
-| `POST /api/printers/:slug/{qr-token,qr-print,qr-epoch}`           | `entraUser`                                      |
-| `POST, DELETE /api/printers/:slug/pin`                            | `entraUser`                                      |
-| `POST /api/printers/:slug/agent-token`                            | `entraUser` (rotates the agent token)            |
-| `GET /api/agent/jobs/:id/file`, `POST /api/agent/jobs/:id/status` | `agentToken`                                     |
-| socket.io namespace `/agent` (`auth: { token }`)                  | `agentToken`                                     |
-| socket.io namespace `/live` (`auth: { token }`)                   | `entraUser`                                      |
+| Endpoint                                                          | Accepts                                                                               |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `GET /api/healthz`                                                | anyone                                                                                |
+| `GET /api/status` (`printersOnline`)                              | anyone                                                                                |
+| `GET /api/session`                                                | `entraUser`                                                                           |
+| `GET, POST /api/printers`                                         | `entraUser`                                                                           |
+| `GET /api/printers/:slug`                                         | anyone (`entraUser` also gets management fields; `entraApp:Printer.Read` gets status) |
+| `PATCH, DELETE /api/printers/:slug`                               | `entraUser`                                                                           |
+| `POST /api/printers/:slug/token`                                  | `pin` (rate limited; returns an upload token)                                         |
+| `POST /api/printers/:slug/jobs`                                   | `uploadToken`, `pin`, `entraUser`, `entraApp:Printer.PrintJob`                        |
+| `DELETE /api/printers/:slug/jobs`                                 | `entraUser`                                                                           |
+| `GET, POST /api/printers/:slug/qr.pdf`                            | `entraUser`                                                                           |
+| `POST /api/printers/:slug/{qr-token,qr-epoch}`                    | `entraUser`                                                                           |
+| `POST /api/printers/:slug/qr-print`                               | `entraUser`, `entraApp:Printer.PrintFlyer`                                            |
+| `POST, DELETE /api/printers/:slug/pin`                            | `entraUser`, `entraApp:Printer.ManagePin` (apps never see the PIN)                    |
+| `POST /api/printers/:slug/agent-token`                            | `entraUser` (rotates the agent token)                                                 |
+| `GET /api/agent/jobs/:id/file`, `POST /api/agent/jobs/:id/status` | `agentToken`                                                                          |
+| socket.io namespace `/agent` (`auth: { token }`)                  | `agentToken`                                                                          |
+| socket.io namespace `/live` (`auth: { token }`)                   | `entraUser`                                                                           |
 
-Browser uploads and PIN exchanges must also send `x-print-upload: 1` from the same origin. In the
-SPA, MSAL adds the Entra token only for signed-in users, and only to requests that don't already
+In the SPA, MSAL adds the Entra token only for signed-in users, and only to requests that don't already
 carry an `Authorization` header. `GET /api/printers/:slug` reports `access.signedIn` when that
 token passes `entraUser`. The print page then shows the upload form without a PIN or QR token
 ("Printing as …"), and the upload goes out with the Entra token. A valid QR/PIN upload token
 still takes precedence.
+
+### Calling the API from a script
+
+Scripts and services (for example a Windmill job) authenticate as an Entra application in the same
+tenant using the client-credentials flow. Entra decides which applications may call which endpoints:
+the server only checks that the token was issued by the tenant for this API and carries the
+required **app role** in its `roles` claim.
+
+| App role             | Allows                                                                                                  |
+| -------------------- | ------------------------------------------------------------------------------------------------------- |
+| `Printer.Read`       | `GET /api/printers/:slug` with status: `online`, `lastSeenAt`, `activeJobs`, `failedJobs`, `pinEnabled` |
+| `Printer.PrintJob`   | `POST /api/printers/:slug/jobs`                                                                         |
+| `Printer.PrintFlyer` | `POST /api/printers/:slug/qr-print` (queues the QR info sheet, which shows the PIN on paper)            |
+| `Printer.ManagePin`  | `POST` (rotate) and `DELETE` (disable) `/api/printers/:slug/pin`                                        |
+
+Applications can rotate or disable the PIN but never read it: only signed-in people see the PIN, so
+a leaked client secret cannot reveal it. Every other management endpoint answers applications with
+`403 app_token_not_allowed`; a missing role answers `403 app_role_required` with the `role` needed.
+Jobs an application submits are recorded as `app:<client ID>`.
+
+Setup in Microsoft Entra:
+
+1. In the print API's app registration (`ENTRA_CLIENT_ID`), open **App roles** and create each role
+   above with **Allowed member types: Applications** and the role name as its **Value**.
+2. Register the calling application and give it a certificate (preferred, see below) or client secret.
+3. In the calling application's **API permissions**, add the print API under **My APIs →
+   Application permissions**, select the roles it needs, and **Grant admin consent**. Remove the
+   permission (or the consent) to revoke access.
+4. Request a token with `scope=<API audience>/.default`, for example `api://<ENTRA_CLIENT_ID>/.default`.
+
+```bash
+TOKEN=$(curl -s "https://login.microsoftonline.com/$TENANT_ID/oauth2/v2.0/token" \
+  -d grant_type=client_credentials -d client_id="$APP_ID" -d client_secret="$APP_SECRET" \
+  -d scope="api://$ENTRA_CLIENT_ID/.default" | jq -r .access_token)
+API=https://print.example.org/api/printers/event-room
+
+curl -X POST -H "Authorization: Bearer $TOKEN" "$API/pin"        # rotate the PIN
+curl -X POST -H "Authorization: Bearer $TOKEN" "$API/qr-print"   # QR info sheet with the new PIN
+curl -X POST -H "Authorization: Bearer $TOKEN" "$API/jobs" \
+  -F job__title=Appointments -F document__file_0=@appointments.pdf -F document__copies_0=3
+curl -H "Authorization: Bearer $TOKEN" "$API"                    # status
+```
+
+#### Using a certificate instead of a client secret
+
+A certificate is preferred: the private key never leaves the script's host, it cannot be guessed,
+and Entra only stores the public half. Generate a key pair (here valid for two years), keep the
+`.key` file out of the repository, and upload only the `.crt`:
+
+```bash
+openssl req -x509 -newkey rsa:2048 -sha256 -nodes -days 730 \
+  -subj "/CN=windmill-print-api" -keyout windmill-print.key -out windmill-print.crt
+chmod 600 windmill-print.key
+```
+
+1. In the calling application's registration, open **Certificates & secrets → Certificates → Upload
+   certificate** and choose `windmill-print.crt`. Entra shows its thumbprint.
+2. Store `windmill-print.key` where the script runs (for example as a Windmill secret variable). Put
+   a calendar reminder before the certificate expires; add the replacement before removing the old
+   one so there is no gap.
+3. Sign a short-lived JWT with the key and send it as `client_assertion` instead of `client_secret`.
+   MSAL (`@azure/msal-node`, `msal` for Python) does this for you given the key and thumbprint; this
+   shell version needs only `openssl`, `curl` and `jq`:
+
+```bash
+b64url() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
+
+TOKEN_URL="https://login.microsoftonline.com/$TENANT_ID/oauth2/v2.0/token"
+THUMBPRINT=$(openssl x509 -in "$CERT_FILE" -outform DER | openssl dgst -sha256 -binary | b64url)
+NOW=$(date +%s)
+
+HEADER=$(printf '{"alg":"RS256","typ":"JWT","x5t#S256":"%s"}' "$THUMBPRINT" | b64url)
+CLAIMS=$(printf '{"aud":"%s","iss":"%s","sub":"%s","jti":"%s","nbf":%d,"exp":%d}' \
+  "$TOKEN_URL" "$CLIENT_ID" "$CLIENT_ID" "$(cat /proc/sys/kernel/random/uuid)" "$NOW" "$((NOW + 600))" | b64url)
+SIGNATURE=$(printf '%s.%s' "$HEADER" "$CLAIMS" | openssl dgst -sha256 -sign "$KEY_FILE" | b64url)
+
+TOKEN=$(curl -s "$TOKEN_URL" \
+  -d grant_type=client_credentials -d client_id="$CLIENT_ID" \
+  -d client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer \
+  -d client_assertion="$HEADER.$CLAIMS.$SIGNATURE" \
+  -d scope="api://$ENTRA_CLIENT_ID/.default" | jq -r .access_token)
+```
+
+The assertion's `aud` must be the exact token URL, `iss` and `sub` are the calling application's
+client ID, and `x5t#S256` is the base64url SHA-256 of the DER certificate. The resulting access token
+is identical to the client-secret one, so the server needs no change. Once the certificate works,
+delete the client secret from the registration.
+
+Jobs queued while the printer's agent is offline are delivered in the order they were submitted as
+soon as it connects, within `JOB_TTL_HOURS`. Uploads share the per-IP `UPLOADS_PER_MINUTE` limit.
 
 ## Raspberry Pi print agent
 

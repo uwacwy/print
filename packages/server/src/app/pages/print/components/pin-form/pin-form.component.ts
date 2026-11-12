@@ -5,6 +5,7 @@ import {
   FormRoot,
 } from '@angular/forms/signals';
 
+import { firstErrorOrDefault } from '../../../../helpers/signal-forms/first-error-or-default';
 import { formatPinInput } from '../../helpers/print-pin/print-pin';
 
 export interface PinModel {
@@ -82,9 +83,7 @@ export class PinFormComponent {
   /** The first message once the user has interacted with the field. */
   protected readonly error = computed(() => {
     const state = this.pinForm().pin();
-    return state.touched()
-      ? (state.errors()[0]?.message ?? '')
-      : '';
+    return firstErrorOrDefault(state);
   });
 
   protected format(): void {

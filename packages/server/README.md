@@ -30,18 +30,20 @@ Settings come from the environment, or from `env-file` (default: `./.env` when p
 environment variables win. [`.env.example`](.env.example), included in this package, lists them all.
 The important ones:
 
-| Variable                             | Default    | Purpose                                                                                       |
-| ------------------------------------ | ---------- | --------------------------------------------------------------------------------------------- |
-| `UPLOAD_TOKEN_SECRET`                | (required) | Signs QR and PIN upload links; 32+ characters. Changing it revokes them.                      |
-| `PORT`                               | `4000`     | HTTP port for pages, API, and `/ws` (8080 in the image)                                       |
-| `DATA_DIR`                           | `./data`   | `print.db`, queued jobs, and `logs/`                                                          |
-| `ACCESS_LOG_DAYS`                    | `14`       | Days of daily JSON access logs in `DATA_DIR/logs` (`access.log` links to today); `0` disables |
-| `PUBLIC_URL`                         |            | Public address; used in QR codes and allowed for server rendering                             |
-| `NG_ALLOWED_HOSTS`                   |            | Other host names (comma-separated) pages may be requested by                                  |
-| `TRUST_PROXY`                        | `false`    | Set behind a reverse proxy so rate limits see the real client IP                              |
-| `ENTRA_TENANT_ID`, `ENTRA_CLIENT_ID` |            | Enable Entra sign-in and `/manage`; the browser reads them from `/api/client-config`          |
+| Variable                             | Default                     | Purpose                                                                                                                |
+| ------------------------------------ | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `UPLOAD_TOKEN_SECRET`                | (required)                  | Signs QR and PIN upload links; 32+ characters. Changing it revokes them.                                               |
+| `PORT`                               | `4000`                      | HTTP port for pages, API, and `/ws` (8080 in the image)                                                                |
+| `DATA_DIR`                           | `./data`                    | `print.db`, queued jobs, and `logs/`                                                                                   |
+| `ACCESS_LOG_DAYS`                    | `14`                        | Days of daily JSON access logs in `DATA_DIR/logs` (`access.log` links to today); `0` disables                          |
+| `PUBLIC_URL`                         |                             | Public address; used in QR codes and allowed for server rendering                                                      |
+| `NG_ALLOWED_HOSTS`                   |                             | Other host names (comma-separated) pages may be requested by                                                           |
+| `TRUST_PROXY`                        | loopback and private ranges | `true` behind a reverse proxy so rate limits see the real client IP; `false` trusts none; or a list of proxy addresses |
+| `ENTRA_TENANT_ID`, `ENTRA_CLIENT_ID` |                             | Enable Entra sign-in and `/manage`; the browser reads them from `/api/client-config`                                   |
 
 `GET /api/healthz` reports health; `GET /api/status` returns how many printers are online.
+Scripts can call selected endpoints as Entra applications (client credentials) granted app roles; see
+[Calling the API from a script](https://github.com/uwacwy/print#calling-the-api-from-a-script).
 
 ## License
 

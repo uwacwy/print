@@ -43,7 +43,7 @@
   "js/ts.preferences.importModuleSpecifier": "shortest",
   // Shared must never import itself; elsewhere import the package, not its built output.
   "js/ts.preferences.autoImportFileExcludePatterns": [
-    "**/packages/shared/dist/**",
+    "**/packages/*/dist/**",
     "**/node_modules/@uwacwy/print-shared/**"
   ],
   "js/ts.preferences.organizeImports": {

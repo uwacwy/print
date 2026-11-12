@@ -18,13 +18,6 @@ describe('pin strategy', () => {
     });
 
     setPrinterPin(api.db, id, '123456789');
-    expect(
-      (
-        await api.exchangePin('123-456-789', {
-          'sec-fetch-site': 'cross-site',
-        })
-      ).status,
-    ).toBe(403);
     const wrong = await api.exchangePin('999-999-999');
     expect(wrong.status).toBe(401);
     expect(await wrong.json()).toMatchObject({

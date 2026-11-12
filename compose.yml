@@ -12,7 +12,7 @@ services:
         required: false
     environment:
       HOST: 0.0.0.0
-      PORT: 8080
+      PORT: 4200
       SOCKET_DEV_PORT: 4201
       DATA_DIR: /data
       NODE_ENV: development

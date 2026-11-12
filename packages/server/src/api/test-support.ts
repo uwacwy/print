@@ -104,7 +104,6 @@ export function useApiServer(defaults: StartOptions = {}) {
     client,
     entra = defaultEntra,
     upload: uploadConfig = defaults.upload ?? testUploadConfig,
-    // `{ enrollment: undefined }` disables enrollment for one test.
     ...rest
   }: StartOptions = {}) => {
     const enrollment =
@@ -197,7 +196,7 @@ export function useApiServer(defaults: StartOptions = {}) {
   /** Uploads to `front-office`, with a valid QR token unless `authorization` is given (`null` sends none). */
   const postUpload = async (
     form: FormData,
-    headers: Record<string, string> = { 'x-print-upload': '1' },
+    headers: Record<string, string> = {},
     authorization?: null | string,
   ) => {
     const credential =
@@ -216,18 +215,11 @@ export function useApiServer(defaults: StartOptions = {}) {
     );
   };
 
-  const exchangePin = (
-    pin: string,
-    headers: Record<string, string> = {},
-  ) =>
+  const exchangePin = (pin: string) =>
     fetch(
       `http://${host}${$.api.printers.$slug.token({ slug: 'front-office' })}`,
       {
-        headers: {
-          authorization: `Pin ${pin}`,
-          'x-print-upload': '1',
-          ...headers,
-        },
+        headers: { authorization: `Pin ${pin}` },
         method: 'POST',
       },
     );

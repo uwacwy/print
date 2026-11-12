@@ -26,6 +26,27 @@ describe('server config', () => {
       ),
   );
 
+  it('parses TRUST_PROXY as a boolean or an address list', () => {
+    const trust = (value?: string) =>
+      loadServerConfig(
+        value === undefined
+          ? { ...secret }
+          : { ...secret, TRUST_PROXY: value },
+        false,
+      ).trustProxy;
+    expect(trust('true')).toBe(true);
+    expect(trust('false')).toBe(false);
+    expect(trust('10.0.0.1, loopback')).toEqual([
+      '10.0.0.1',
+      'loopback',
+    ]);
+    expect(trust()).toEqual([
+      'loopback',
+      'linklocal',
+      'uniquelocal',
+    ]);
+  });
+
   it('loads Entra settings from the local env file without overriding the environment', () => {
     const dir = mkdtempSync(join(tmpdir(), 'print-env-'));
     dirs.push(dir);

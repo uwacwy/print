@@ -9,9 +9,9 @@
     "**/locale/**",
     "**/data/**"
   ],
-  "minLines": 5,
-  "minTokens": 50,
+  "minLines": 3,
+  "minTokens": 24,
   "path": ["packages"],
-  "reporters": ["console"],
+  "reporters": ["console-full"],
   "gitignore": true
 }

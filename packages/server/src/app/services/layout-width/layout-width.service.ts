@@ -17,15 +17,17 @@ import { catchError, filter, map, of } from 'rxjs';
 
 import { ColWidths } from './col-widths';
 
+const EMPTY = () => ({
+  lg: null,
+  md: null,
+  sm: null,
+  xl: null,
+  xs: null,
+});
+
 @Service()
 export class LayoutWidthService {
-  readonly #widths = signal<ColWidths>({
-    lg: null,
-    md: null,
-    sm: null,
-    xl: null,
-    xs: null,
-  });
+  readonly #widths = signal<ColWidths>(EMPTY());
   readonly class = computed(() => {
     const widths = this.#widths();
 
@@ -75,23 +77,12 @@ export class LayoutWidthService {
     .pipe(
       map((route) => route.data),
       map((data) => ColWidths.parse(data['width'])),
-      catchError(() =>
-        of({
-          lg: null,
-          md: null,
-          sm: null,
-          xl: null,
-          xs: null,
-        }),
-      ),
+      catchError(() => of(EMPTY())),
     )
     .subscribe({
       next: (width) => this.patchWidth(width),
     });
 
-  // null => 'col'
-  // 1-12 => 'col-{width}'
-  // else => do nothing
   patchWidth(patch: Partial<ColWidths>) {
     this.#widths.update((w) => ({ ...w, ...patch }));
   }

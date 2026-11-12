@@ -4,21 +4,16 @@ const GHOSTSCRIPT_TIMEOUT_MS = 120_000;
 
 class GhostscriptMissingError extends Error {}
 
-export function convertPdfToPclm(
-  pdf: Buffer,
-  maximumBytes: number,
-): Promise<Buffer> {
-  return ghostscript(
-    ['-sDEVICE=pclm', '-r150'],
-    pdf,
-    maximumBytes,
-  ).catch((error: unknown) => {
-    throw error instanceof GhostscriptMissingError
-      ? new Error(
-          'This printer requires PCLm, but Ghostscript is not installed on the agent.',
-        )
-      : error;
-  });
+export function convertPdfToPclm(pdf: Buffer): Promise<Buffer> {
+  return ghostscript(['-sDEVICE=pclm', '-r150'], pdf).catch(
+    (error: unknown) => {
+      throw error instanceof GhostscriptMissingError
+        ? new Error(
+            'This printer requires PCLm, but Ghostscript is not installed on the agent.',
+          )
+        : error;
+    },
+  );
 }
 
 /**
@@ -28,7 +23,7 @@ export function convertPdfToPclm(
  */
 export function simplifyPdf(
   pdf: Buffer,
-  { dpi, maximumBytes }: { dpi: number; maximumBytes: number },
+  { dpi }: { dpi: number },
 ): Promise<Buffer> {
   const downsample = (
     kind: string,
@@ -51,7 +46,6 @@ export function simplifyPdf(
       ...downsample('Mono', dpi * 2, 'Subsample'),
     ],
     pdf,
-    maximumBytes,
   ).catch((error: unknown) => {
     if (error instanceof GhostscriptMissingError) {
       return pdf;
@@ -64,9 +58,6 @@ export function simplifyPdf(
 function ghostscript(
   args: readonly string[],
   pdf: Buffer,
-  // The output cap below is disabled for now; callers still pass the limit.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  maximumBytes: number,
 ): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     let timedOut = false;
@@ -91,17 +82,9 @@ function ghostscript(
     }, GHOSTSCRIPT_TIMEOUT_MS);
 
     const chunks: Buffer[] = [];
-    // let outputBytes = 0;
     let stderr = '';
-    // let outputTooLarge = false;
 
     child.stdout.on('data', (chunk: Buffer) => {
-      // outputBytes += chunk.length;
-      // if (outputBytes > maximumBytes) {
-      //   // outputTooLarge = true;
-      //   child.kill('SIGKILL');
-      //   return;
-      // }
       chunks.push(chunk);
     });
 
@@ -131,13 +114,6 @@ function ghostscript(
 
     child.once('close', (code, signal) => {
       clearTimeout(timeout);
-      // if (outputTooLarge) {
-      //   return reject(
-      //     new Error(
-      //       'Converted document exceeds maxBytes; raise ?maxBytes= on PRINTER_URI.',
-      //     ),
-      //   );
-      // }
       if (timedOut) {
         return reject(
           new Error('Ghostscript PDF conversion timed out.'),

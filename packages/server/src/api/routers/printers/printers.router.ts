@@ -54,8 +54,8 @@ import { combineDocuments } from '../../helpers/pdf/document/document';
 import { buildQrPoster } from '../../helpers/pdf/qr-poster/qr-poster';
 import {
   managedPrinter,
+  printerView,
   printPath,
-  publicPrinter,
   toPrinterFields,
 } from '../../helpers/printers';
 import {
@@ -80,7 +80,6 @@ import {
   pinIssuanceRateLimit,
   uploadRateLimit,
 } from '../../middleware/rate-limits/rate-limits';
-import { requireSameOrigin } from '../../middleware/same-origin/same-origin';
 import { validate } from '../../middleware/validate/validate';
 
 const routes = createRouting(printers);
@@ -117,6 +116,10 @@ export default function printersRouter({
   const serverUrl = enrollment?.serverUrl ?? null;
   const { access } = upload;
   const admin = authenticate('entraUser');
+  const managePin = authenticate(
+    'entraUser',
+    'entraApp:Printer.ManagePin',
+  );
   const pinFailures = pinFailureRateLimit(upload);
 
   const summary = (
@@ -131,8 +134,19 @@ export default function printersRouter({
       getHub().isOnline(printer.id),
     );
 
-  const reloaded = (response: Response) =>
-    summary(getPrinterById(db, printerOf(response).id)!);
+  /** The route's printer, re-read after a change, as this caller may see it. */
+  const reloaded = (request: Request, response: Response) => {
+    const printer = getPrinterById(db, printerOf(response).id)!;
+    return printerView(
+      optionalPrincipal(request),
+      printer,
+      () => ({
+        activeJobs: countActiveJobs(db).get(printer.id) ?? 0,
+        failedJobs: countFailedJobs(db).get(printer.id) ?? 0,
+        online: getHub().isOnline(printer.id),
+      }),
+    );
+  };
 
   const absolute = (request: Request, path: string) =>
     new URL(
@@ -420,10 +434,14 @@ export default function printersRouter({
         },
       )
 
-      // Public details plus the caller's upload access; administrators also get management fields.
+      // Public details plus the caller's upload access; administrators also get management fields
+      // and applications get status.
       .get(
         routes.$slug.pattern,
-        authenticate.optional('entraUser'),
+        authenticate.optional(
+          'entraUser',
+          'entraApp:Printer.Read',
+        ),
         async (request, response) => {
           const printer = printerOf(response);
           const token = await uploadTokenStatus(
@@ -434,9 +452,7 @@ export default function printersRouter({
           const signedIn =
             optionalPrincipal(request)?.kind === 'entraUser';
           response.set('Cache-Control', 'no-store').json({
-            ...(signedIn
-              ? summary(printer)
-              : publicPrinter(printer)),
+            ...reloaded(request, response),
             access: {
               pinEnabled: printer.pin !== null,
               signedIn,
@@ -469,7 +485,7 @@ export default function printersRouter({
             response.status(409).json({ error: updated });
             return;
           }
-          response.json(reloaded(response));
+          response.json(reloaded(request, response));
         },
       )
       .delete(
@@ -491,7 +507,6 @@ export default function printersRouter({
       // Exchanges `Authorization: Pin` for a short-lived upload token.
       .post(
         routes.$slug.token.pattern,
-        requireSameOrigin,
         pinFailures,
         pinIssuanceRateLimit(upload),
         authenticate('pin'),
@@ -523,12 +538,15 @@ export default function printersRouter({
       // Credentials are checked before the multipart body is read, so anonymous clients cannot
       // make the server buffer large files.
       .post(
-        // '/:slug/jobs',
         routes.$slug.jobs.pattern,
         uploadRateLimit(upload),
-        requireSameOrigin,
         pinFailures,
-        authenticate('uploadToken', 'pin', 'entraUser'),
+        authenticate(
+          'uploadToken',
+          'pin',
+          'entraUser',
+          'entraApp:Printer.PrintJob',
+        ),
         submitJob,
       )
       .delete(
@@ -552,10 +570,9 @@ export default function printersRouter({
 
       // Requeues failed jobs whose document is still on disk.
       .post(
-        // '/:slug/jobs/retry',
         routes.$slug.jobs.retry.pattern,
         admin,
-        async (_request, response) => {
+        async (request, response) => {
           const printer = printerOf(response);
           const failed = getFailedJobIds(db, printer.id);
           const hasFile = await Promise.all(
@@ -582,7 +599,7 @@ export default function printersRouter({
           );
           hub.dispatch(printer.id);
           response.json({
-            printer: reloaded(response),
+            printer: reloaded(request, response),
             retried: retried.length,
           });
         },
@@ -630,7 +647,7 @@ export default function printersRouter({
       )
       .post(
         routes.$slug.qrPrint.pattern,
-        admin,
+        authenticate('entraUser', 'entraApp:Printer.PrintFlyer'),
         validate({ body: QrPosterRequest.default({}) }),
         async (request, response) => {
           const printer = printerOf(response);
@@ -659,30 +676,31 @@ export default function printersRouter({
       .post(
         routes.$slug.qrEpoch.pattern,
         admin,
-        (_request, response) => {
+        (request, response) => {
           bumpQrEpoch(db, printerOf(response).id);
-          response.json(reloaded(response));
+          response.json(reloaded(request, response));
         },
       )
 
+      // Applications may rotate or disable the PIN but, via `reloaded`, never see it.
       .post(
         routes.$slug.pin.pattern,
-        admin,
-        (_request, response) => {
+        managePin,
+        (request, response) => {
           setPrinterPin(
             db,
             printerOf(response).id,
             generatePin(),
           );
-          response.json(reloaded(response));
+          response.json(reloaded(request, response));
         },
       )
       .delete(
         routes.$slug.pin.pattern,
-        admin,
-        (_request, response) => {
+        managePin,
+        (request, response) => {
           setPrinterPin(db, printerOf(response).id, null);
-          response.json(reloaded(response));
+          response.json(reloaded(request, response));
         },
       )
 
