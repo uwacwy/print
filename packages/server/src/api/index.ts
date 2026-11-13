@@ -56,15 +56,15 @@ export default (options: ApiRootOptions) => {
     .get(routes.clientConfig.pattern, (_request, response) => {
       const base =
         options.client ??
-          ({
-            enrollment: !!options.enrollment?.serverUrl,
-            site: {
-              organizationName: DEFAULT_SITE_ORG_NAME,
-              showAttribution: true,
-              title: options.upload.siteTitle,
-              url: options.siteUrl.href,
-            },
-          } satisfies ClientConfig);
+        ({
+          enrollment: !!options.enrollment?.serverUrl,
+          site: {
+            organizationName: DEFAULT_SITE_ORG_NAME,
+            showAttribution: true,
+            title: options.upload.siteTitle,
+            url: options.siteUrl.href,
+          },
+        } satisfies ClientConfig);
       const logo =
         base.site.logo ??
         (options.logo &&

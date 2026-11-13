@@ -45,8 +45,8 @@ const { app: appLog } = createLogger('app');
 
 const {
   config: $config,
-  ng: $ng,
   express: $express,
+  ng: $ng,
   nodeHttp: $nodeHttp,
 } = appLog.create('config', 'node http', 'ng', 'express');
 

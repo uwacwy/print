@@ -166,8 +166,8 @@ export interface ServerConfig {
   /** SITE_LOGO_ALT, else SITE_ORG_NAME; describes a logo found in the browser folder. */
   logoAlt: string;
   port: number;
-  siteUrl: URL;
   retentionMs: number;
+  siteUrl: URL;
   trustProxy: boolean | string[];
   upload: UploadConfig;
 }
@@ -274,8 +274,8 @@ export function loadServerConfig(
     jobTtlMs: e.JOB_TTL_HOURS * 3_600_000,
     logoAlt: e.SITE_LOGO_ALT ?? e.SITE_ORG_NAME,
     port: e.PORT,
-    siteUrl,
     retentionMs: e.RETENTION_DAYS * 86_400_000,
+    siteUrl,
     trustProxy: e.TRUST_PROXY,
     upload: {
       access: {

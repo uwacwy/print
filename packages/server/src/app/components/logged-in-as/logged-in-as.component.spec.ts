@@ -9,7 +9,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { LoggedInAsComponent } from './logged-in-as.component';
 
-function render(account: Partial<AccountInfo> | null) {
+function render(account: null | Partial<AccountInfo>) {
   const logoutRedirect = vi.fn();
   TestBed.configureTestingModule({
     imports: [LoggedInAsComponent],

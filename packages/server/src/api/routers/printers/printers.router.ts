@@ -151,8 +151,7 @@ export default function printersRouter({
   const absolute = (request: Request, path: string) =>
     new URL(
       path,
-      siteUrl ??
-        `${request.protocol}://${request.get('host')}`,
+      siteUrl ?? `${request.protocol}://${request.get('host')}`,
     ).toString();
 
   const queue = async (

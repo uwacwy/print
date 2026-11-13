@@ -19,11 +19,11 @@ export class LoggedInAsComponent {
   // Re-read the active account whenever an MSAL interaction finishes.
   readonly #account = activeAccount();
 
-  readonly #msal = inject(MsalService);
-
   protected readonly username = computed(
     () => this.#account()?.username ?? '',
   );
+
+  readonly #msal = inject(MsalService);
 
   protected signOut(event: Event): void {
     event.preventDefault();

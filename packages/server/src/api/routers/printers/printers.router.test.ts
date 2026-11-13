@@ -282,9 +282,7 @@ describe('printers router', () => {
       expect(body.path).toBe(
         `/print/front-office?token=${body.token}`,
       );
-      expect(body.url).toBe(
-        `${testSiteUrl.origin}${body.path}`,
-      );
+      expect(body.url).toBe(`${testSiteUrl.origin}${body.path}`);
       expect(body.token).toMatch(/^[A-Za-z0-9_-]{42}$/);
       expect(
         inspectUploadToken(testUploadConfig.access, body.token),

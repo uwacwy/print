@@ -30,19 +30,19 @@ describe('client environment', () => {
     expect(
       resolveClientConfig(
         {
-          site,
           enrollment: true,
           msal,
+          site,
         },
         'https://print.contoso.com',
       ),
     ).toEqual({
-      site,
       enrollment: true,
       msal: {
         ...msal,
         redirectUri: 'https://print.contoso.com/auth/callback',
       },
+      site,
     });
   });
 
@@ -50,18 +50,18 @@ describe('client environment', () => {
     expect(
       resolveClientConfig(
         {
-          site,
           enrollment: false,
+          site,
         },
         'https://print.contoso.com',
       ),
     ).toEqual({
-      site,
       enrollment: false,
       msal: {
         ...environment.msal,
         redirectUri: 'https://print.contoso.com/auth/callback',
       },
+      site,
     });
   });
 
@@ -85,20 +85,20 @@ describe('client environment', () => {
   it('loads /api/client-config and falls back when it fails', async () => {
     const ok = respond(
       Response.json({
-        site,
         enrollment: false,
         msal,
+        site,
       }),
     );
     await expect(
       loadClientEnvironment(ok, 'http://localhost:4200'),
     ).resolves.toEqual({
-      site,
       enrollment: false,
       msal: {
         ...msal,
         redirectUri: 'http://localhost:4200/auth/callback',
       },
+      site,
     });
     expect(ok).toHaveBeenCalledWith('/api/client-config', {
       cache: 'no-cache',

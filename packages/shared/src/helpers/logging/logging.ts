@@ -1,20 +1,8 @@
-type CamelCaseOn<
-  S extends string,
-  Sep extends string,
-> = S extends `${infer Head}${Sep}${infer Rest}`
-  ? `${Head}${Capitalize<CamelCaseOn<Rest, Sep>>}`
-  : S;
-
 /** `'app engine'` becomes `'appEngine'`; spaces, hyphens, and underscores separate words. */
 export type CamelCase<S extends string> = CamelCaseOn<
   CamelCaseOn<CamelCaseOn<S, ' '>, '-'>,
   '_'
 >;
-
-/** One logger per scope, keyed by the camelCase scope name. */
-export type ScopedLoggers<T extends readonly string[]> = {
-  readonly [K in T[number] as CamelCase<K>]: Logger;
-};
 
 export interface Logger {
   /** Nested loggers whose output carries this logger's scopes first. */
@@ -27,6 +15,18 @@ export interface Logger {
   log(...args: unknown[]): void;
   warn(...args: unknown[]): void;
 }
+
+/** One logger per scope, keyed by the camelCase scope name. */
+export type ScopedLoggers<T extends readonly string[]> = {
+  readonly [K in T[number] as CamelCase<K>]: Logger;
+};
+
+type CamelCaseOn<
+  S extends string,
+  Sep extends string,
+> = S extends `${infer Head}${Sep}${infer Rest}`
+  ? `${Head}${Capitalize<CamelCaseOn<Rest, Sep>>}`
+  : S;
 
 const toCamelCase = <S extends string>(scope: S) =>
   scope.replace(/[ _-](.)/g, (_, char: string) =>

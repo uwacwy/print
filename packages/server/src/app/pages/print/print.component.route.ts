@@ -23,15 +23,20 @@ const resources = ({ params, queryParams }: ResourceContext) => {
   } satisfies ResourceResult;
 };
 
+export type PrintComponentResources = ResourcesFrom<UnwrapPrint>;
+
+// should ResourcesFromRoute<typeof printComponentRoute>
+// should equal PrintComponentResources
+// to be used as `export class MyComponent implements ResourcesFromRoute<typeof printComponentRoute>`
+export type ResourcesFromRoute<R extends Route> = R extends {
+  resources: infer T extends Record<string, unknown>;
+}
+  ? ResourcesFrom<T>
+  : never;
+
 // currently Record<'printer', ResourceResult<infer T>
 // want to extract all keys mapped to each T
 type PrintResources = ReturnType<typeof resources>;
-
-type TypedResourceResult<T extends ResourceResult> = {
-  [K in keyof T]: T[K] extends Resource<infer U> ? U : never;
-};
-
-type UnwrapPrint = TypedResourceResult<PrintResources>;
 
 // now, create a type that can be implemented
 // if input type is Record<K,V>, output type is Record<K, InputSignal<V>>
@@ -46,16 +51,11 @@ type ResourcesFrom<
   >;
 };
 
-export type PrintComponentResources = ResourcesFrom<UnwrapPrint>;
+type TypedResourceResult<T extends ResourceResult> = {
+  [K in keyof T]: T[K] extends Resource<infer U> ? U : never;
+};
 
-// should ResourcesFromRoute<typeof printComponentRoute>
-// should equal PrintComponentResources
-// to be used as `export class MyComponent implements ResourcesFromRoute<typeof printComponentRoute>`
-export type ResourcesFromRoute<R extends Route> = R extends {
-  resources: infer T extends Record<string, unknown>;
-}
-  ? ResourcesFrom<T>
-  : never;
+type UnwrapPrint = TypedResourceResult<PrintResources>;
 
 export const printComponentRoute = {
   data: {
@@ -70,17 +70,5 @@ export const printComponentRoute = {
   loadComponent: () =>
     import('./print.component').then((m) => m.PrintComponent),
   path: 'print/:slug',
-  // title: $localize`:@@route.print.title:Print Documents`,
-  title: ({ resources }, state) => {
-    console.log({ resources });
-    if (!resources) {
-      return 'print';
-    }
-    const printer = resources['printer'];
-    if (printer && printer.hasValue()) {
-      return 'Print ' + printer.value();
-    }
-    return 'Print';
-  },
   resources,
 } satisfies Route;
