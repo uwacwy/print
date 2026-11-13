@@ -13,14 +13,16 @@ services:
     init: true
     environment:
       UPLOAD_TOKEN_SECRET: ${UPLOAD_TOKEN_SECRET:?set UPLOAD_TOKEN_SECRET}
-      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8080}
+      SITE_URL: ${SITE_URL:-http://localhost:8080}
       SITE_TITLE: ${SITE_TITLE:-Quick Print}
-      ORG_NAME: ${ORG_NAME:-Contoso}
+      SITE_ORG_NAME: ${SITE_ORG_NAME:-Contoso}
       TIME_ZONE: ${TIME_ZONE:-America/Denver}
     ports:
       - '8080:8080'
     volumes:
       - print-data:/data
+      # Optional read-only header logo; see compose.server.yml.
+      # - ./logo.svg:/data/public/logo.svg:ro
 
   print-agent:
     image: ghcr.io/uwacwy/print-agent:${PRINT_VERSION:-latest}

@@ -8,7 +8,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { findLogo, logoSrc, pickLogoFile } from './logo';
+import {
+  findLogoUrl,
+  logoUrl,
+  pickLogoFile,
+  siteLogo,
+} from './logo';
 
 describe('pickLogoFile', () => {
   it('prefers svg, then png, then jpg', () => {
@@ -30,15 +35,15 @@ describe('pickLogoFile', () => {
   });
 });
 
-describe('logoSrc', () => {
+describe('logoUrl', () => {
   it('versions the URL by modification time', () => {
-    expect(logoSrc('logo.png', 1_700_000_000_123.5)).toBe(
+    expect(logoUrl('logo.png', 1_700_000_000_123.5)).toBe(
       `/logo.png?v=${(1_700_000_000_123).toString(36)}`,
     );
   });
 });
 
-describe('findLogo', () => {
+describe('findLogoUrl', () => {
   const dirs: string[] = [];
   const makeDir = () => {
     const dir = mkdtempSync(join(tmpdir(), 'logo-'));
@@ -51,21 +56,43 @@ describe('findLogo', () => {
     }
   });
 
-  it('describes a logo in the directory', () => {
+  it('finds a logo in the directory', () => {
     const dir = makeDir();
     writeFileSync(join(dir, 'logo.png'), '');
     const modified = new Date('2026-11-01T00:00:00Z');
     utimesSync(join(dir, 'logo.png'), modified, modified);
-    expect(findLogo(dir, 'United Way')).toEqual({
-      alt: 'United Way',
-      src: logoSrc('logo.png', modified.getTime()),
-    });
+    expect(findLogoUrl([dir])).toBe(
+      logoUrl('logo.png', modified.getTime()),
+    );
+  });
+
+  it('prefers the first directory that has a logo', () => {
+    const first = makeDir();
+    const second = makeDir();
+    writeFileSync(join(second, 'logo.svg'), '');
+    expect(findLogoUrl([first, second])).toMatch(
+      /^\/logo\.svg\?v=/,
+    );
+    writeFileSync(join(first, 'logo.png'), '');
+    expect(findLogoUrl([first, second])).toMatch(
+      /^\/logo\.png\?v=/,
+    );
   });
 
   it('is undefined without a logo or directory', () => {
-    expect(findLogo(makeDir(), 'United Way')).toBeUndefined();
+    expect(findLogoUrl([makeDir()])).toBeUndefined();
     expect(
-      findLogo(join(tmpdir(), 'missing-logo-dir'), 'United Way'),
+      findLogoUrl([join(tmpdir(), 'missing-logo-dir')]),
     ).toBeUndefined();
+  });
+});
+
+describe('siteLogo', () => {
+  it('describes a logo only when there is one', () => {
+    expect(siteLogo('/logo.svg', 'Contoso')).toEqual({
+      alt: 'Contoso',
+      url: '/logo.svg',
+    });
+    expect(siteLogo(undefined, 'Contoso')).toBeUndefined();
   });
 });

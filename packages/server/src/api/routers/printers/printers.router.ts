@@ -91,7 +91,7 @@ export interface PrintersRouterOptions {
   getHub: () => AgentHub;
   jobsDir: string;
   /** Canonical origin for upload links on QR posters; falls back to the request origin. */
-  publicUrl?: URL;
+  siteUrl?: URL;
   upload: UploadConfig;
 }
 
@@ -110,7 +110,7 @@ export default function printersRouter({
   enrollment,
   getHub,
   jobsDir,
-  publicUrl,
+  siteUrl,
   upload,
 }: PrintersRouterOptions) {
   const serverUrl = enrollment?.serverUrl ?? null;
@@ -151,7 +151,7 @@ export default function printersRouter({
   const absolute = (request: Request, path: string) =>
     new URL(
       path,
-      publicUrl ??
+      siteUrl ??
         `${request.protocol}://${request.get('host')}`,
     ).toString();
 
@@ -412,9 +412,9 @@ export default function printersRouter({
         (_request, response) => {
           if (!serverUrl) {
             response.status(503).json({
-              code: 'public_url_required',
+              code: 'site_url_required',
               error:
-                'Set PUBLIC_URL (https) on the server to enroll printers from their computers.',
+                'Set SITE_URL (https) on the server to enroll printers from their computers.',
             });
             return;
           }

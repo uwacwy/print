@@ -13,7 +13,7 @@ Requires Node.js 24 or newer.
 
 ```bash
 npm install --global @uwacwy/print-server
-UPLOAD_TOKEN_SECRET=$(openssl rand -base64 48) PUBLIC_URL=http://localhost:8080 PORT=8080 uwacwy-print-server
+UPLOAD_TOKEN_SECRET=$(openssl rand -base64 48) SITE_URL=http://localhost:8080 PORT=8080 uwacwy-print-server
 ```
 
 Or with Docker: `ghcr.io/uwacwy/print-server` (see the
@@ -30,18 +30,21 @@ Settings come from the environment, or from `env-file` (default: `./.env` when p
 environment variables win. [`.env.example`](.env.example), included in this package, lists them all.
 The important ones:
 
-| Variable                             | Default                     | Purpose                                                                                                                |
-| ------------------------------------ | --------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `UPLOAD_TOKEN_SECRET`                | (required)                  | Signs QR and PIN upload links; 32+ characters. Changing it revokes them.                                               |
-| `PORT`                               | `4000`                      | HTTP port for pages, API, and `/ws` (8080 in the image)                                                                |
-| `DATA_DIR`                           | `./data`                    | `print.db`, queued jobs, and `logs/`                                                                                   |
-| `ACCESS_LOG_DAYS`                    | `14`                        | Days of daily JSON access logs in `DATA_DIR/logs` (`access.log` links to today); `0` disables                          |
-| `PUBLIC_URL`                         | `https://localhost:4200`    | Public address, e.g. `https://print.contoso.com`; used in QR codes and allowed for server rendering                    |
-| `SITE_TITLE`                         | `Update env:SITE_TITLE`     | Site name in the page title, header, and printed pages, e.g. `Quick Print`                                             |
-| `ORG_NAME`                           | `Update env:ORG_NAME`       | Organization in the footer copyright notice and the logo's text alternative, e.g. `Contoso`                            |
-| `NG_ALLOWED_HOSTS`                   |                             | Other host names (comma-separated) pages may be requested by                                                           |
-| `TRUST_PROXY`                        | loopback and private ranges | `true` behind a reverse proxy so rate limits see the real client IP; `false` trusts none; or a list of proxy addresses |
-| `ENTRA_TENANT_ID`, `ENTRA_CLIENT_ID` |                             | Enable Entra sign-in and `/manage`; the browser reads them from `/api/client-config`                                   |
+| Variable                             | Default                                        | Purpose                                                                                                                |
+| ------------------------------------ | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `UPLOAD_TOKEN_SECRET`                | (required)                                     | Signs QR and PIN upload links; 32+ characters. Changing it revokes them.                                               |
+| `PORT`                               | `4000`                                         | HTTP port for pages, API, and `/ws` (8080 in the image)                                                                |
+| `DATA_DIR`                           | `./data`                                       | `print.db`, queued jobs, and `logs/`                                                                                   |
+| `ACCESS_LOG_DAYS`                    | `14`                                           | Days of daily JSON access logs in `DATA_DIR/logs` (`access.log` links to today); `0` disables                          |
+| `SITE_URL`                           | `https://localhost:4200`                       | Public address, e.g. `https://print.contoso.com`; used in QR codes and allowed for server rendering                    |
+| `SITE_TITLE`                         | `Update env:SITE_TITLE`                        | Site name in the page title, header, and printed pages, e.g. `Quick Print`                                             |
+| `SITE_ORG_NAME`                      | `Update env:SITE_ORG_NAME`                     | Organization in the footer copyright notice and the logo's text alternative, e.g. `Contoso`                            |
+| `SITE_LOGO_URL`, `SITE_LOGO_ALT`     | `logo.*` in `DATA_DIR/public`, `SITE_ORG_NAME` | Header logo URL (root-relative) and its text alternative                                                               |
+| `SITE_FOOTER_LINKS`                  |                                                | Footer links as a query string, e.g. `label=Privacy&url=/privacy`                                                      |
+| `SITE_SHOW_ATTRIBUTION`              | `true`                                         | `false` hides the package name and version in the footer                                                               |
+| `NG_ALLOWED_HOSTS`                   |                                                | Other host names (comma-separated) pages may be requested by                                                           |
+| `TRUST_PROXY`                        | loopback and private ranges                    | `true` behind a reverse proxy so rate limits see the real client IP; `false` trusts none; or a list of proxy addresses |
+| `ENTRA_TENANT_ID`, `ENTRA_CLIENT_ID` |                                                | Enable Entra sign-in and `/manage`; the browser reads them from `/api/client-config`                                   |
 
 `GET /api/healthz` reports health; `GET /api/status` returns how many printers are online.
 Scripts can call selected endpoints as Entra applications (client credentials) granted app roles; see

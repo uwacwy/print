@@ -15,6 +15,7 @@ import { provideClientHydration } from '@angular/platform-browser';
 import {
   provideRouter,
   withComponentInputBinding,
+  withRouterResources,
 } from '@angular/router';
 import { MsalBroadcastService } from '@azure/msal-angular';
 import {
@@ -40,7 +41,11 @@ import { SignedInMsalInterceptor } from './auth/signed-in-msal.interceptor';
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideRouter(routes, withComponentInputBinding()),
+    provideRouter(
+      routes,
+      withComponentInputBinding(),
+      withRouterResources(),
+    ),
     provideClientHydration(),
     provideHttpClient(withInterceptorsFromDi()),
     {

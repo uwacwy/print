@@ -20,7 +20,7 @@ describe('AddModeChoiceComponent', () => {
       el.querySelector<HTMLInputElement>('#add-mode-enroll')!
         .disabled,
     ).toBe(true);
-    expect(el.textContent).toContain('PUBLIC_URL');
+    expect(el.textContent).toContain('SITE_URL');
   });
 
   it('updates the mode when a choice is picked', () => {

@@ -34,10 +34,10 @@
     "provenance": true
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json --noEmit && node build.mjs",
+    "build": "tsc -b ../shared && tsc -p tsconfig.json --noEmit && node build.mjs",
     "dev": "tsx --watch src/index.ts run --config .env",
     "test-api": "vitest run",
-    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
+    "typecheck": "tsc -b ../shared && tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
     "lint": "eslint .",
     "lint:typed": "eslint -c ../../eslint.typecheck.config.mjs .",
     "format": "prettier --write .",

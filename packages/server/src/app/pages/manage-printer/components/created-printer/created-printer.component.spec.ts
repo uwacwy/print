@@ -37,10 +37,10 @@ describe('CreatedPrinterComponent', () => {
     const el = create('https://print.example.org');
     expect(el.textContent).toContain('a'.repeat(43));
     expect(el.textContent).toContain('agent-front:');
-    expect(el.textContent).not.toContain('PUBLIC_URL');
+    expect(el.textContent).not.toContain('SITE_URL');
   });
 
   it('explains missing commands without a server URL', () => {
-    expect(create(null).textContent).toContain('PUBLIC_URL');
+    expect(create(null).textContent).toContain('SITE_URL');
   });
 });

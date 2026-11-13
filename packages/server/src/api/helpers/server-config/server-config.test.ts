@@ -12,7 +12,7 @@ import {
 const tenant = '11111111-1111-4111-8111-111111111111';
 const client = '22222222-2222-4222-8222-222222222222';
 const secret = {
-  PUBLIC_URL: 'http://print.example.org',
+  SITE_URL: 'http://print.example.org',
   UPLOAD_TOKEN_SECRET: 'x'.repeat(32),
 };
 
@@ -77,12 +77,15 @@ describe('server config', () => {
   });
 
   it('derives browser sign-in settings only when Entra is configured', () => {
-    expect(loadServerConfig(secret).client).toEqual({
-      brand: { siteTitle: 'Update env:SITE_TITLE' },
-      enrollment: false,
-      legal: { organizationName: 'Update env:ORG_NAME' },
-      publicUrl: new URL(secret.PUBLIC_URL).href,
+    const site = {
+      organizationName: 'Update env:SITE_ORG_NAME',
       showAttribution: true,
+      title: 'Update env:SITE_TITLE',
+      url: new URL(secret.SITE_URL).href,
+    };
+    expect(loadServerConfig(secret).client).toEqual({
+      enrollment: false,
+      site,
     });
     expect(
       loadServerConfig({
@@ -91,17 +94,14 @@ describe('server config', () => {
         ENTRA_TENANT_ID: tenant,
       }).client,
     ).toEqual({
-      brand: { siteTitle: 'Update env:SITE_TITLE' },
       enrollment: false,
-      legal: { organizationName: 'Update env:ORG_NAME' },
       msal: {
         apiScope: `api://${client}/Printers.Manage`,
         authority: `https://login.microsoftonline.com/${tenant}`,
         clientId: client,
         tenantId: tenant,
       },
-      publicUrl: new URL(secret.PUBLIC_URL).href,
-      showAttribution: true,
+      site,
     });
     expect(
       loadServerConfig({
@@ -114,39 +114,80 @@ describe('server config', () => {
     ).toBe('api://print.example.org/Print.Admin');
   });
 
-  it('derives branding and legal settings from CLIENT_* variables', () => {
-    const { client } = loadServerConfig({
+  it('derives site settings from SITE_* variables', () => {
+    const config = loadServerConfig({
       ...secret,
-      CLIENT_BRAND_LINKS:
+      SITE_FOOTER_LINKS:
         'label=Privacy&url=https://example.com/privacy',
-      CLIENT_BRAND_LOGO: '/brand.svg',
-      CLIENT_LEGAL_ORG_NAME: 'United Way',
-      CLIENT_SHOW_ATTRIBUTION: 'false',
-      LOGO_ALT: 'United Way logo',
+      SITE_LOGO_ALT: 'Contoso logo',
+      SITE_LOGO_URL: '/brand.svg',
+      SITE_ORG_NAME: 'Contoso',
+      SITE_SHOW_ATTRIBUTION: 'false',
+      SITE_TITLE: 'Quick Print',
+      SITE_URL: 'https://print.contoso.com',
     });
-    expect(client.site).toEqual({
+    expect(config.client.site).toEqual({
       links: [
         { label: 'Privacy', url: 'https://example.com/privacy' },
       ],
-      logo: { alt: 'United Way logo', src: '/brand.svg' },
-      siteTitle: 'Update env:SITE_TITLE',
+      logo: { alt: 'Contoso logo', url: '/brand.svg' },
+      organizationName: 'Contoso',
+      showAttribution: false,
+      title: 'Quick Print',
+      url: 'https://print.contoso.com/',
     });
-    expect(client.legal.organizationName).toBe('United Way');
-    expect(client.showAttribution).toBe(false);
+    expect(config.logoAlt).toBe('Contoso logo');
+    expect(config.siteUrl.href).toBe(
+      'https://print.contoso.com/',
+    );
+    expect(config.upload.siteTitle).toBe('Quick Print');
   });
 
-  it('rejects unsafe CLIENT_BRAND_LINKS', () => {
+  it('describes a logo with SITE_ORG_NAME, and only when there is one', () => {
+    const site = (env: NodeJS.ProcessEnv) =>
+      loadServerConfig({ ...secret, ...env });
+    expect(
+      site({
+        SITE_LOGO_URL: '/brand.svg',
+        SITE_ORG_NAME: 'Contoso',
+      }).client.site.logo,
+    ).toEqual({ alt: 'Contoso', url: '/brand.svg' });
+    expect(site({ SITE_ORG_NAME: 'Contoso' }).logoAlt).toBe(
+      'Contoso',
+    );
+    expect(
+      site({ SITE_LOGO_ALT: 'Logo', SITE_ORG_NAME: 'Contoso' })
+        .client.site.logo,
+    ).toBeUndefined();
+    expect(site({}).logoAlt).toBe('Update env:SITE_ORG_NAME');
+  });
+
+  it('ignores the pre-1.0 names', () => {
+    const { client, siteUrl } = loadServerConfig({
+      ...secret,
+      CLIENT_BRAND_LOGO: '/brand.svg',
+      CLIENT_LEGAL_ORG_NAME: 'Legacy',
+      PUBLIC_URL: 'https://legacy.example.org',
+    });
+    expect(client.site.logo).toBeUndefined();
+    expect(client.site.organizationName).toBe(
+      'Update env:SITE_ORG_NAME',
+    );
+    expect(siteUrl.href).toBe(new URL(secret.SITE_URL).href);
+  });
+
+  it('rejects unsafe SITE_FOOTER_LINKS', () => {
     expect(() =>
       loadServerConfig({
         ...secret,
-        CLIENT_BRAND_LINKS: 'label=x&url=javascript:alert(1)',
+        SITE_FOOTER_LINKS: 'label=x&url=javascript:alert(1)',
       }),
-    ).toThrow('CLIENT_BRAND_LINKS');
+    ).toThrow('SITE_FOOTER_LINKS');
   });
 
-  it('enables enrollment only for an https (or loopback http) PUBLIC_URL', () => {
-    const enrollment = (PUBLIC_URL: string) =>
-      loadServerConfig({ ...secret, PUBLIC_URL });
+  it('enables enrollment only for an https (or loopback http) SITE_URL', () => {
+    const enrollment = (SITE_URL: string) =>
+      loadServerConfig({ ...secret, SITE_URL });
     expect(
       enrollment('http://print.example.org').enrollment,
     ).toEqual({
@@ -174,47 +215,18 @@ describe('server config', () => {
     ).toBe(5);
   });
 
-  it('names ORG_NAME in the footer and logo, falling back to CLIENT_LEGAL_ORG_NAME', () => {
-    const brand = (env: NodeJS.ProcessEnv) =>
-      loadServerConfig({
-        ...secret,
-        CLIENT_BRAND_LOGO: '/brand.svg',
-        ...env,
-      });
-    const contoso = brand({
-      ORG_NAME: 'Contoso',
-      SITE_TITLE: 'Quick Print',
-    });
-    expect(contoso.client.legal.organizationName).toBe(
-      'Contoso',
-    );
-    expect(contoso.client.site.logo?.alt).toBe('Contoso');
-    expect(contoso.logoAlt).toBe('Contoso');
-    expect(contoso.client.site.title).toBe('Quick Print');
-    expect(contoso.upload.siteTitle).toBe('Quick Print');
-    expect(
-      brand({ CLIENT_LEGAL_ORG_NAME: 'Legacy' }).client.legal
-        .organizationName,
-    ).toBe('Legacy');
-    expect(
-      brand({ CLIENT_LEGAL_ORG_NAME: 'Legacy', ORG_NAME: 'New' })
-        .client.legal.organizationName,
-    ).toBe('New');
-    expect(brand({}).logoAlt).toBe('Update env:ORG_NAME');
-  });
-
-  it('defaults PUBLIC_URL to https://localhost:4200 and rejects invalid ones', () => {
+  it('defaults SITE_URL to https://localhost:4200 and rejects invalid ones', () => {
     const { UPLOAD_TOKEN_SECRET } = secret;
     expect(
-      loadServerConfig({ UPLOAD_TOKEN_SECRET }).publicUrl.href,
+      loadServerConfig({ UPLOAD_TOKEN_SECRET }).siteUrl.href,
     ).toBe('https://localhost:4200/');
     expect(() =>
       loadServerConfig({
-        PUBLIC_URL: 'not a url',
+        SITE_URL: 'not a url',
         UPLOAD_TOKEN_SECRET,
       }),
-    ).toThrow('PUBLIC_URL');
-    expect(loadServerConfig(secret).publicUrl.href).toBe(
+    ).toThrow('SITE_URL');
+    expect(loadServerConfig(secret).siteUrl.href).toBe(
       'http://print.example.org/',
     );
   });

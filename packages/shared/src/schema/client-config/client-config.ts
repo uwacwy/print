@@ -2,48 +2,40 @@ import { z } from 'zod';
 
 /** A deployment's logo, shown in the page header. */
 export const SiteLogo = z.object({
-  /** Text alternative, from `LOGO_ALT`. */
+  /** Text alternative, from `SITE_LOGO_ALT` (default `SITE_ORG_NAME`). */
   alt: z.string(),
-  /** Root-relative URL of the image. */
-  src: z.string(),
+  /** Image URL, from `SITE_LOGO_URL` or a `logo.{svg,png,jpg}` in the server's static folder. */
+  url: z.string(),
 });
 export type SiteLogo = z.infer<typeof SiteLogo>;
 
-/** `GET /api/client-config`: browser sign-in settings the server reads from its environment at runtime. */
+/** Footer links, from `SITE_FOOTER_LINKS`. */
+export const SiteLink = z.object({
+  label: z.string(),
+  url: z.string(),
+});
+export type SiteLink = z.infer<typeof SiteLink>;
+
+/** Branding and address of this deployment, from the server's `SITE_*` variables. */
+export const SiteConfig = z.object({
+  links: z.array(SiteLink).optional(),
+  /** Absent when there is no logo to show. */
+  logo: SiteLogo.optional(),
+  /** Named in the footer copyright notice, from `SITE_ORG_NAME`. */
+  organizationName: z.string(),
+  /** Show the package name and version in the footer, from `SITE_SHOW_ATTRIBUTION`. */
+  showAttribution: z.boolean().default(true),
+  /** From `SITE_TITLE`. */
+  title: z.string(),
+  /** The address people use, from `SITE_URL`. */
+  url: z.url(),
+});
+export type SiteConfig = z.infer<typeof SiteConfig>;
+
+/** `GET /api/client-config`: browser settings the server reads from its environment at runtime. */
 export const ClientConfig = z.object({
-  site: z.object({
-    /**
-     * Extra links for the footer of the web app, as label/url pairs in a query string
-     * @example label=Link text&url=https://example.com&label=Another&url=https://...
-     */
-    links: z
-      .array(
-        z.object({
-          label: z.string(),
-          url: z.string(),
-        }),
-      )
-      .optional(),
-
-    /** Present when the server's static folder has a `logo.{svg,png,jpg}`. */
-    logo: SiteLogo.optional(),
-
-    title: z.string(),
-    url: z.url(),
-    organizationName: z.string(),
-    showAttribution: z.boolean().default(true),
-  }),
-
-  /** `PUBLIC_URL` is set, so the server can mint enrollment tokens and install commands. */
+  /** `SITE_URL` is https (or loopback), so the server can mint enrollment tokens and install commands. */
   enrollment: z.boolean(),
-
-  /**
-   * @deprecated
-   */
-  legal: z.object({
-    /** @deprecated use config.site.organizationName */
-    organizationName: z.string(),
-  }),
 
   /** Absent when Entra sign-in is not configured. */
   msal: z
@@ -58,14 +50,6 @@ export const ClientConfig = z.object({
     })
     .optional(),
 
-  /**
-   * @deprecated use config.site.url
-   */
-  publicUrl: z.string(),
-
-  /**
-   * @deprecated use config.site.showAttribution
-   */
-  showAttribution: z.boolean().default(true),
+  site: SiteConfig,
 });
 export type ClientConfig = z.infer<typeof ClientConfig>;

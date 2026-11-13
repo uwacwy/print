@@ -52,7 +52,5 @@ export const attachWebSockets = (
   );
   liveNamespace(io.of(LIVE_NAMESPACE) as LiveNamespace, options);
 
-  console.log('[WebSockets] attached');
-
   return io;
 };

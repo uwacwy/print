@@ -13,7 +13,7 @@ import {
 } from '../../../realtime/test-support';
 import { getPrinterBySlug } from '../../helpers/database/database';
 import { signEnrollToken } from '../../helpers/enroll-token/enroll-token';
-import { testPublicUrl, useApiServer } from '../../test-support';
+import { testSiteUrl, useApiServer } from '../../test-support';
 
 const serverUrl = 'https://print.example.org';
 
@@ -80,7 +80,7 @@ describe('agent enrollment', () => {
     );
   });
 
-  it('answers 503 without a usable PUBLIC_URL', async () => {
+  it('answers 503 without a usable SITE_URL', async () => {
     await api.start({ enrollment: undefined });
     const response = await fetch(
       `${api.baseUrl}${$.api.printers.enrollToken()}`,
@@ -91,7 +91,7 @@ describe('agent enrollment', () => {
     );
     expect(response.status).toBe(503);
     expect(await response.json()).toMatchObject({
-      code: 'public_url_required',
+      code: 'site_url_required',
     });
     expect(
       await (
@@ -99,7 +99,7 @@ describe('agent enrollment', () => {
       ).json(),
     ).toMatchObject({
       enrollment: false,
-      publicUrl: testPublicUrl.href,
+      site: { url: testSiteUrl.href },
     });
   });
 
@@ -253,11 +253,11 @@ describe('agent enrollment', () => {
       expect(await gone.text()).toContain('expired');
     });
 
-    it('explains that PUBLIC_URL is required', async () => {
+    it('explains that SITE_URL is required', async () => {
       await api.start({ enrollment: undefined });
       const response = await fetch(installUrl(api.baseUrl));
       expect(response.status).toBe(503);
-      expect(await response.text()).toContain('PUBLIC_URL');
+      expect(await response.text()).toContain('SITE_URL');
     });
   });
 });

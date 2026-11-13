@@ -56,6 +56,6 @@ packages/*/LICENSE
 packages/*/dist
 
 # Local deployment helper
-*.sh
-*.ts
-# !vite.*.ts
+/*.sh
+/*.ts
+!/vite.*.ts

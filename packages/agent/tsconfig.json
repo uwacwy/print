@@ -7,5 +7,7 @@
     "noEmit": true
   },
   "include": ["src"],
-  "exclude": ["src/**/*.test.ts"]
+  "exclude": ["src/**/*.test.ts"],
+  /* Lets Rename Symbol and Find References started in shared reach this project. */
+  "references": [{ "path": "../shared/tsconfig.json" }]
 }

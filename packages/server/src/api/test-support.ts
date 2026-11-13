@@ -50,12 +50,13 @@ export async function uploadForm(
 }
 
 /** The origin the test API reports as its public URL. */
-export const testPublicUrl = new URL('http://print.test');
+export const testSiteUrl = new URL('http://print.test');
 
 export interface StartOptions {
   client?: ClientConfig;
   enrollment?: ApiRootOptions['enrollment'];
   entra?: ApiRootOptions['entra'];
+  logo?: ApiRootOptions['logo'];
   upload?: UploadConfig;
 }
 
@@ -103,6 +104,7 @@ export function useApiServer(defaults: StartOptions = {}) {
   const start = async ({
     client,
     entra = defaultEntra,
+    logo,
     upload: uploadConfig = defaults.upload ?? testUploadConfig,
     ...rest
   }: StartOptions = {}) => {
@@ -123,7 +125,8 @@ export function useApiServer(defaults: StartOptions = {}) {
         entra,
         getHub: () => hub,
         jobsDir,
-        publicUrl: testPublicUrl,
+        logo,
+        siteUrl: testSiteUrl,
         upload,
       }),
     );

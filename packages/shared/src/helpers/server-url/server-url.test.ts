@@ -33,7 +33,7 @@ describe('isAllowedServerUrl', () => {
 });
 
 describe('serverOrigin', () => {
-  it('reduces PUBLIC_URL to its origin', () => {
+  it('reduces SITE_URL to its origin', () => {
     expect(serverOrigin('https://print.example.org/app/')).toBe(
       'https://print.example.org',
     );

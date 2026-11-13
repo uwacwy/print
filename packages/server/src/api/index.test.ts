@@ -1,7 +1,18 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import type { ClientConfig } from '@uwacwy/print-shared';
+
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+} from 'vitest';
 
 import { addPrinter } from '../realtime/test-support';
-import { testPublicUrl, useApiServer } from './test-support';
+import { testSiteUrl, useApiServer } from './test-support';
 
 describe('API root', () => {
   const api = useApiServer();
@@ -51,43 +62,81 @@ describe('API root', () => {
       );
     expect(await clientConfig()).toEqual({
       body: {
-        brand: { siteTitle: expect.any(String) },
         enrollment: false,
-        legal: { organizationName: 'Update env:ORG_NAME' },
-        publicUrl: testPublicUrl.href,
-        showAttribution: true,
+        site: {
+          organizationName: 'Update env:SITE_ORG_NAME',
+          showAttribution: true,
+          title: expect.any(String),
+          url: testSiteUrl.href,
+        },
       },
       cache: 'no-cache',
       status: 200,
     });
 
-    const msal = {
-      apiScope: 'api://client/Printers.Manage',
-      authority: 'https://login.microsoftonline.com/tenant',
-      clientId: 'client',
-      tenantId: 'tenant',
-    };
-    await api.start({
-      client: {
-        site: {
-          title: 'Test',
-          organizationName: 'Test Org',
-          url: testPublicUrl.href,
-        },
-        enrollment: true,
-        legal: { organizationName: 'Test Org' },
-        msal,
-        publicUrl: testPublicUrl.href,
-        showAttribution: false,
-      },
-    });
-    expect((await clientConfig()).body).toEqual({
-      brand: { siteTitle: 'Test' },
+    const client = {
       enrollment: true,
-      legal: { organizationName: 'Test Org' },
-      msal,
-      publicUrl: testPublicUrl.href,
-      showAttribution: false,
+      msal: {
+        apiScope: 'api://client/Printers.Manage',
+        authority: 'https://login.microsoftonline.com/tenant',
+        clientId: 'client',
+        tenantId: 'tenant',
+      },
+      site: {
+        organizationName: 'Test Org',
+        showAttribution: false,
+        title: 'Test',
+        url: testSiteUrl.href,
+      },
+    } satisfies ClientConfig;
+    await api.start({ client });
+    expect((await clientConfig()).body).toEqual(client);
+  });
+
+  describe('site logo', () => {
+    const dirs: string[] = [];
+    afterEach(() => {
+      for (const dir of dirs.splice(0)) {
+        rmSync(dir, { force: true, recursive: true });
+      }
+    });
+    const site = () =>
+      fetch(`${api.baseUrl}/api/client-config`)
+        .then((response) => response.json())
+        .then((body: ClientConfig) => body.site);
+
+    it('resolves the logo on every request, with no restart', async () => {
+      const dir = mkdtempSync(join(tmpdir(), 'api-logo-'));
+      dirs.push(dir);
+      await api.start({ logo: { alt: 'Contoso', dirs: [dir] } });
+      expect((await site()).logo).toBeUndefined();
+
+      writeFileSync(join(dir, 'logo.svg'), '<svg/>');
+      expect((await site()).logo).toEqual({
+        alt: 'Contoso',
+        url: expect.stringMatching(/^\/logo\.svg\?v=/),
+      });
+    });
+
+    it('lets SITE_LOGO_URL override the files', async () => {
+      const dir = mkdtempSync(join(tmpdir(), 'api-logo-'));
+      dirs.push(dir);
+      writeFileSync(join(dir, 'logo.svg'), '<svg/>');
+      const logo = { alt: 'Org', url: 'https://cdn.test/l.png' };
+      await api.start({
+        client: {
+          enrollment: false,
+          site: {
+            logo,
+            organizationName: 'Org',
+            showAttribution: true,
+            title: 'T',
+            url: testSiteUrl.href,
+          },
+        },
+        logo: { alt: 'Org', dirs: [dir] },
+      });
+      expect((await site()).logo).toEqual(logo);
     });
   });
 });

@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  PUBLIC_URL: http://print.contoso.com
+  SITE_URL: http://print.contoso.com
   UPLOAD_TOKEN_SECRET: build-time-placeholder-not-a-secret-0000
 
 jobs:

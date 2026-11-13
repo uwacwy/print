@@ -4,7 +4,7 @@
 FROM node:24-bookworm-slim AS deps
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ && rm -rf /var/lib/apt/lists/*
-COPY package.json package-lock.json tsconfig.base.json tsconfig.json angular.json ./
+COPY package.json package-lock.json tsconfig*.json angular.json ./
 COPY packages/shared/package.json packages/shared/tsconfig.json ./packages/shared/
 COPY packages/server/package.json ./packages/server/
 COPY packages/agent/package.json packages/agent/tsconfig.json ./packages/agent/
@@ -24,7 +24,7 @@ COPY packages/shared ./packages/shared
 COPY packages/server ./packages/server
 # Angular imports server.ts to extract routes, which validates the config. These placeholders
 # exist only for this RUN; real values are supplied when the container starts.
-RUN PUBLIC_URL=http://localhost:8080 UPLOAD_TOKEN_SECRET=build-time-placeholder-not-a-secret-0000 \
+RUN SITE_URL=http://localhost:8080 UPLOAD_TOKEN_SECRET=build-time-placeholder-not-a-secret-0000 \
     npm run build -w @uwacwy/print-shared -w @uwacwy/print-server && npm pack -w @uwacwy/print-server --pack-destination /tmp
 
 # Installs the same tarball that is published to npm, with production dependencies only.

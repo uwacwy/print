@@ -30,6 +30,14 @@ import { UploadDocumentRowComponent } from '../upload-document-row/upload-docume
           class="form-control"
           [formField]="uploadForm().title"
         />
+        <p
+          i18n="
+            @@AddAJobTitleReferenceToMakeYourPrintJobEasierToFind"
+          class="form-text"
+        >
+          Add a job title/reference to make your print job easier
+          to find.
+        </p>
       </div>
 
       <fieldset class="border rounded p-3">
@@ -46,21 +54,17 @@ import { UploadDocumentRowComponent } from '../upload-document-row/upload-docume
           Upload PDF, JPEG, PNG, or HEIC/HEIF documents; up to
           {{ maxUploadMb() }} MB per document.
         </p>
-        @for (
-          document of uploadForm().documents;
-          track document;
-          let index = $index
-        ) {
+        @for (document of uploadForm().documents; track $index) {
           <app-upload-document-row
             [document]="document"
-            [index]="index"
+            [index]="$index"
             [copyOptions]="copyOptions()"
             [canRemove]="uploadForm().documents.length > 1"
             (remove)="removeDocument.emit($event)"
           />
         }
         <button
-          i18n="@@upload-form.add-another-document"
+          i18n="@@AddAnotherDocument"
           type="button"
           class="btn btn-outline-primary"
           [disabled]="

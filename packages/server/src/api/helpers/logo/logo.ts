@@ -18,23 +18,28 @@ export const pickLogoFile = (
   LOGO_FILES.find((candidate) => names.includes(candidate));
 
 /** Static files are cached for a year, so the URL changes whenever the file does. */
-export const logoSrc = (
+export const logoUrl = (
   name: string,
   modifiedMs: number,
 ): string => `/${name}?v=${Math.trunc(modifiedMs).toString(36)}`;
 
-/** The logo an operator dropped into the static `dir`, or undefined when there is none. */
-export function findLogo(
-  dir: string,
-  alt: string,
-): SiteLogo | undefined {
-  const name = pickLogoFile(
-    existsSync(dir) ? readdirSync(dir) : [],
-  );
-  return name
-    ? {
-        alt,
-        src: logoSrc(name, statSync(join(dir, name)).mtimeMs),
-      }
-    : undefined;
+/** The URL of the first logo among the static `dirs` (most preferred first), or undefined when there is none. */
+export function findLogoUrl(
+  dirs: readonly string[],
+): string | undefined {
+  for (const dir of dirs) {
+    const name = pickLogoFile(
+      existsSync(dir) ? readdirSync(dir) : [],
+    );
+    if (name) {
+      return logoUrl(name, statSync(join(dir, name)).mtimeMs);
+    }
+  }
+  return undefined;
 }
+
+/** The header logo, with its text alternative, only when there is an image to show. */
+export const siteLogo = (
+  url: string | undefined,
+  alt: string,
+): SiteLogo | undefined => (url ? { alt, url } : undefined);

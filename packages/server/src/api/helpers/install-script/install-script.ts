@@ -6,7 +6,7 @@ export interface InstallScriptVars {
   /** Present for the interactive enrollment script. */
   enrollToken?: string;
   enrollTokenExpiresAt?: Date;
-  /** `PUBLIC_URL` origin the agent connects to. */
+  /** `SITE_URL` origin the agent connects to. */
   serverUrl: string;
 }
 

@@ -37,15 +37,22 @@ services:
     init: true
     environment:
       UPLOAD_TOKEN_SECRET: ${UPLOAD_TOKEN_SECRET:?set UPLOAD_TOKEN_SECRET} # openssl rand -base64 48
-      PUBLIC_URL: https://print.contoso.com
+      SITE_URL: https://print.contoso.com
       SITE_TITLE: Quick Print
-      ORG_NAME: Contoso
+      SITE_ORG_NAME: Contoso
       TRUST_PROXY: 'true' # only behind a reverse proxy
       TIME_ZONE: America/Denver
     ports:
       - '8080:8080'
     volumes:
       - print-data:/data
+      # optional header logo, read-only (see "Server settings worth knowing")
+      # - ./logo.svg:/data/public/logo.svg:ro
+
+      # or, create map a path to the data dir
+      # and place a logo at ${DATA_DIR}/public/logo.svg
+      # ${DATA_DIR}/public will be created automatically if it doesn't exist
+      # - ./data:${DATA_DIR}
 
 volumes:
   print-data:
@@ -123,26 +130,34 @@ and each package's `.env.example` lists every setting.
   follows it across rotations. Upload tokens and other query credentials are redacted, `/api/healthz` is
   skipped, and agent socket traffic on `/ws` is not logged. Logs hold client IP addresses, so keep the
   retention short.
-- `PUBLIC_URL` (default `https://localhost:4200`) is the address people use, for example
+- `SITE_URL` (default `https://localhost:4200`) is the address people use, for example
   `https://print.contoso.com`. It is printed in QR codes and agent setup commands, and its
   host name is allowed for server-side rendering. When it is `https://` (or localhost), **Add printer**
   can enroll printers from their own computers with `curl … | bash` or `npx` setup commands, which
   work for `ENROLL_TOKEN_TTL_MINUTES` (default 30).
 - `SITE_TITLE` (for example `Quick Print`) names the site in the page title, header, and printed pages.
-  `ORG_NAME` (for example `Contoso`) is the organization named in the footer copyright notice. Until
-  they are set, the pages show `Update env:SITE_TITLE` and `Update env:ORG_NAME`.
+  `SITE_ORG_NAME` (for example `Contoso`) is the organization named in the footer copyright notice.
+  Until they are set, the pages show `Update env:SITE_TITLE` and `Update env:SITE_ORG_NAME`.
 - `NG_ALLOWED_HOSTS` lists other comma-separated host names the app may be reached by, for example a
   LAN IP. Pages requested with any other `Host` header get `400 Bad Request` (the API is unaffected).
 - `ENTRA_TENANT_ID` and `ENTRA_CLIENT_ID` enable Microsoft Entra sign-in and `/manage`. The browser
   reads them at startup from `GET /api/client-config`, so one prebuilt image or package works for any
   tenant.
-- A `logo.svg`, `logo.png`, or `logo.jpg` in the server's `dist/browser` folder (or `packages/server/public`
-  before building) is shown in the page header. `LOGO_ALT` (default `ORG_NAME`) is its text for screen
-  readers. The server looks for the logo at startup, so restart it after adding or replacing the file.
-  `CLIENT_BRAND_LOGO` (a root-relative URL) overrides the file lookup.
-- `CLIENT_BRAND_LINKS` adds footer links (for example privacy and terms) as a query string:
+- `${DATA_DIR}/public` (created at startup when missing; ignored when it is not a directory) is served
+  as static files ahead of the web app's own, with the same caching. A `logo.svg`, `logo.png`, `logo.jpg`,
+  or `logo.jpeg` there (else the built-in logo from `packages/server/public`) is shown in the page header.
+  `GET /api/client-config` looks for it on every request, so adding or removing the file needs no restart.
+  With Docker, mount it read-only: `./logo.svg:/data/public/logo.svg:ro` (after replacing a single mounted
+  file, `docker compose up -d --force-recreate`, since editors often swap the file). `SITE_LOGO_ALT`
+  (default `SITE_ORG_NAME`) is its text for screen readers. `SITE_LOGO_URL` (a root-relative URL)
+  overrides the file lookup.
+- `SITE_FOOTER_LINKS` adds footer links (for example privacy and terms) as a query string:
   `label=Privacy&url=https://example.com/privacy&label=Terms&url=/terms` (URLs must be http(s), mailto, or
-  root-relative). `CLIENT_SHOW_ATTRIBUTION=false` hides the package name and version in the footer.
+  root-relative). `SITE_SHOW_ATTRIBUTION=false` hides the package name and version in the footer.
+- Renamed in 1.0.0 (the old names are no longer read): `PUBLIC_URL` → `SITE_URL`,
+  `CLIENT_LEGAL_ORG_NAME`/`ORG_NAME` → `SITE_ORG_NAME`, `CLIENT_BRAND_LOGO` → `SITE_LOGO_URL`,
+  `LOGO_ALT` → `SITE_LOGO_ALT`, `CLIENT_BRAND_LINKS` → `SITE_FOOTER_LINKS`, and
+  `CLIENT_SHOW_ATTRIBUTION` → `SITE_SHOW_ATTRIBUTION`.
 - `TRUST_PROXY=true` only behind a reverse proxy; otherwise clients could spoof their IP to dodge rate limits.
 
 ## Development server
@@ -154,6 +169,9 @@ npm run dev -w @uwacwy/print-server
 ```
 
 Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+
+The dev server is stock Angular: it serves `localhost:4200` only. To reach it through a reverse proxy or tunnel with a
+real host name, have the proxy forward to `localhost:4200` and rewrite the `Host` header to `localhost:4200`.
 
 ### Print agents in development
 

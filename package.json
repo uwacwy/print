@@ -26,6 +26,7 @@
     "format:check": "prettier --check .",
     "dupes": "jscpd",
     "start:server": "node packages/server/dist/server/server.mjs",
+    "dev:server": "npm run dev --workspace packages/server",
     "version:set": "node scripts/set-version.mjs",
     "version:check": "node scripts/check-version.mjs",
     "compose:check": "for f in examples/compose.*.yml; do UPLOAD_TOKEN_SECRET=x PRINT_SERVER_URL=x PRINT_AGENT_TOKEN_IPP=x PRINT_AGENT_TOKEN_CUPS=x docker compose -f \"$f\" config -q || exit 1; done && docker compose -f compose.yml config -q"

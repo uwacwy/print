@@ -16,7 +16,7 @@ services:
       SOCKET_DEV_PORT: 4201
       DATA_DIR: /data
       NODE_ENV: development
-      PUBLIC_URL: http://localhost:${DEV_HTTP_PORT:-4200}
+      SITE_URL: http://localhost:${DEV_HTTP_PORT:-4200}
       TRUST_PROXY: 'false'
     ports:
       - '127.0.0.1:${DEV_HTTP_PORT:-4200}:4200'
@@ -24,6 +24,9 @@ services:
       - ./package.json:/app/package.json:ro
       - ./package-lock.json:/app/package-lock.json:ro
       - ./angular.json:/app/angular.json:ro
+      - ./tsconfig.json:/app/tsconfig.json:ro
+      - ./tsconfig.base.json:/app/tsconfig.base.json:ro
+      - ./tsconfig.test.json:/app/tsconfig.test.json:ro
       - ./proxy.conf.mjs:/app/proxy.conf.mjs:ro
       - ./packages:/app/packages:ro
       # Writable, so the dev command can build shared's declarations under the read-only packages mount.

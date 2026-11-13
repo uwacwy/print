@@ -48,96 +48,88 @@ import {
     }
   `,
   template: `
-    <main class="">
-      <header
-        class="d-flex align-items-center justify-content-between gap-3 mb-4"
-      >
-        <div>
-          <p
-            i18n="@@manage-printers.administration"
-            class="text-uppercase text-muted small mb-1"
-          >
-            Administration
-          </p>
-          <h1 i18n="@@manage-printers.printers" class="h2 mb-0">
-            Printers
-          </h1>
-        </div>
-        <a
-          i18n="@@manage-printers.add-printer-if-error"
-          class="btn btn-primary"
-          routerLink="new"
+    <header
+      class="d-flex align-items-center justify-content-between gap-3 mb-4"
+    >
+      <div>
+        <h1
+          i18n="@@manage-printers.manage-printers"
+          class="h2 mb-0"
         >
-          <i class="bi bi-plus-lg" aria-hidden="true"></i> Add
-          printer
-        </a>
-      </header>
-
-      @if (error()) {
-        <app-alert
-          variant="danger"
-          dismissLabel="Dismiss error"
-          i18n-dismissLabel="
-            @@manage-printers.dismiss-error.dismisslabel"
-          (dismissed)="error.set('')"
-          >{{ error() }}</app-alert
-        >
-      }
-      <div role="status" aria-live="polite" aria-atomic="true">
-        @if (notice()) {
-          <app-alert
-            variant="success"
-            [role]="null"
-            dismissLabel="Dismiss message"
-            i18n-dismissLabel="
-              @@manage-printers.dismiss-message.dismisslabel"
-            (dismissed)="notice.set('')"
-            >{{ notice() }}</app-alert
-          >
-        }
+          Manage Printers
+        </h1>
       </div>
-      <p
-        class="visually-hidden"
-        aria-live="polite"
-        aria-atomic="true"
+      <a
+        i18n="@@manage-printers.add-printer-if-error"
+        class="btn btn-primary"
+        routerLink="new"
       >
-        {{ announcement() }}
-      </p>
+        <i class="bi bi-plus-lg" aria-hidden="true"></i> Add
+        printer
+      </a>
+    </header>
 
-      @if (printersResource.isLoading()) {
-        <p
-          i18n="@@manage-printers.loading-printers"
-          role="status"
+    @if (error()) {
+      <app-alert
+        variant="danger"
+        dismissLabel="Dismiss error"
+        i18n-dismissLabel="
+          @@manage-printers.dismiss-error.dismisslabel"
+        (dismissed)="error.set('')"
+        >{{ error() }}</app-alert
+      >
+    }
+    <div role="status" aria-live="polite" aria-atomic="true">
+      @if (notice()) {
+        <app-alert
+          variant="success"
+          [role]="null"
+          dismissLabel="Dismiss message"
+          i18n-dismissLabel="
+            @@manage-printers.dismiss-message.dismisslabel"
+          (dismissed)="notice.set('')"
+          >{{ notice() }}</app-alert
         >
-          Loading printers...
-        </p>
-      } @else if (printers().length === 0) {
-        <p
-          i18n="@@manage-printers.no-printers-configured"
-          class="text-muted"
-        >
-          No printers configured.
-        </p>
-      } @else {
-        <ul class="list-unstyled d-flex flex-column gap-2 mb-0">
-          @for (printer of printers(); track printer.id) {
-            <li
-              app-printer-list-item
-              [printer]="printer"
-              [busy]="busyIds().has(printer.id)"
-              [token]="tokens()[printer.id]"
-              [serverUrl]="serverUrl"
-              (printQr)="printQr(printer)"
-              (rotateToken)="rotateToken(printer)"
-              (retryFailedJobs)="retryFailedJobs(printer)"
-              (deleteAllJobs)="deleteAllJobs(printer)"
-              (removePrinter)="removePrinter(printer)"
-              (dismissToken)="dismissToken(printer.id)"
-            ></li>
-          }
-        </ul>
       }
-    </main>
+    </div>
+    <p
+      class="visually-hidden"
+      aria-live="polite"
+      aria-atomic="true"
+    >
+      {{ announcement() }}
+    </p>
+
+    @if (printersResource.isLoading()) {
+      <p i18n="@@manage-printers.loading-printers" role="status">
+        Loading printers...
+      </p>
+    } @else if (printers().length === 0) {
+      <p
+        i18n="@@manage-printers.no-printers-configured"
+        class="text-muted"
+      >
+        No printers configured.
+      </p>
+    } @else {
+      <ul class="list-unstyled d-flex flex-column gap-2 mb-0">
+        @for (printer of printers(); track printer.id) {
+          <li
+            app-printer-list-item
+            [printer]="printer"
+            [busy]="busyIds().has(printer.id)"
+            [token]="tokens()[printer.id]"
+            [serverUrl]="serverUrl"
+            (printQr)="printQr(printer)"
+            (rotateToken)="rotateToken(printer)"
+            (retryFailedJobs)="retryFailedJobs(printer)"
+            (deleteAllJobs)="deleteAllJobs(printer)"
+            (removePrinter)="removePrinter(printer)"
+            (dismissToken)="dismissToken(printer.id)"
+          ></li>
+        }
+      </ul>
+    }
   `,
 })
 export class ManagePrintersComponent {

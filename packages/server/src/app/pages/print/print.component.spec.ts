@@ -1,6 +1,10 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
-import { type Params, Router } from '@angular/router';
+import {
+  ActivatedRoute,
+  type Params,
+  Router,
+} from '@angular/router';
 import {
   MsalBroadcastService,
   MsalService,
@@ -75,6 +79,10 @@ async function render(
   await TestBed.configureTestingModule({
     imports: [PrintComponent],
     providers: [
+      {
+        provide: ActivatedRoute,
+        useValue: { queryParams: of(query) },
+      },
       { provide: Router, useValue: { navigate } },
       { provide: PrinterService, useValue: service },
       {
@@ -93,9 +101,12 @@ async function render(
     ],
   }).compileComponents();
   const fixture = TestBed.createComponent(PrintComponent);
+
   fixture.componentRef.setInput('slug', 'front-office');
   fixture.componentRef.setInput('token', query['token']);
+
   await fixture.whenStable();
+
   return {
     element: fixture.nativeElement as HTMLElement,
     fixture,

@@ -13,41 +13,18 @@ import {
   DEFAULT_UPLOAD_TOKEN_ISSUER,
   type UploadTokenKey,
 } from '../../middleware/auth/upload-token/upload-token';
-import { parseBrandLinks } from '../brand-links/brand-links';
+import { siteLogo } from '../logo/logo';
+import { parseSiteLinks } from '../site-links/site-links';
 
 /** Shown until SITE_TITLE is set, so an unconfigured server is obvious. */
 export const DEFAULT_SITE_TITLE = 'Update env:SITE_TITLE';
-/** Shown until ORG_NAME is set, so an unconfigured server is obvious. */
-export const DEFAULT_ORG_NAME = 'Update env:ORG_NAME';
-export const DEFAULT_PUBLIC_URL = 'https://localhost:4200';
+/** Shown until SITE_ORG_NAME is set, so an unconfigured server is obvious. */
+export const DEFAULT_SITE_ORG_NAME = 'Update env:SITE_ORG_NAME';
+export const DEFAULT_SITE_URL = 'https://localhost:4200';
 
 const ServerEnvironment = z.object({
   /** Days of daily access logs kept in DATA_DIR/logs; 0 disables the access log. */
   ACCESS_LOG_DAYS: z.coerce.number().int().min(0).default(14),
-  /** Footer links as a query string: `label=Privacy&url=https://example.com/privacy&label=...`. */
-  CLIENT_BRAND_LINKS: z
-    .string()
-    .optional()
-    .transform((value, ctx) => {
-      try {
-        return value ? parseBrandLinks(value) : undefined;
-      } catch (error) {
-        ctx.addIssue({
-          code: 'custom',
-          message:
-            error instanceof Error
-              ? error.message
-              : String(error),
-        });
-        return z.NEVER;
-      }
-    }),
-  /** Root-relative URL of the logo; when unset the server looks for `logo.{svg,png,jpg}` in the browser folder. */
-  CLIENT_BRAND_LOGO: z.string().min(1).optional(),
-  /** Former name of ORG_NAME, still read when ORG_NAME is unset. */
-  CLIENT_LEGAL_ORG_NAME: z.string().min(1).optional(),
-  /** Show the package name and version in the footer. */
-  CLIENT_SHOW_ATTRIBUTION: z.stringbool().default(true),
   /** Relative paths resolve from the working directory. */
   DATA_DIR: z.string().default('data'),
   /** Lifetime of enrollment tokens that let a print agent add its own printer. */
@@ -74,8 +51,6 @@ const ServerEnvironment = z.object({
     .max(600)
     .default(150),
   JOB_TTL_HOURS: z.coerce.number().positive().default(24),
-  /** Text alternative for the header logo (`logo.{svg,png,jpg}` in the browser folder); defaults to ORG_NAME. */
-  LOGO_ALT: z.string().min(1).optional(),
   MAX_COPIES: z.coerce.number().int().min(1).max(5).default(5),
   MAX_DOCUMENTS_PER_JOB: z.coerce
     .number()
@@ -87,8 +62,6 @@ const ServerEnvironment = z.object({
     .positive()
     .max(100)
     .default(20),
-  /** Organization named in the footer copyright notice and the default logo text alternative. */
-  ORG_NAME: z.string().min(1).optional(),
   /** Wrong PIN attempts allowed per client and printer every 15 minutes. */
   PIN_MAX_FAILURES: z.coerce.number().int().min(1).default(3),
   /** Each client (IP) may exchange a PIN for a token at most once per this many minutes. */
@@ -102,11 +75,6 @@ const ServerEnvironment = z.object({
     .positive()
     .default(10),
   PORT: z.coerce.number().int().positive().default(4000),
-  /**
-   * Canonical public origin for QR posters (defaults to the request's origin). Also the server URL
-   * in agent install commands and scripts, which are only offered when it is https (or loopback http).
-   */
-  PUBLIC_URL: z.url().default(DEFAULT_PUBLIC_URL),
   /** IPv6 clients are rate limited per subnet of this size, so address rotation cannot evade limits. */
   RATE_LIMIT_IPV6_SUBNET: z.coerce
     .number()
@@ -115,7 +83,41 @@ const ServerEnvironment = z.object({
     .max(64)
     .default(56),
   RETENTION_DAYS: z.coerce.number().positive().default(7),
+  /** Footer links as a query string: `label=Privacy&url=https://example.com/privacy&label=...`. */
+  SITE_FOOTER_LINKS: z
+    .string()
+    .optional()
+    .transform((value, ctx) => {
+      try {
+        return value ? parseSiteLinks(value) : undefined;
+      } catch (error) {
+        ctx.addIssue({
+          code: 'custom',
+          message:
+            error instanceof Error
+              ? error.message
+              : String(error),
+        });
+        return z.NEVER;
+      }
+    }),
+  /** Text alternative for the header logo; defaults to SITE_ORG_NAME. */
+  SITE_LOGO_ALT: z.string().min(1).optional(),
+  /** Logo URL; when unset the server looks for `logo.{svg,png,jpg}` in `${DATA_DIR}/public`, then the browser folder. */
+  SITE_LOGO_URL: z.string().min(1).optional(),
+  /** Organization named in the footer copyright notice and the default logo text alternative. */
+  SITE_ORG_NAME: z
+    .string()
+    .min(1)
+    .default(DEFAULT_SITE_ORG_NAME),
+  /** Show the package name and version in the footer. */
+  SITE_SHOW_ATTRIBUTION: z.stringbool().default(true),
   SITE_TITLE: z.string().min(1).default(DEFAULT_SITE_TITLE),
+  /**
+   * The address people use: printed in QR codes and allowed for server rendering. Also the server URL
+   * in agent install commands and scripts, which are only offered when it is https (or loopback http).
+   */
+  SITE_URL: z.url().default(DEFAULT_SITE_URL),
   TIME_ZONE: z.string().default('America/Denver'),
   /** `true`/`false`, or a comma-separated list of trusted proxy addresses or Express presets. */
   TRUST_PROXY: z
@@ -147,7 +149,7 @@ const ServerEnvironment = z.object({
 });
 
 export interface EnrollmentConfig {
-  /** `PUBLIC_URL` origin agents connect to; undefined disables enrollment and install commands. */
+  /** `SITE_URL` origin agents connect to; undefined disables enrollment and install commands. */
   serverUrl: string | undefined;
   tokenTtlMinutes: number;
 }
@@ -161,9 +163,10 @@ export interface ServerConfig {
   enrollment: EnrollmentConfig;
   entra: EntraUserOptions;
   jobTtlMs: number;
+  /** SITE_LOGO_ALT, else SITE_ORG_NAME; describes a logo found in the browser folder. */
   logoAlt: string;
   port: number;
-  publicUrl: URL;
+  siteUrl: URL;
   retentionMs: number;
   trustProxy: boolean | string[];
   upload: UploadConfig;
@@ -246,8 +249,8 @@ export function loadServerConfig(
       .split(',')
       .map((item) => item.trim())
       .filter(Boolean);
-  const serverUrl = serverOrigin(e.PUBLIC_URL);
-  const publicUrl = new URL(e.PUBLIC_URL);
+  const serverUrl = serverOrigin(e.SITE_URL);
+  const siteUrl = new URL(e.SITE_URL);
   return {
     accessLog: e.ACCESS_LOG_DAYS
       ? {
@@ -269,9 +272,9 @@ export function loadServerConfig(
       tenantId: e.ENTRA_TENANT_ID,
     },
     jobTtlMs: e.JOB_TTL_HOURS * 3_600_000,
-    logoAlt: e.LOGO_ALT ?? orgName(e),
+    logoAlt: e.SITE_LOGO_ALT ?? e.SITE_ORG_NAME,
     port: e.PORT,
-    publicUrl,
+    siteUrl,
     retentionMs: e.RETENTION_DAYS * 86_400_000,
     trustProxy: e.TRUST_PROXY,
     upload: {
@@ -318,54 +321,36 @@ export function readServerVersion(
     : undefined;
 }
 
-/** ORG_NAME, else its former name CLIENT_LEGAL_ORG_NAME, else a reminder to set it. */
-function orgName(
-  e: Pick<
-    ServerEnvironment,
-    'CLIENT_LEGAL_ORG_NAME' | 'ORG_NAME'
-  >,
-): string {
-  return (
-    e.ORG_NAME ?? e.CLIENT_LEGAL_ORG_NAME ?? DEFAULT_ORG_NAME
-  );
-}
-
 /** The browser-safe subset of the server's settings, served by `GET /api/client-config`. */
 export function toClientConfig(
   e: Pick<
     ServerEnvironment,
-    | 'CLIENT_BRAND_LINKS'
-    | 'CLIENT_BRAND_LOGO'
-    | 'CLIENT_LEGAL_ORG_NAME'
-    | 'CLIENT_SHOW_ATTRIBUTION'
     | 'ENTRA_ADMIN_SCOPE'
     | 'ENTRA_API_AUDIENCE'
     | 'ENTRA_CLIENT_ID'
     | 'ENTRA_TENANT_ID'
-    | 'LOGO_ALT'
-    | 'ORG_NAME'
-    | 'PUBLIC_URL'
+    | 'SITE_FOOTER_LINKS'
+    | 'SITE_LOGO_ALT'
+    | 'SITE_LOGO_URL'
+    | 'SITE_ORG_NAME'
+    | 'SITE_SHOW_ATTRIBUTION'
     | 'SITE_TITLE'
+    | 'SITE_URL'
   >,
 ): ClientConfig {
   return {
+    enrollment: !!serverOrigin(e.SITE_URL),
     site: {
-      links: e.CLIENT_BRAND_LINKS,
-      logo: e.CLIENT_BRAND_LOGO
-        ? {
-            alt: e.LOGO_ALT ?? orgName(e),
-            src: e.CLIENT_BRAND_LOGO,
-          }
-        : undefined,
+      links: e.SITE_FOOTER_LINKS,
+      logo: siteLogo(
+        e.SITE_LOGO_URL,
+        e.SITE_LOGO_ALT ?? e.SITE_ORG_NAME,
+      ),
+      organizationName: e.SITE_ORG_NAME,
+      showAttribution: e.SITE_SHOW_ATTRIBUTION,
       title: e.SITE_TITLE,
-      organizationName: orgName(e),
-      url: e.PUBLIC_URL,
-      showAttribution: e.CLIENT_SHOW_ATTRIBUTION,
+      url: new URL(e.SITE_URL).href,
     },
-    enrollment: !!serverOrigin(e.PUBLIC_URL),
-    legal: { organizationName: orgName(e) },
-    publicUrl: new URL(e.PUBLIC_URL).href,
-    showAttribution: e.CLIENT_SHOW_ATTRIBUTION,
     ...(e.ENTRA_TENANT_ID &&
       e.ENTRA_CLIENT_ID && {
         msal: {
@@ -375,5 +360,5 @@ export function toClientConfig(
           tenantId: e.ENTRA_TENANT_ID,
         },
       }),
-  } satisfies ClientConfig;
+  };
 }

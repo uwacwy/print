@@ -5,7 +5,7 @@ import {
   isMainModule,
   writeResponseToNodeResponse,
 } from '@angular/ssr/node';
-import { $ } from '@uwacwy/print-shared';
+import { $, createLogger } from '@uwacwy/print-shared';
 import express from 'express';
 import { randomBytes } from 'node:crypto';
 import http from 'node:http';
@@ -23,7 +23,7 @@ import type {
 
 import apiRoot from './api';
 import { openAccessLog } from './api/helpers/access-log/access-log';
-import { findLogo } from './api/helpers/logo/logo';
+import { ensurePublicDir } from './api/helpers/public-dir/public-dir';
 import {
   loadLocalEnvFile,
   loadServerConfig,
@@ -41,10 +41,23 @@ import {
   startJobCleanup,
 } from './realtime/runtime';
 
+const { app: appLog } = createLogger('app');
+
+const {
+  config: $config,
+  ng: $ng,
+  express: $express,
+  nodeHttp: $nodeHttp,
+} = appLog.create('config', 'node http', 'ng', 'express');
+
+const { paths: $paths } = $config.create('paths');
+
 const browserDistFolder = join(
   import.meta.dirname,
   '../browser',
 );
+
+$paths.info('browserDistFolder', browserDistFolder);
 
 // Angular's build imports this module in worker threads to extract and prerender
 // routes. Those never serve API requests, so they must not require deployment secrets.
@@ -53,7 +66,12 @@ const angularBuildWorker =
   typeof (workerData as null | { outputMode?: unknown })
     ?.outputMode === 'string';
 
+$ng.info(angularBuildWorker ? 'running as worker' : 'main');
+
+$config.info('loading env');
 loadLocalEnvFile();
+
+$config.info('loading config');
 const config = loadServerConfig(
   angularBuildWorker && !process.env['UPLOAD_TOKEN_SECRET']
     ? {
@@ -63,9 +81,9 @@ const config = loadServerConfig(
       }
     : process.env,
 );
-if (config.publicUrl && !config.enrollment.serverUrl) {
-  console.warn(
-    `PUBLIC_URL ${config.publicUrl.origin} is not https, so printer enrollment and agent install commands are disabled.`,
+if (config.siteUrl && !config.enrollment.serverUrl) {
+  $config.warn(
+    `SITE_URL ${config.siteUrl.origin} is not https, so printer enrollment and agent install commands are disabled.`,
   );
 }
 // Survives `ng serve` re-evaluations of this module; see realtime/runtime.ts.
@@ -77,33 +95,19 @@ const { verify } = createAuthenticate({
   entra: config.entra,
 });
 
+$express.info('setting up app');
 const app = express();
 const angularAppOptions: AngularNodeAppEngineOptions = {};
 if (config.trustProxy) {
   angularAppOptions.trustProxyHeaders = true;
 }
-const allowedHosts = [];
-if (config.publicUrl) {
-  const hostname = new URL(config.publicUrl).hostname;
-  allowedHosts.push(hostname);
-}
-if (process.env['NG_ALLOWED_HOSTS']) {
-  allowedHosts.push(
-    ...process.env['NG_ALLOWED_HOSTS'].split(','),
-  );
-}
-if (allowedHosts.length) {
-  console.log(
-    '[AngularNodeAppEngine] allowedHosts',
-    allowedHosts.join(', '),
-  );
-  angularAppOptions.allowedHosts = allowedHosts;
-} else {
-  console.warn('[ng app engine] no allowed hosts');
-}
-const angularApp = new AngularNodeAppEngine({
-  ...angularAppOptions,
-});
+
+$config.info(
+  'trustProxy',
+  [config.trustProxy]
+    .flatMap((x) => (Array.isArray(x) ? x : []))
+    .join(', '),
+);
 
 app.set('trust proxy', config.trustProxy);
 
@@ -113,6 +117,8 @@ const accessLog =
     ? openAccessLog(config.accessLog)
     : undefined;
 if (accessLog) {
+  $paths.info('accessLog', config.accessLog!.dir);
+  $express.info('using access log', accessLog.dir);
   app.use(accessLog.middleware);
 }
 
@@ -122,9 +128,25 @@ app.use((_request, response, next) => {
   next();
 });
 
+// Operator files from ${DATA_DIR}/public come first, so they replace the web app's own (e.g. logo.svg).
+const publicDir = ensurePublicDir(config.dataDir);
+
+if (publicDir) {
+  $express.info('using static', publicDir);
+
+  app.use(
+    express.static(publicDir, {
+      index: false,
+      maxAge: '1y',
+      redirect: false,
+    }),
+  );
+}
+
 /**
  * Serve static files from /browser
  */
+$express.info('using static', browserDistFolder);
 app.use(
   express.static(browserDistFolder, {
     index: false,
@@ -138,21 +160,19 @@ app.use(express.json({ limit: '32kb' }));
 app.use(
   $.api.pattern,
   apiRoot({
-    client: {
-      ...config.client,
-      site: {
-        ...config.client.site,
-        logo:
-          config.client.site.logo ??
-          findLogo(browserDistFolder, config.logoAlt),
-      },
-    },
+    client: config.client,
     db: runtime.db,
     enrollment: config.enrollment,
     entra: config.entra,
     getHub,
     jobsDir: runtime.jobsDir,
-    publicUrl: config.publicUrl,
+    logo: {
+      alt: config.logoAlt,
+      dirs: publicDir
+        ? [publicDir, browserDistFolder]
+        : [browserDistFolder],
+    },
+    siteUrl: config.siteUrl,
     upload: config.upload,
   }),
 );
@@ -166,6 +186,11 @@ app.use(
     upload: config.upload,
   }),
 );
+
+$ng.info('initializing app engine');
+const angularApp = new AngularNodeAppEngine({
+  ...angularAppOptions,
+});
 
 /**
  * Handle all other requests by rendering the Angular application.
@@ -181,7 +206,7 @@ app.use((req, res, next) => {
     .catch(next);
 });
 
-const SERVER_GLOBALS_KEY = Symbol.for('@uwacwy/print/server');
+const SERVER_GLOBALS_KEY = Symbol.for('@uwacwy/print-server');
 const globals = ((globalThis as Record<symbol, unknown>)[
   SERVER_GLOBALS_KEY
 ] ??= {}) as ServerGlobals;
@@ -229,6 +254,9 @@ function formatAddressInfo(
   return `${address.address}:${address.port}`;
 }
 
+const { websockets: $websockets } =
+  $nodeHttp.create('websockets');
+
 /**
  * `ng serve` owns the HTTP server and never exposes its `upgrade` event, so socket.io listens on a
  * loopback side port that proxy.conf.mjs forwards `/ws` (SOCKET_PATH) to. The listener is created once
@@ -236,6 +264,7 @@ function formatAddressInfo(
  * so this module never finishes loading before sockets are accepting connections.
  */
 function startDevServer(port: number): Promise<void> {
+  $websockets.info(`starting on port ${port}`);
   const existing = globals.devSockets;
   if (existing && existing.port === port) {
     existing.options = socketOptions;
@@ -288,12 +317,12 @@ async function startServer(): Promise<void> {
   const server = http.createServer(app);
   const io = attachWebSockets(server, socketOptions);
   await listen(server, config.port);
-  console.log(
+  $nodeHttp.info(
     `${pkg.name} v${pkg.version} server listening on http://${formatAddressInfo(server.address())}`,
   );
 
   const shutdown = () => {
-    console.log('Shutting down');
+    $nodeHttp.info('Shutting down');
     shutdownPrintRuntime();
     // Also closes the HTTP server.
     const serverClosed = new Promise<void>((resolve) => {

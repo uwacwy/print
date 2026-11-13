@@ -4,5 +4,7 @@
     "module": "preserve",
     "moduleResolution": "bundler"
   },
-  "include": ["src/**/*.test.ts", "src/**/*.d.ts"]
+  "include": ["src/**/*.test.ts", "src/**/*.d.ts"],
+  /* Lets Rename Symbol and Find References started in shared reach this project. */
+  "references": [{ "path": "../shared/tsconfig.json" }]
 }

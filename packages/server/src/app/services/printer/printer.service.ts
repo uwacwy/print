@@ -17,7 +17,7 @@ import {
   SubmittedJob,
   type UploadTokenWindow,
 } from '@uwacwy/print-shared';
-import { map } from 'rxjs';
+import { map, Observable } from 'rxjs';
 import { z } from 'zod';
 
 @Service()
@@ -76,7 +76,10 @@ export class PrinterService {
       .pipe(map(parseWith(PrinterSummary)));
   }
 
-  getPrinter(slug: string, token?: null | string) {
+  getPrinter(
+    slug: string,
+    token?: null | string,
+  ): Observable<PublicPrinter> {
     return this.#http
       .get<unknown>($.api.printers.$slug({ slug }), {
         headers: token ? bearer(token) : undefined,

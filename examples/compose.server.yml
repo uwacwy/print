@@ -1,5 +1,5 @@
 # Print server only. Put it behind an HTTPS reverse proxy for anything public;
-# Microsoft Entra sign-in for /manage requires an https:// PUBLIC_URL.
+# Microsoft Entra sign-in for /manage requires an https:// SITE_URL.
 #
 #   cp packages/server/.env.example print-server.env   # then fill it in
 #   docker compose -f examples/compose.server.yml up -d
@@ -18,11 +18,11 @@ services:
       DATA_DIR: /data
       # Required, at least 32 characters: openssl rand -base64 48
       UPLOAD_TOKEN_SECRET: ${UPLOAD_TOKEN_SECRET:?set UPLOAD_TOKEN_SECRET}
-      # For example https://print.contoso.com; branding (SITE_TITLE=Quick Print, ORG_NAME=Contoso)
-      # goes in print-server.env.
-      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8080}
+      # For example https://print.contoso.com; branding (SITE_TITLE=Quick Print, SITE_ORG_NAME=Contoso,
+      # SITE_LOGO_ALT, SITE_FOOTER_LINKS) goes in print-server.env.
+      SITE_URL: ${SITE_URL:-http://localhost:8080}
       # Extra host names the web app may be served under (comma-separated).
-      # PUBLIC_URL's host name is always allowed.
+      # SITE_URL's host name is always allowed.
       NG_ALLOWED_HOSTS: ${NG_ALLOWED_HOSTS:-}
       # Only "true" behind a reverse proxy that sets X-Forwarded-For.
       TRUST_PROXY: ${TRUST_PROXY:-false}
@@ -32,6 +32,10 @@ services:
     volumes:
       # print.db and queued jobs
       - print-data:/data
+      # Optional header logo (logo.svg, logo.png, or logo.jpg), mounted read-only. Anything in
+      # /data/public is served as a static file; `docker compose up -d --force-recreate` after
+      # replacing a single mounted file.
+      # - ./logo.svg:/data/public/logo.svg:ro
 
 volumes:
   print-data:

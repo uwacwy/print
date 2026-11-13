@@ -1,5 +1,12 @@
+import type { ClientConfig } from '@uwacwy/print-shared';
+
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import {
+  MsalBroadcastService,
+  MsalService,
+} from '@azure/msal-angular';
+import { EMPTY } from 'rxjs';
 
 import { environment } from '../environments/environment';
 import { App } from './app';
@@ -9,7 +16,22 @@ describe('App', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [App],
-      providers: [provideRouter([])],
+      providers: [
+        provideRouter([]),
+        {
+          provide: MsalBroadcastService,
+          useValue: { inProgress$: EMPTY },
+        },
+        {
+          provide: MsalService,
+          useValue: {
+            instance: {
+              getActiveAccount: () => null,
+              getAllAccounts: () => [],
+            },
+          },
+        },
+      ],
     }).compileComponents();
   });
 
@@ -24,7 +46,7 @@ describe('App', () => {
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('h1')?.textContent).toContain(
-      environment.brand.siteTitle,
+      environment.site.title,
     );
   });
 
@@ -32,11 +54,11 @@ describe('App', () => {
     TestBed.overrideProvider(CLIENT_ENVIRONMENT, {
       useValue: {
         ...environment,
-        brand: {
-          ...environment.brand,
-          logo: { alt: 'United Way', src: '/logo.png?v=1' },
+        site: {
+          ...environment.site,
+          logo: { alt: 'United Way', url: '/logo.png?v=1' },
         },
-      },
+      } satisfies ClientConfig,
     });
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();

@@ -12,57 +12,6 @@ section:nth-of-type(3) {
   animation-delay: 0.2s;
 }
 
-.status {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.375rem 0.875rem;
-  border: 1px solid var(--bs-border-color);
-  border-radius: var(--bs-border-radius-pill);
-  background: var(--bs-body-bg);
-  font-weight: 500;
-}
-
-// Closes the sentence before the retry link, cancelling the pill's flex gap.
-.status-stop {
-  margin-inline-start: -0.5rem;
-}
-
-.status-dot {
-  position: relative;
-  width: 0.75rem;
-  height: 0.75rem;
-  border-radius: 50%;
-  background: var(--status-color);
-}
-
-[data-state='checking'] {
-  --status-color: var(--bs-secondary-color);
-  .status-dot {
-    animation: blink 1.2s ease-in-out infinite;
-  }
-}
-[data-state='online'] {
-  --status-color: var(--bs-success);
-  .status-dot {
-    animation: blink 1.6s ease-in-out infinite;
-  }
-  .status-dot::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    background: var(--status-color);
-    animation: ping 1.6s ease-out infinite;
-  }
-}
-[data-state='idle'] {
-  --status-color: var(--bs-gray-700);
-}
-[data-state='down'] {
-  --status-color: var(--bs-danger);
-}
-
 .steps {
   display: grid;
   gap: 1rem;
@@ -79,6 +28,17 @@ section:nth-of-type(3) {
   }
 }
 
+:host {
+  --step-icon-fg: var(--bs-primary-text-emphasis);
+  --step-icon-bg: var(--bs-primary-bg-subtle);
+}
+@media (prefers-color-scheme: dark) {
+  :host {
+    --step-icon-bg: var(--bs-primary-text-emphasis);
+    --step-icon-fg: var(--bs-primary-bg-subtle);
+  }
+}
+
 .step-icon {
   display: grid;
   place-items: center;
@@ -86,8 +46,8 @@ section:nth-of-type(3) {
   width: 2.5rem;
   height: 2.5rem;
   border-radius: 50%;
-  background: var(--bs-primary-bg-subtle);
-  color: var(--bs-primary-text-emphasis);
+  background: var(--step-icon-bg);
+  color: var(--step-icon-fg);
   font-size: 1.25rem;
 }
 
@@ -120,19 +80,6 @@ section:nth-of-type(3) {
   from {
     opacity: 0;
     transform: translateY(0.5rem);
-  }
-}
-
-@keyframes blink {
-  50% {
-    opacity: 0.35;
-  }
-}
-
-@keyframes ping {
-  to {
-    transform: scale(2.4);
-    opacity: 0;
   }
 }
 

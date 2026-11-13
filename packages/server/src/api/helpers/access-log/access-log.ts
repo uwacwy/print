@@ -258,7 +258,7 @@ interface CachedAccessLog extends AccessLog {
  */
 export function openAccessLog(
   options: AccessLogFileOptions,
-): AccessLog {
+): CachedAccessLog {
   const store = globalThis as Record<
     symbol,
     CachedAccessLog | undefined

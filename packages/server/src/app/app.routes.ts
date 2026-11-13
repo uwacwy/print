@@ -1,5 +1,9 @@
+import { inject } from '@angular/core';
 import { Routes } from '@angular/router';
 import { MsalGuard } from '@azure/msal-angular';
+
+import { CLIENT_ENVIRONMENT } from './auth/client-environment';
+import { printComponentRoute } from './pages/print/print.component.route';
 
 export const routes: Routes = [
   { path: 'auth/callback', pathMatch: 'full', redirectTo: '' },
@@ -18,25 +22,16 @@ export const routes: Routes = [
         (m) => m.WelcomeComponent,
       ),
     path: '',
-    title: $localize`:@@route.welcome.title:Welcome`,
-  },
-  {
-    data: {
-      width: {
-        lg: 8,
-        md: 12,
-        sm: 12,
-        xl: 6,
-        xs: 12,
-      },
+    // title: $localize`:@@route.welcome.title:Quick Print`,
+    title: () => {
+      const config = inject(CLIENT_ENVIRONMENT);
+      return [
+        config.site.title,
+        config.site.organizationName,
+      ].join(' - ');
     },
-    loadComponent: () =>
-      import('./pages/print/print.component').then(
-        (m) => m.PrintComponent,
-      ),
-    path: 'print/:slug',
-    title: $localize`:@@route.print.title:Print Documents`,
   },
+  printComponentRoute,
   {
     canActivate: [MsalGuard],
     canActivateChild: [MsalGuard],

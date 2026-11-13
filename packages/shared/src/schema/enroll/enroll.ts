@@ -28,7 +28,7 @@ export type EnrollResponse = z.infer<typeof EnrollResponse>;
 /** `POST /api/printers/enroll-token` (admin). */
 export const EnrollTokenResponse = z.object({
   expiresAt: z.string(),
-  /** `PUBLIC_URL` origin agents connect to. */
+  /** `SITE_URL` origin agents connect to. */
   serverUrl: z.string(),
   token: z.string(),
 });

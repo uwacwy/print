@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseBrandLinks } from './brand-links';
+import { parseSiteLinks } from './site-links';
 
-describe('parseBrandLinks', () => {
+describe('parseSiteLinks', () => {
   it('pairs labels and urls in order', () => {
     expect(
-      parseBrandLinks(
+      parseSiteLinks(
         'label=Privacy+policy&url=https://example.com/privacy&label=Terms&url=/terms',
       ),
     ).toEqual([
@@ -18,11 +18,11 @@ describe('parseBrandLinks', () => {
   });
 
   it('returns nothing for an empty value', () => {
-    expect(parseBrandLinks('')).toEqual([]);
+    expect(parseSiteLinks('')).toEqual([]);
   });
 
   it('rejects unpaired labels', () => {
-    expect(() => parseBrandLinks('label=A')).toThrow(
+    expect(() => parseSiteLinks('label=A')).toThrow(
       /matching url/,
     );
   });
@@ -32,7 +32,7 @@ describe('parseBrandLinks', () => {
     '//evil.example',
     'data:text/html,x',
   ])('rejects unsafe url %s', (url) => {
-    expect(() => parseBrandLinks(`label=A&url=${url}`)).toThrow(
+    expect(() => parseSiteLinks(`label=A&url=${url}`)).toThrow(
       /needs a label/,
     );
   });

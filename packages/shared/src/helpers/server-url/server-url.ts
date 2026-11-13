@@ -32,13 +32,13 @@ export const isAllowedServerUrl = (
 };
 
 /**
- * The origin agents and install commands use, from the server's `PUBLIC_URL`.
+ * The origin agents and install commands use, from the server's `SITE_URL`.
  * `undefined` when unset, unparsable, or not allowed by `isAllowedServerUrl`.
  */
 export const serverOrigin = (
-  publicUrl: string | undefined,
+  siteUrl: string | undefined,
 ): string | undefined => {
-  const url = publicUrl ? parseUrl(publicUrl) : undefined;
+  const url = siteUrl ? parseUrl(siteUrl) : undefined;
   return url && isAllowedServerUrl(url.href)
     ? url.origin
     : undefined;

@@ -187,7 +187,7 @@ describe('ManagePrinterComponent', () => {
       '#add-mode-enroll',
     )!;
     expect(enroll.disabled).toBe(true);
-    expect(page.textContent).toContain('set PUBLIC_URL');
+    expect(page.textContent).toContain('set SITE_URL');
 
     const type = (id: string, value: string) => {
       const input = page.querySelector<HTMLInputElement>(id)!;

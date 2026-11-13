@@ -65,70 +65,68 @@ import {
   ],
   selector: 'app-manage-printer',
   template: `
-    <main class="container py-4">
-      <a
-        i18n="@@manage-printer.printers"
-        routerLink="/manage"
-        class="link-secondary"
-        >&larr; Printers</a
-      >
-      <h1 class="h2 mt-3 mb-4">
-        @if (isNew) {
-          <ng-container i18n="@@manage-printer.add-heading"
-            >Add printer</ng-container
-          >
-        } @else {
-          <ng-container i18n="@@manage-printer.edit-heading"
-            >Edit printer</ng-container
-          >
-        }
-      </h1>
+    <a
+      i18n="@@manage-printer.printers"
+      routerLink="/manage"
+      class="link-secondary"
+      >&larr; Printers</a
+    >
+    <h1 class="h2 mt-3 mb-4">
+      @if (isNew) {
+        <ng-container i18n="@@manage-printer.add-heading"
+          >Add printer</ng-container
+        >
+      } @else {
+        <ng-container i18n="@@manage-printer.edit-heading"
+          >Edit printer</ng-container
+        >
+      }
+    </h1>
 
-      @if (error()) {
-        <app-alert variant="danger">{{ error() }}</app-alert>
-      }
-      @if (printer()) {
-        <app-printer-status
-          [online]="status().online"
-          [activeJobs]="status().activeJobs"
-        />
-      }
-      @if (printerResource.isLoading()) {
-        <p i18n="@@manage-printer.loading-printer" role="status">
-          Loading printer...
-        </p>
-      } @else if (created(); as created) {
-        <app-created-printer [created]="created" />
-      } @else if (isNew && mode() === 'enroll') {
+    @if (error()) {
+      <app-alert variant="danger">{{ error() }}</app-alert>
+    }
+    @if (printer()) {
+      <app-printer-status
+        [online]="status().online"
+        [activeJobs]="status().activeJobs"
+      />
+    }
+    @if (printerResource.isLoading()) {
+      <p i18n="@@manage-printer.loading-printer" role="status">
+        Loading printer...
+      </p>
+    } @else if (created(); as created) {
+      <app-created-printer [created]="created" />
+    } @else if (isNew && mode() === 'enroll') {
+      <app-add-mode-choice
+        [enrollment]="enrollment"
+        [(mode)]="mode"
+      />
+      <app-enroll-setup
+        [token]="enrollToken()"
+        [busy]="enrollResource.isLoading()"
+        (create)="createEnrollToken()"
+      />
+    } @else if (!printerResource.error()) {
+      @if (isNew) {
         <app-add-mode-choice
           [enrollment]="enrollment"
           [(mode)]="mode"
         />
-        <app-enroll-setup
-          [token]="enrollToken()"
-          [busy]="enrollResource.isLoading()"
-          (create)="createEnrollToken()"
-        />
-      } @else if (!printerResource.error()) {
-        @if (isNew) {
-          <app-add-mode-choice
-            [enrollment]="enrollment"
-            [(mode)]="mode"
-          />
-        }
-        <app-printer-form
-          [printerForm]="printerForm"
-          [isNew]="isNew"
-          [saving]="printerForm().submitting()"
-          (remove)="remove()"
-        />
       }
-    </main>
+      <app-printer-form
+        [printerForm]="printerForm"
+        [isNew]="isNew"
+        [saving]="printerForm().submitting()"
+        (remove)="remove()"
+      />
+    }
   `,
 })
 export class ManagePrinterComponent {
   readonly created = signal<CreatedPrinter | null>(null);
-  /** The server has `PUBLIC_URL`, so printers can enroll from their own computers. */
+  /** The server has `SITE_URL`, so printers can enroll from their own computers. */
   readonly enrollment = inject(CLIENT_ENVIRONMENT).enrollment;
   readonly #route = inject(ActivatedRoute);
   readonly slug =

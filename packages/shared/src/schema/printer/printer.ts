@@ -141,7 +141,7 @@ export type PublicPrinter = z.infer<typeof PublicPrinter>;
 export const CreatedPrinter = z.object({
   agentToken: z.string(),
   printer: PrinterSummary,
-  /** `PUBLIC_URL` origin for setup commands; null when the server has none. */
+  /** `SITE_URL` origin for setup commands; null when the server has none. */
   serverUrl: z.string().nullable(),
 });
 export type CreatedPrinter = z.infer<typeof CreatedPrinter>;

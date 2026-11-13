@@ -57,21 +57,21 @@ import {
   template: `
     <main>
       <p class="mb-2">
-        <a
-          i18n="
-            @@printer-qr.printers-if-printerresource-isloading"
-          routerLink="/manage"
+        <a i18n="@@BackToPrinters" routerLink="/manage"
           ><i class="bi bi-arrow-left" aria-hidden="true"></i>
-          Printers</a
+          Back to Printers</a
         >
       </p>
 
       @if (printerResource.isLoading()) {
-        <p i18n="@@printer-qr.loading-printer" role="status">
+        <p i18n="@@LoadingPrinter" role="status">
           Loading printer...
         </p>
       } @else if (printer(); as printer) {
-        <h1 i18n="@@printer-qr.qr-code-pin-for" class="h2 mb-4">
+        <h1
+          i18n="@@QrCodePinFor__PRINTER_NAME__"
+          class="h2 mb-4"
+        >
           QR code &amp; PIN for {{ printer.name }}
         </h1>
 
@@ -87,11 +87,7 @@ import {
         </div>
 
         <section class="mb-5" aria-labelledby="qr-heading">
-          <h2
-            i18n="@@printer-qr.qr-code"
-            class="h4"
-            id="qr-heading"
-          >
+          <h2 i18n="@@QrCode" class="h4" id="qr-heading">
             QR code
           </h2>
           <p

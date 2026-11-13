@@ -8,5 +8,7 @@
     "moduleResolution": "bundler",
     "noEmit": true
   },
-  "include": ["src"]
+  "include": ["src/**/*.test.ts", "src/**/*.d.ts"],
+  /* Lets Rename Symbol and Find References started in shared reach this project. */
+  "references": [{ "path": "./tsconfig.json" }]
 }

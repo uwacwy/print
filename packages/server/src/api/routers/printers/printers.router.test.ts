@@ -15,7 +15,7 @@ import {
   verifyUploadToken,
 } from '../../middleware/auth/upload-token/upload-token';
 import {
-  testPublicUrl,
+  testSiteUrl,
   uploadForm,
   useApiServer,
 } from '../../test-support';
@@ -283,7 +283,7 @@ describe('printers router', () => {
         `/print/front-office?token=${body.token}`,
       );
       expect(body.url).toBe(
-        `${testPublicUrl.origin}${body.path}`,
+        `${testSiteUrl.origin}${body.path}`,
       );
       expect(body.token).toMatch(/^[A-Za-z0-9_-]{42}$/);
       expect(

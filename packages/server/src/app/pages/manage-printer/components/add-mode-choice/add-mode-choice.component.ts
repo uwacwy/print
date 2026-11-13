@@ -7,10 +7,7 @@ export type AddMode = 'enroll' | 'manual';
   selector: 'app-add-mode-choice',
   template: `
     <fieldset class="mb-4">
-      <legend
-        i18n="@@add-mode-choice.how-do-you-want"
-        class="h6"
-      >
+      <legend i18n="@@HowDoYouWantToAddThePrinter" class="h6">
         How do you want to add the printer?
       </legend>
       <div class="form-check">
@@ -26,22 +23,26 @@ export type AddMode = 'enroll' | 'manual';
           (change)="mode.set('enroll')"
         />
         <label
-          i18n="@@add-mode-choice.set-up-on-the"
+          i18n="@@SetUpOnThePrintersComputer"
           class="form-check-label"
           for="add-mode-enroll"
           >Set up on the printer's computer</label
         >
-        <div
-          i18n="@@add-mode-choice.recommended-run-one-command"
-          class="form-text"
-          id="add-mode-enroll-help"
-        >
+        <div class="form-text" id="add-mode-enroll-help">
           @if (enrollment()) {
-            Recommended. Run one command there; it finds the
-            printer for you.
+            <span i18n="@@Recommended">Recommended.</span>
+            <span
+              i18n="
+                @@RunInteractiveSetupOnTheAgentConnectedToThePrinter"
+            >
+              Run interactive setup on the agent connected to the
+              printer.
+            </span>
           } @else {
-            Unavailable: set <code>PUBLIC_URL</code> on the
-            server to enable it.
+            <ng-container i18n="@@Unavailable">
+              Unavailable: set <code>SITE_URL</code> on the
+              server to enable it.
+            </ng-container>
           }
         </div>
       </div>
@@ -57,13 +58,14 @@ export type AddMode = 'enroll' | 'manual';
           (change)="mode.set('manual')"
         />
         <label
-          i18n="@@add-mode-choice.enter-the-printer-s"
+          i18n="@@EnterThePrintersDetailsHere"
           class="form-check-label"
           for="add-mode-manual"
           >Enter the printer's details here</label
         >
         <div
-          i18n="@@add-mode-choice.then-copy-the-agent"
+          i18n="
+            @@ThenCopyTheAgentsSettingsToItsComputerOrADockerComposeFile"
           class="form-text"
           id="add-mode-manual-help"
         >
@@ -75,7 +77,7 @@ export type AddMode = 'enroll' | 'manual';
   `,
 })
 export class AddModeChoiceComponent {
-  /** The server has `PUBLIC_URL`, so printers can enroll from their own computers. */
+  /** The server has `SITE_URL`, so printers can enroll from their own computers. */
   readonly enrollment = input.required<boolean>();
   readonly mode = model.required<AddMode>();
 }

@@ -1,3 +1,5 @@
+import type { ClientConfig } from '@uwacwy/print-shared';
+
 import { describe, expect, it, vi } from 'vitest';
 
 import { environment } from '../../environments/environment';
@@ -14,35 +16,33 @@ const msal = {
 };
 
 const site = {
-  brand: { siteTitle: 'Print' },
-  legal: { organizationName: 'Example Org' },
+  organizationName: 'Contoso',
   showAttribution: true,
-};
+  title: 'Quick Print',
+  url: new URL('https://print.contoso.com').href,
+} satisfies ClientConfig['site'];
 
 const respond = (response: Response) =>
   vi.fn<typeof fetch>().mockResolvedValue(response);
 
 describe('client environment', () => {
-  const publicUrl = new URL('https://print.example.org').href;
   it('uses the server settings with a callback on the current origin', () => {
     expect(
       resolveClientConfig(
         {
-          ...site,
+          site,
           enrollment: true,
           msal,
-          publicUrl,
         },
-        'https://print.example.org',
+        'https://print.contoso.com',
       ),
     ).toEqual({
-      ...site,
+      site,
       enrollment: true,
       msal: {
         ...msal,
-        redirectUri: 'https://print.example.org/auth/callback',
+        redirectUri: 'https://print.contoso.com/auth/callback',
       },
-      publicUrl,
     });
   });
 
@@ -50,59 +50,55 @@ describe('client environment', () => {
     expect(
       resolveClientConfig(
         {
-          ...site,
+          site,
           enrollment: false,
-          publicUrl,
         },
-        'https://print.example.org',
+        'https://print.contoso.com',
       ),
     ).toEqual({
-      ...site,
+      site,
       enrollment: false,
       msal: {
         ...environment.msal,
-        redirectUri: 'https://print.example.org/auth/callback',
+        redirectUri: 'https://print.contoso.com/auth/callback',
       },
-      publicUrl,
     });
   });
 
   it('passes the server logo through', () => {
-    const logo = { alt: 'United Way', src: '/logo.svg?v=1' };
-    const brand = { ...site.brand, logo };
+    const logo = { alt: 'Contoso', url: '/logo.svg?v=1' };
+    const withLogo = { ...site, logo };
     expect(
       resolveClientConfig(
-        { ...site, brand, enrollment: false, publicUrl },
-        'https://print.example.org',
-      ).brand.logo,
+        { enrollment: false, site: withLogo },
+        'https://print.contoso.com',
+      ).site.logo,
     ).toEqual(logo);
     expect(
       resolveClientConfig(
-        { ...site, brand, enrollment: false, msal, publicUrl },
-        'https://print.example.org',
-      ).brand.logo,
+        { enrollment: false, msal, site: withLogo },
+        'https://print.contoso.com',
+      ).site.logo,
     ).toEqual(logo);
   });
 
   it('loads /api/client-config and falls back when it fails', async () => {
     const ok = respond(
       Response.json({
-        ...site,
+        site,
         enrollment: false,
         msal,
-        publicUrl,
       }),
     );
     await expect(
       loadClientEnvironment(ok, 'http://localhost:4200'),
     ).resolves.toEqual({
-      ...site,
+      site,
       enrollment: false,
       msal: {
         ...msal,
         redirectUri: 'http://localhost:4200/auth/callback',
       },
-      publicUrl,
     });
     expect(ok).toHaveBeenCalledWith('/api/client-config', {
       cache: 'no-cache',

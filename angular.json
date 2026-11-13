@@ -89,8 +89,8 @@
           "options": {
             "port": 4200,
             "proxyConfig": "proxy.conf.mjs",
-            "host": "0.0.0.0",
-            "allowedHosts": ["*"]
+            "host": "10.1.10.138",
+            "allowedHosts": ["localhost", "uwacwy-print-server"]
           },
           "configurations": {
             "production": {

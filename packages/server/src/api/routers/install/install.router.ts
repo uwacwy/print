@@ -38,7 +38,7 @@ const sendScript = (
 const $ = createRouting(installRoutes);
 
 /**
- * `curl -sSL <PUBLIC_URL>/printer/<enroll token>/install | bash` and the token-free
+ * `curl -sSL <SITE_URL>/printer/<enroll token>/install | bash` and the token-free
  * `/install.sh`. Mounted outside `/api` so the one-liners stay short. Failures answer with a
  * script that prints the reason, since that is all `curl | bash` shows.
  */
@@ -67,7 +67,7 @@ export default ({
             response,
             503,
             renderErrorScript(
-              'The print server has no https PUBLIC_URL, so it cannot install agents. Ask an administrator to set it.',
+              'The print server has no https SITE_URL, so it cannot install agents. Ask an administrator to set it.',
             ),
           );
 

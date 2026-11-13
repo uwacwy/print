@@ -33,7 +33,7 @@ import { createdPrinterCommands } from '../../helpers/created-printer-commands/c
           class="text-body-secondary"
         >
           Set
-          <code>PUBLIC_URL</code>
+          <code>SITE_URL</code>
           on the server to get ready-made setup commands.
         </p>
       }

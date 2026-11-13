@@ -12,7 +12,8 @@ import type {
 import type { EntraUserOptions } from './middleware/auth/entra-user/entra-user.strategy';
 import type { AgentHub } from './sockets/agent-hub/agent-hub';
 
-import { DEFAULT_ORG_NAME } from './helpers/server-config/server-config';
+import { findLogoUrl, siteLogo } from './helpers/logo/logo';
+import { DEFAULT_SITE_ORG_NAME } from './helpers/server-config/server-config';
 import { createAuthenticate } from './middleware/auth/passport/passport';
 import agentRouter from './routers/agent/agent.router';
 import printersRouter from './routers/printers/printers.router';
@@ -26,7 +27,9 @@ export interface ApiRootOptions {
   entra: EntraUserOptions;
   getHub: () => AgentHub;
   jobsDir: string;
-  publicUrl: URL;
+  /** Static directories searched on every request for the header logo, most preferred first. */
+  logo?: { alt: string; dirs: readonly string[] };
+  siteUrl: URL;
   upload: UploadConfig;
 }
 const routes = createRouting(api);
@@ -51,21 +54,31 @@ export default (options: ApiRootOptions) => {
       });
     })
     .get(routes.clientConfig.pattern, (_request, response) => {
-      response.set('cache-control', 'no-cache').json(
+      const base =
         options.client ??
           ({
-            site: {
-              title: options.upload.siteTitle,
-              url: options.publicUrl.href,
-              organizationName: DEFAULT_ORG_NAME,
-              showAttribution: true,
-            },
             enrollment: !!options.enrollment?.serverUrl,
-            legal: { organizationName: DEFAULT_ORG_NAME },
-            publicUrl: options.publicUrl.href,
-            showAttribution: true,
-          } satisfies ClientConfig),
-      );
+            site: {
+              organizationName: DEFAULT_SITE_ORG_NAME,
+              showAttribution: true,
+              title: options.upload.siteTitle,
+              url: options.siteUrl.href,
+            },
+          } satisfies ClientConfig);
+      const logo =
+        base.site.logo ??
+        (options.logo &&
+          siteLogo(
+            findLogoUrl(options.logo.dirs),
+            options.logo.alt,
+          ));
+      response
+        .set('cache-control', 'no-cache')
+        .json(
+          logo
+            ? { ...base, site: { ...base.site, logo } }
+            : base,
+        );
     })
     .use(routes.agent.pattern, agentRouter(options))
     .use(routes.session.pattern, sessionRouter({ authenticate }))

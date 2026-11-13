@@ -34,16 +34,7 @@ export default defineConfig(
     linterOptions: { reportUnusedDisableDirectives: 'off' },
   },
 
-  {
-    ...perfectionist.configs['recommended-natural'],
-    rules: {
-      // set internal pattern for shared imports
-      'perfectionist/sort-imports': [
-        'error',
-        { internalPattern: ['^~app/'] },
-      ],
-    },
-  },
+  perfectionist.configs['recommended-natural'],
 
   // Build scripts, tool configs, and repo scripts run on Node.
   {

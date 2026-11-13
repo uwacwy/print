@@ -1,21 +1,6 @@
-import { Component, computed, inject } from '@angular/core';
-import { rxResource } from '@angular/core/rxjs-interop';
-import { inflect } from '@uwacwy/print-shared';
-import {
-  catchError,
-  interval,
-  map,
-  of,
-  startWith,
-  switchMap,
-} from 'rxjs';
+import { Component, inject } from '@angular/core';
 
-import { StatusService } from '../../services/status/status.service';
-
-/** How often the status indicator re-checks the server. */
-export const STATUS_POLL_MS = 30_000;
-
-type ServiceState = 'checking' | 'down' | 'idle' | 'online';
+import { CLIENT_ENVIRONMENT } from '../../auth/client-environment';
 
 @Component({
   selector: 'app-welcome',
@@ -23,6 +8,8 @@ type ServiceState = 'checking' | 'down' | 'idle' | 'online';
   templateUrl: './welcome.component.html',
 })
 export class WelcomeComponent {
+  readonly config = inject(CLIENT_ENVIRONMENT);
+
   protected readonly faqs = [
     {
       answer: $localize`:@@welcome.faq-1.answer:No. Everything happens in your phone’s web browser — there is nothing to install and no sign-in.`,
@@ -49,50 +36,4 @@ export class WelcomeComponent {
       question: $localize`:@@welcome.faq-6.question:My document didn’t print. What should I do?`,
     },
   ] as const;
-
-  /** Printers online, or null while the server is unreachable. */
-  protected readonly statusResource = rxResource({
-    stream: () =>
-      interval(STATUS_POLL_MS).pipe(
-        startWith(0),
-        switchMap(() =>
-          this.#status.getStatus().pipe(
-            map(
-              (status): null | number => status.printersOnline,
-            ),
-            catchError(() => of(null)),
-          ),
-        ),
-      ),
-  });
-
-  protected readonly state = computed((): ServiceState => {
-    if (!this.statusResource.hasValue()) {
-      return this.statusResource.error() ? 'down' : 'checking';
-    }
-    const count = this.statusResource.value();
-    return count === null
-      ? 'down'
-      : count > 0
-        ? 'online'
-        : 'idle';
-  });
-
-  protected readonly summary = computed(() => {
-    const count = this.statusResource.hasValue()
-      ? (this.statusResource.value() ?? 0)
-      : 0;
-    switch (this.state()) {
-      case 'checking':
-        return $localize`:@@welcome.status-checking:Checking printers…`;
-      case 'down':
-        return $localize`:@@welcome.status-down:The print service is unavailable`;
-      case 'idle':
-        return $localize`:@@welcome.status-idle:No printers online right now`;
-      case 'online':
-        return $localize`:@@welcome.status-online:${count}:count: ${inflect(count, 'printer', 'printers')}:noun: online`;
-    }
-  });
-
-  readonly #status = inject(StatusService);
 }

@@ -1,39 +1,23 @@
 <section class="hero" aria-labelledby="welcome-heading">
   <h2
-    i18n="@@welcome.print-from-your-phone"
+    i18n="@@PrintFromAnyDevice"
     id="welcome-heading"
     class="h3"
   >
-    Print from your phone in seconds
+    Print from any device
   </h2>
-  <p i18n="@@welcome.no-app-no-account" class="lead mb-3">
-    No app, no account, no cables. Scan the code at the printer,
-    pick your documents, and pick up your pages.
+  <p
+    i18n="
+      @@PrintToAnyOfOurAvailablePrintersWithoutAnAppOrAccount"
+    class="lead mb-3"
+  >
+    Print to any of our available printers without an app or
+    account.
   </p>
-
-  <div class="status" [attr.data-state]="state()">
-    <span class="status-dot" aria-hidden="true"></span>
-    <span role="status" aria-live="polite">{{ summary() }}</span>
-    @if (state() === 'down' && !statusResource.isLoading()) {
-      <span class="status-stop" aria-hidden="true">.</span>
-      <button
-        i18n="@@welcome.try-again"
-        type="button"
-        class="btn btn-link link-secondary p-0 align-baseline"
-        (click)="statusResource.reload()"
-      >
-        Try again
-      </button>
-    }
-  </div>
 </section>
 
 <section class="mt-4" aria-labelledby="how-heading">
-  <h2
-    i18n="@@welcome.how-this-works"
-    id="how-heading"
-    class="h4 mb-4"
-  >
+  <h2 i18n="@@HowThisWorks" id="how-heading" class="h4 mb-4">
     How this works
   </h2>
   <ol class="steps list-unstyled">
@@ -43,10 +27,11 @@
         aria-hidden="true"
       ></span>
       <div>
-        <strong i18n="@@welcome.scan-the-qr-code"
-          >Scan the QR code</strong
+        <strong i18n="@@ScanTheQrCode">Scan the QR code</strong>
+        <p
+          i18n="
+            @@PointYourPhonesCameraAtTheCodePostedNextToThePrinterAndTapTheLinkThatAppears"
         >
-        <p i18n="@@welcome.point-your-phone-s">
           Point your phone’s camera at the code posted next to
           the printer and tap the link that appears.
         </p>
@@ -58,10 +43,13 @@
         aria-hidden="true"
       ></span>
       <div>
-        <strong i18n="@@welcome.choose-your-documents"
+        <strong i18n="@@ChooseYourDocuments"
           >Choose your documents</strong
         >
-        <p i18n="@@welcome.add-pdfs-or-photos">
+        <p
+          i18n="
+            @@AddPdfsOrPhotosGiveTheJobANameYoullRecognizeAndSetTheNumberOfCopies"
+        >
           Add PDFs or photos, give the job a name you’ll
           recognize, and set the number of copies.
         </p>
@@ -73,15 +61,23 @@
         aria-hidden="true"
       ></span>
       <div>
-        <strong i18n="@@welcome.collect-your-pages"
+        <strong i18n="@@CollectYourPages"
           >Collect your pages</strong
         >
-        <p
-          i18n="@@welcome.and-your-job-goes"
-          i18n="@@welcome.tap-print-and-your"
-        >
-          Tap <em>Print</em> and your job goes straight to that
-          printer. Pick it up from the tray in a moment.
+        <p>
+          <ng-container
+            i18n="
+              @@Tap__PRINT__AndYourJobGoesStraightToThatPrinter."
+          >
+            Tap <em>Print</em> and your job goes straight to that
+            printer.
+          </ng-container>
+          <ng-container
+            i18n="
+              @@OnceAcceptedYourDocumentWillPrintInAFewMoments"
+            >Once accepted, your document will print in a few
+            moments.</ng-container
+          >
         </p>
       </div>
     </li>
@@ -90,7 +86,7 @@
 
 <section class="mt-4" aria-labelledby="faq-heading">
   <h2
-    i18n="@@welcome.frequently-asked-questions"
+    i18n="@@FrequentlyAskedQuestions"
     id="faq-heading"
     class="h4 mb-4"
   >

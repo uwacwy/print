@@ -5,5 +5,7 @@
   "compilerOptions": {
     "types": ["vitest/globals", "@angular/localize"]
   },
-  "include": ["src/**/*.d.ts", "src/**/*.spec.ts"]
+  "include": ["src/**/*.d.ts", "src/**/*.spec.ts"],
+  /* Lets Rename Symbol and Find References started in shared reach this project. */
+  "references": [{ "path": "../shared/tsconfig.json" }]
 }

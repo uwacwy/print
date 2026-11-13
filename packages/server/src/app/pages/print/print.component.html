@@ -1,13 +1,11 @@
 <main class="col">
-  @if (printerResource.isLoading()) {
-    <h1 i18n="@@print.print" class="h2">Print</h1>
-    <p i18n="@@print.loading-printer" role="status">
+  @if (printerResource?.isLoading()) {
+    <h1 i18n="@@Print" class="h2">Print</h1>
+    <p i18n="@@LoadingPrinter" role="status">
       Loading printer...
     </p>
-  } @else if (printerResource.hasValue()) {
-    @let printer = printerResource.value();
-
-    <h1 i18n="@@print.print-to" class="h2 mb-1">
+  } @else if (printer(); as printer) {
+    <h1 i18n="@@PrintTo__PRINTER_NAME__" class="h2 mb-1">
       Print to {{ printer.name }}
     </h1>
 
@@ -17,18 +15,19 @@
 
     @switch (mode()) {
       @case ('upload') {
-        <p
-          i18n="@@print.as-username-printing-as"
-          class="text-muted"
-        >
+        <p class="text-muted">
           @if (printingAs(); as username) {
-            Printing as {{ username }}.
+            <span i18n="@@PrintingAs__USERNAME__"
+              >Printing as {{ username }}.</span
+            >
           } @else if (
             printer.access.tokenExpiresAt;
             as expiresAt
           ) {
-            This link works until
-            {{ expiresAt | date: 'short' }}.
+            <span i18n="@@ThisLinkWorksUntil__EXPIRES_AT__">
+              This link works until
+              {{ expiresAt | date: 'short' }}.
+            </span>
           }
         </p>
 
@@ -56,28 +55,28 @@
         <app-print-pin-form [pinForm]="pinForm" />
       }
       @default {
-        <p i18n="@@print.scan-the-qr-code">
+        <p i18n="@@ScanTheQrCodePostedAtThePrinterToPrint">
           Scan the QR code posted at the printer to print.
         </p>
       }
     }
   } @else if (notFound()) {
-    <h1 i18n="@@print.printer-not-found" class="h2">
+    <h1 i18n="@@PrinterNotFound" class="h2">
       Printer not found
     </h1>
-    <p i18n="@@print.check-the-link-or">
+    <p i18n="@@CheckTheLinkOrQrCodeAndTryAgain">
       Check the link or QR code and try again.
     </p>
   } @else {
     <h1 i18n="@@print.print-2" class="h2">Print</h1>
-    <app-alert i18n="@@print.unable-to-load-this"
+    <app-alert i18n="@@UnableToLoadThisPrinter"
       >Unable to load this printer.</app-alert
     >
     <button
-      i18n="@@print.try-again"
+      i18n="@@TryAgain"
       type="button"
       class="btn btn-primary"
-      (click)="printerResource.reload()"
+      (click)="printerResource?.reload()"
     >
       Try again
     </button>
