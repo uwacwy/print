@@ -1,25 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <xliff version="2.0" xmlns="urn:oasis:names:tc:xliff:document:2.0" srcLang="en-US">
   <file id="ngi18n" original="ng.template">
-    <unit id="route.welcome.title">
-      <notes>
-        <note category="location">packages/server/src/app/app.routes.ts:21</note>
-      </notes>
-      <segment>
-        <source>Quick Print</source>
-      </segment>
-    </unit>
-    <unit id="route.print.title">
-      <notes>
-        <note category="location">packages/server/src/app/app.routes.ts:38</note>
-      </notes>
-      <segment>
-        <source>Print Documents</source>
-      </segment>
-    </unit>
     <unit id="route.manage-printers.title">
       <notes>
-        <note category="location">packages/server/src/app/app.routes.ts:51</note>
+        <note category="location">packages/server/src/app/app.routes.ts:46</note>
       </notes>
       <segment>
         <source>Manage Printers</source>
@@ -27,7 +11,7 @@
     </unit>
     <unit id="route.printer-qr.title">
       <notes>
-        <note category="location">packages/server/src/app/app.routes.ts:59</note>
+        <note category="location">packages/server/src/app/app.routes.ts:54</note>
       </notes>
       <segment>
         <source>Printer QR Codes</source>
@@ -35,7 +19,7 @@
     </unit>
     <unit id="route.manage-printer.title">
       <notes>
-        <note category="location">packages/server/src/app/app.routes.ts:67</note>
+        <note category="location">packages/server/src/app/app.routes.ts:62</note>
       </notes>
       <segment>
         <source>Manage Printer</source>
@@ -105,41 +89,57 @@
         <source><ph id="0" equiv="count" disp="count"/> <ph id="1" equiv="noun" disp="inflect(count, &apos;printer&apos;, &apos;printers&apos;)"/> online</source>
       </segment>
     </unit>
-    <unit id="add-mode-choice.how-do-you-want">
+    <unit id="HowDoYouWantToAddThePrinter">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printer/components/add-mode-choice/add-mode-choice.component.ts:14,16</note>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/add-mode-choice/add-mode-choice.component.ts:11,13</note>
       </notes>
       <segment>
         <source> How do you want to add the printer? </source>
       </segment>
     </unit>
-    <unit id="add-mode-choice.set-up-on-the">
+    <unit id="SetUpOnThePrintersComputer">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printer/components/add-mode-choice/add-mode-choice.component.ts:32,35</note>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/add-mode-choice/add-mode-choice.component.ts:29,31</note>
       </notes>
       <segment>
         <source>Set up on the printer&apos;s computer</source>
       </segment>
     </unit>
-    <unit id="add-mode-choice.recommended-run-one-command">
+    <unit id="Recommended">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printer/components/add-mode-choice/add-mode-choice.component.ts:39,47</note>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/add-mode-choice/add-mode-choice.component.ts:33,35</note>
       </notes>
       <segment>
-        <source><pc id="0" equivStart="START_BLOCK_IF" equivEnd="CLOSE_BLOCK_IF" type="other" dispStart="@if (enrollment()) {" dispEnd="}"> Recommended. Run one command there; it finds the printer for you. </pc><pc id="1" equivStart="START_BLOCK_ELSE" equivEnd="CLOSE_BLOCK_ELSE" type="other" dispStart="@else {" dispEnd="}"> Unavailable: set <pc id="2" equivStart="START_TAG_CODE" equivEnd="CLOSE_TAG_CODE" type="other" dispStart="&lt;code&gt;" dispEnd="&lt;/code&gt;">SITE_URL</pc> on the server to enable it. </pc></source>
+        <source>Recommended.</source>
       </segment>
     </unit>
-    <unit id="add-mode-choice.enter-the-printer-s">
+    <unit id="RunInteractiveSetupOnTheAgentConnectedToThePrinter">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printer/components/add-mode-choice/add-mode-choice.component.ts:63,66</note>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/add-mode-choice/add-mode-choice.component.ts:38,41</note>
+      </notes>
+      <segment>
+        <source> Run interactive setup on the agent connected to the printer. </source>
+      </segment>
+    </unit>
+    <unit id="Unavailable">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/add-mode-choice/add-mode-choice.component.ts:43,45</note>
+      </notes>
+      <segment>
+        <source> Unavailable: set <pc id="0" equivStart="START_TAG_CODE" equivEnd="CLOSE_TAG_CODE" type="other" dispStart="&lt;code&gt;" dispEnd="&lt;/code&gt;">SITE_URL</pc> on the server to enable it. </source>
+      </segment>
+    </unit>
+    <unit id="EnterThePrintersDetailsHere">
+      <notes>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/add-mode-choice/add-mode-choice.component.ts:64,67</note>
       </notes>
       <segment>
         <source>Enter the printer&apos;s details here</source>
       </segment>
     </unit>
-    <unit id="add-mode-choice.then-copy-the-agent">
+    <unit id="ThenCopyTheAgentsSettingsToItsComputerOrADockerComposeFile">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printer/components/add-mode-choice/add-mode-choice.component.ts:70,74</note>
+        <note category="location">packages/server/src/app/pages/manage-printer/components/add-mode-choice/add-mode-choice.component.ts:72,79</note>
       </notes>
       <segment>
         <source> Then copy the agent&apos;s settings to its computer or a Docker Compose file. </source>
@@ -374,7 +374,7 @@
     </unit>
     <unit id="manage-printer.printers">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printer/manage-printer.component.ts:73,75</note>
+        <note category="location">packages/server/src/app/pages/manage-printer/manage-printer.component.ts:72,74</note>
       </notes>
       <segment>
         <source>← Printers</source>
@@ -382,7 +382,7 @@
     </unit>
     <unit id="manage-printer.add-heading">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printer/manage-printer.component.ts:78,80</note>
+        <note category="location">packages/server/src/app/pages/manage-printer/manage-printer.component.ts:77,80</note>
       </notes>
       <segment>
         <source>Add printer</source>
@@ -390,7 +390,7 @@
     </unit>
     <unit id="manage-printer.edit-heading">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printer/manage-printer.component.ts:82,85</note>
+        <note category="location">packages/server/src/app/pages/manage-printer/manage-printer.component.ts:81,84</note>
       </notes>
       <segment>
         <source>Edit printer</source>
@@ -398,7 +398,7 @@
     </unit>
     <unit id="manage-printer.loading-printer">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printer/manage-printer.component.ts:98,100</note>
+        <note category="location">packages/server/src/app/pages/manage-printer/manage-printer.component.ts:97,99</note>
       </notes>
       <segment>
         <source> Loading printer... </source>
@@ -406,7 +406,7 @@
     </unit>
     <unit id="manage-printer.name-required">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printer/manage-printer.component.ts:162</note>
+        <note category="location">packages/server/src/app/pages/manage-printer/manage-printer.component.ts:160</note>
       </notes>
       <segment>
         <source>Enter a display name.</source>
@@ -414,7 +414,7 @@
     </unit>
     <unit id="manage-printer.name-max">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printer/manage-printer.component.ts:165</note>
+        <note category="location">packages/server/src/app/pages/manage-printer/manage-printer.component.ts:163</note>
       </notes>
       <segment>
         <source>Enter a name of at most <ph id="0" equiv="PRINTER_NAME_MAX_LENGTH" disp="PRINTER_NAME_MAX_LENGTH"/> characters.</source>
@@ -422,8 +422,8 @@
     </unit>
     <unit id="manage-printer.slug-format">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printer/manage-printer.component.ts:168</note>
-        <note category="location">packages/server/src/app/pages/manage-printer/manage-printer.component.ts:171</note>
+        <note category="location">packages/server/src/app/pages/manage-printer/manage-printer.component.ts:166</note>
+        <note category="location">packages/server/src/app/pages/manage-printer/manage-printer.component.ts:169</note>
       </notes>
       <segment>
         <source>Use lowercase letters, numbers, and hyphens.</source>
@@ -431,7 +431,7 @@
     </unit>
     <unit id="manage-printer.queue-required">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printer/manage-printer.component.ts:174</note>
+        <note category="location">packages/server/src/app/pages/manage-printer/manage-printer.component.ts:172</note>
       </notes>
       <segment>
         <source>Enter a CUPS queue or IPP endpoint.</source>
@@ -683,25 +683,17 @@
         <source>No failed jobs for <ph id="0" equiv="name" disp="name"/> could be retried; their documents have expired.</source>
       </segment>
     </unit>
-    <unit id="manage-printers.administration">
+    <unit id="manage-printers.manage-printers">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printers/manage-printers.component.ts:60,62</note>
+        <note category="location">packages/server/src/app/pages/manage-printers/manage-printers.component.ts:59,63</note>
       </notes>
       <segment>
-        <source> Administration </source>
-      </segment>
-    </unit>
-    <unit id="manage-printers.printers">
-      <notes>
-        <note category="location">packages/server/src/app/pages/manage-printers/manage-printers.component.ts:63,65</note>
-      </notes>
-      <segment>
-        <source> Printers </source>
+        <source> Manage Printers </source>
       </segment>
     </unit>
     <unit id="manage-printers.add-printer-if-error">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printers/manage-printers.component.ts:71,73</note>
+        <note category="location">packages/server/src/app/pages/manage-printers/manage-printers.component.ts:67,70</note>
       </notes>
       <segment>
         <source><pc id="0" equivStart="START_ITALIC_TEXT" equivEnd="CLOSE_ITALIC_TEXT" type="fmt" dispStart="&lt;i class=&quot;bi bi-plus-lg&quot; aria-hidden=&quot;true&quot;&gt;" dispEnd="&lt;/i&gt;"></pc> Add printer </source>
@@ -709,7 +701,7 @@
     </unit>
     <unit id="manage-printers.dismiss-error.dismisslabel">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printers/manage-printers.component.ts:79,81</note>
+        <note category="location">packages/server/src/app/pages/manage-printers/manage-printers.component.ts:75,77</note>
       </notes>
       <segment>
         <source>Dismiss error</source>
@@ -717,7 +709,7 @@
     </unit>
     <unit id="manage-printers.dismiss-message.dismisslabel">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printers/manage-printers.component.ts:91,93</note>
+        <note category="location">packages/server/src/app/pages/manage-printers/manage-printers.component.ts:87,89</note>
       </notes>
       <segment>
         <source>Dismiss message</source>
@@ -725,7 +717,7 @@
     </unit>
     <unit id="manage-printers.loading-printers">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printers/manage-printers.component.ts:112,114</note>
+        <note category="location">packages/server/src/app/pages/manage-printers/manage-printers.component.ts:105,107</note>
       </notes>
       <segment>
         <source> Loading printers... </source>
@@ -733,7 +725,7 @@
     </unit>
     <unit id="manage-printers.no-printers-configured">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printers/manage-printers.component.ts:119,122</note>
+        <note category="location">packages/server/src/app/pages/manage-printers/manage-printers.component.ts:112,115</note>
       </notes>
       <segment>
         <source> No printers configured. </source>
@@ -741,7 +733,7 @@
     </unit>
     <unit id="manage-printers.load-error">
       <notes>
-        <note category="location">packages/server/src/app/pages/manage-printers/manage-printers.component.ts:150</note>
+        <note category="location">packages/server/src/app/pages/manage-printers/manage-printers.component.ts:142</note>
       </notes>
       <segment>
         <source>Unable to load printers.</source>
@@ -811,9 +803,17 @@
         <source>Job Title/Reference</source>
       </segment>
     </unit>
+    <unit id="AddAJobTitleReferenceToMakeYourPrintJobEasierToFind">
+      <notes>
+        <note category="location">packages/server/src/app/pages/print/components/upload-form/upload-form.component.ts:38,43</note>
+      </notes>
+      <segment>
+        <source> Add a job title/reference to make your print job easier to find. </source>
+      </segment>
+    </unit>
     <unit id="upload-form.documents">
       <notes>
-        <note category="location">packages/server/src/app/pages/print/components/upload-form/upload-form.component.ts:40,42</note>
+        <note category="location">packages/server/src/app/pages/print/components/upload-form/upload-form.component.ts:48,50</note>
       </notes>
       <segment>
         <source> Documents </source>
@@ -821,15 +821,15 @@
     </unit>
     <unit id="upload-form.upload-pdf-jpeg-png">
       <notes>
-        <note category="location">packages/server/src/app/pages/print/components/upload-form/upload-form.component.ts:46,49</note>
+        <note category="location">packages/server/src/app/pages/print/components/upload-form/upload-form.component.ts:54,57</note>
       </notes>
       <segment>
         <source> Upload PDF, JPEG, PNG, or HEIC/HEIF documents; up to <ph id="0" equiv="INTERPOLATION" disp="{{ maxUploadMb() }}"/> MB per document. </source>
       </segment>
     </unit>
-    <unit id="upload-form.add-another-document">
+    <unit id="AddAnotherDocument">
       <notes>
-        <note category="location">packages/server/src/app/pages/print/components/upload-form/upload-form.component.ts:71,75</note>
+        <note category="location">packages/server/src/app/pages/print/components/upload-form/upload-form.component.ts:75,77</note>
       </notes>
       <segment>
         <source> Add another document </source>
@@ -859,7 +859,7 @@
         <source>This QR code is not active yet.</source>
       </segment>
     </unit>
-    <unit id="print.print">
+    <unit id="Print">
       <notes>
         <note category="location">packages/server/src/app/pages/print/print.component.html:3,4</note>
       </notes>
@@ -867,52 +867,58 @@
         <source>Print</source>
       </segment>
     </unit>
-    <unit id="print.loading-printer">
+    <unit id="LoadingPrinter">
       <notes>
         <note category="location">packages/server/src/app/pages/print/print.component.html:5,7</note>
+        <note category="location">packages/server/src/app/pages/printer-qr/printer-qr.component.ts:68,70</note>
       </notes>
       <segment>
         <source> Loading printer... </source>
       </segment>
     </unit>
-    <unit id="print.print-to">
+    <unit id="PrintTo__PRINTER_NAME__">
       <notes>
-        <note category="location">packages/server/src/app/pages/print/print.component.html:11,14</note>
+        <note category="location">packages/server/src/app/pages/print/print.component.html:9,12</note>
       </notes>
       <segment>
         <source> Print to <ph id="0" equiv="INTERPOLATION" disp="{{ printer.name }}"/> </source>
       </segment>
     </unit>
-    <unit id="print.as-username-printing-as">
+    <unit id="PrintingAs__USERNAME__">
       <notes>
-        <note category="location">packages/server/src/app/pages/print/print.component.html:24,35</note>
+        <note category="location">packages/server/src/app/pages/print/print.component.html:21,22</note>
       </notes>
       <segment>
-        <source><pc id="0" equivStart="START_BLOCK_IF" equivEnd="CLOSE_BLOCK_IF" type="other" dispStart="@if (printingAs(); as username) {" dispEnd="}"> Printing as <ph id="1" equiv="INTERPOLATION" disp="{{ username }}"/>. </pc><pc id="2" equivStart="START_BLOCK_ELSE_IF" equivEnd="CLOSE_BLOCK_ELSE_IF" type="other" dispStart="@else if (
-            printer.access.tokenExpiresAt;
-            as expiresAt
-          ) {" dispEnd="}"> This link works until <ph id="3" equiv="INTERPOLATION_1" disp="{{ expiresAt | date: &apos;short&apos; }}"/>. </pc></source>
+        <source>Printing as <ph id="0" equiv="INTERPOLATION" disp="{{ username }}"/>.</source>
       </segment>
     </unit>
-    <unit id="print.scan-the-qr-code">
+    <unit id="ThisLinkWorksUntil__EXPIRES_AT__">
       <notes>
-        <note category="location">packages/server/src/app/pages/print/print.component.html:60,64</note>
+        <note category="location">packages/server/src/app/pages/print/print.component.html:28,30</note>
+      </notes>
+      <segment>
+        <source> This link works until <ph id="0" equiv="INTERPOLATION" disp="{{ expiresAt | date: &apos;short&apos; }}"/>. </source>
+      </segment>
+    </unit>
+    <unit id="ScanTheQrCodePostedAtThePrinterToPrint">
+      <notes>
+        <note category="location">packages/server/src/app/pages/print/print.component.html:59,63</note>
       </notes>
       <segment>
         <source> Scan the QR code posted at the printer to print. </source>
       </segment>
     </unit>
-    <unit id="print.printer-not-found">
+    <unit id="PrinterNotFound">
       <notes>
-        <note category="location">packages/server/src/app/pages/print/print.component.html:66,68</note>
+        <note category="location">packages/server/src/app/pages/print/print.component.html:65,67</note>
       </notes>
       <segment>
         <source> Printer not found </source>
       </segment>
     </unit>
-    <unit id="print.check-the-link-or">
+    <unit id="CheckTheLinkOrQrCodeAndTryAgain">
       <notes>
-        <note category="location">packages/server/src/app/pages/print/print.component.html:69,72</note>
+        <note category="location">packages/server/src/app/pages/print/print.component.html:68,71</note>
       </notes>
       <segment>
         <source> Check the link or QR code and try again. </source>
@@ -920,23 +926,23 @@
     </unit>
     <unit id="print.print-2">
       <notes>
-        <note category="location">packages/server/src/app/pages/print/print.component.html:72,73</note>
+        <note category="location">packages/server/src/app/pages/print/print.component.html:71,72</note>
       </notes>
       <segment>
         <source>Print</source>
       </segment>
     </unit>
-    <unit id="print.unable-to-load-this">
+    <unit id="UnableToLoadThisPrinter">
       <notes>
-        <note category="location">packages/server/src/app/pages/print/print.component.html:74,77</note>
+        <note category="location">packages/server/src/app/pages/print/print.component.html:73,76</note>
       </notes>
       <segment>
         <source>Unable to load this printer.</source>
       </segment>
     </unit>
-    <unit id="print.try-again">
+    <unit id="TryAgain">
       <notes>
-        <note category="location">packages/server/src/app/pages/print/print.component.html:82,85</note>
+        <note category="location">packages/server/src/app/pages/print/print.component.html:81,83</note>
       </notes>
       <segment>
         <source> Try again </source>
@@ -1180,23 +1186,15 @@
         <source>Must be after the start time.</source>
       </segment>
     </unit>
-    <unit id="printer-qr.printers-if-printerresource-isloading">
+    <unit id="BackToPrinters">
       <notes>
-        <note category="location">packages/server/src/app/pages/printer-qr/printer-qr.component.ts:64,66</note>
+        <note category="location">packages/server/src/app/pages/printer-qr/printer-qr.component.ts:61,63</note>
       </notes>
       <segment>
-        <source><pc id="0" equivStart="START_ITALIC_TEXT" equivEnd="CLOSE_ITALIC_TEXT" type="fmt" dispStart="&lt;i class=&quot;bi bi-arrow-left&quot; aria-hidden=&quot;true&quot;&gt;" dispEnd="&lt;/i&gt;"></pc> Printers</source>
+        <source><pc id="0" equivStart="START_ITALIC_TEXT" equivEnd="CLOSE_ITALIC_TEXT" type="fmt" dispStart="&lt;i class=&quot;bi bi-arrow-left&quot; aria-hidden=&quot;true&quot;&gt;" dispEnd="&lt;/i&gt;"></pc> Back to Printers</source>
       </segment>
     </unit>
-    <unit id="printer-qr.loading-printer">
-      <notes>
-        <note category="location">packages/server/src/app/pages/printer-qr/printer-qr.component.ts:71,73</note>
-      </notes>
-      <segment>
-        <source> Loading printer... </source>
-      </segment>
-    </unit>
-    <unit id="printer-qr.qr-code-pin-for">
+    <unit id="QrCodePinFor__PRINTER_NAME__">
       <notes>
         <note category="location">packages/server/src/app/pages/printer-qr/printer-qr.component.ts:75,78</note>
       </notes>
@@ -1204,9 +1202,9 @@
         <source> QR code &amp; PIN for <ph id="0" equiv="INTERPOLATION" disp="{{ printer.name }}"/> </source>
       </segment>
     </unit>
-    <unit id="printer-qr.qr-code">
+    <unit id="QrCode">
       <notes>
-        <note category="location">packages/server/src/app/pages/printer-qr/printer-qr.component.ts:95,97</note>
+        <note category="location">packages/server/src/app/pages/printer-qr/printer-qr.component.ts:91,92</note>
       </notes>
       <segment>
         <source> QR code </source>
@@ -1214,7 +1212,7 @@
     </unit>
     <unit id="printer-qr.anyone-with-this-qr">
       <notes>
-        <note category="location">packages/server/src/app/pages/printer-qr/printer-qr.component.ts:101,104</note>
+        <note category="location">packages/server/src/app/pages/printer-qr/printer-qr.component.ts:97,100</note>
       </notes>
       <segment>
         <source> Anyone with this QR code (or its link) can upload to <ph id="0" equiv="INTERPOLATION" disp="{{ printer.name }}"/> during the window below, without a PIN. </source>
@@ -1222,7 +1220,7 @@
     </unit>
     <unit id="printer-qr.printer-not-found">
       <notes>
-        <note category="location">packages/server/src/app/pages/printer-qr/printer-qr.component.ts:142,145</note>
+        <note category="location">packages/server/src/app/pages/printer-qr/printer-qr.component.ts:138,141</note>
       </notes>
       <segment>
         <source> Printer not found </source>
@@ -1230,7 +1228,7 @@
     </unit>
     <unit id="printer-qr.start-required">
       <notes>
-        <note category="location">packages/server/src/app/pages/printer-qr/printer-qr.component.ts:175</note>
+        <note category="location">packages/server/src/app/pages/printer-qr/printer-qr.component.ts:171</note>
       </notes>
       <segment>
         <source>Choose when the QR code starts working.</source>
@@ -1238,87 +1236,95 @@
     </unit>
     <unit id="printer-qr.end-required">
       <notes>
-        <note category="location">packages/server/src/app/pages/printer-qr/printer-qr.component.ts:178</note>
+        <note category="location">packages/server/src/app/pages/printer-qr/printer-qr.component.ts:174</note>
       </notes>
       <segment>
         <source>Choose when the QR code stops working.</source>
       </segment>
     </unit>
-    <unit id="welcome.print-from-your-phone">
+    <unit id="PrintFromAnyDevice">
       <notes>
-        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:7,9</note>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:7,11</note>
       </notes>
       <segment>
-        <source> Print from your phone </source>
+        <source> Print from any device </source>
       </segment>
     </unit>
-    <unit id="welcome.no-app-no-account">
+    <unit id="PrintToAnyOfOurAvailablePrintersWithoutAnAppOrAccount">
       <notes>
-        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:10,15</note>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:14,19</note>
       </notes>
       <segment>
-        <source> Print to one of our connected printers without an app, account, or Wi-Fi. </source>
+        <source> Print to any of our available printers without an app or account. </source>
       </segment>
     </unit>
-    <unit id="welcome.how-this-works">
+    <unit id="HowThisWorks">
       <notes>
-        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:23,25</note>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:21,23</note>
       </notes>
       <segment>
         <source> How this works </source>
       </segment>
     </unit>
-    <unit id="welcome.scan-the-qr-code">
+    <unit id="ScanTheQrCode">
       <notes>
-        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:33,35</note>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:30,32</note>
       </notes>
       <segment>
         <source>Scan the QR code</source>
       </segment>
     </unit>
-    <unit id="welcome.point-your-phone-s">
+    <unit id="PointYourPhonesCameraAtTheCodePostedNextToThePrinterAndTapTheLinkThatAppears">
       <notes>
-        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:36,39</note>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:35,42</note>
       </notes>
       <segment>
         <source> Point your phone’s camera at the code posted next to the printer and tap the link that appears. </source>
       </segment>
     </unit>
-    <unit id="welcome.choose-your-documents">
+    <unit id="ChooseYourDocuments">
       <notes>
-        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:48,50</note>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:47,50</note>
       </notes>
       <segment>
         <source>Choose your documents</source>
       </segment>
     </unit>
-    <unit id="welcome.add-pdfs-or-photos">
+    <unit id="AddPdfsOrPhotosGiveTheJobANameYoullRecognizeAndSetTheNumberOfCopies">
       <notes>
-        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:51,54</note>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:53,60</note>
       </notes>
       <segment>
         <source> Add PDFs or photos, give the job a name you’ll recognize, and set the number of copies. </source>
       </segment>
     </unit>
-    <unit id="welcome.collect-your-pages">
+    <unit id="CollectYourPages">
       <notes>
-        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:63,66</note>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:65,68</note>
       </notes>
       <segment>
         <source>Collect your pages</source>
       </segment>
     </unit>
-    <unit id="welcome.and-your-job-goes">
+    <unit id="Tap__PRINT__AndYourJobGoesStraightToThatPrinter.">
       <notes>
-        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:69,72</note>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:72,74</note>
       </notes>
       <segment>
-        <source> Tap <pc id="0" equivStart="START_EMPHASISED_TEXT" equivEnd="CLOSE_EMPHASISED_TEXT" type="fmt" dispStart="&lt;em&gt;" dispEnd="&lt;/em&gt;">Print</pc> and your job goes straight to that printer. Pick it up from the tray in a moment. </source>
+        <source> Tap <pc id="0" equivStart="START_EMPHASISED_TEXT" equivEnd="CLOSE_EMPHASISED_TEXT" type="fmt" dispStart="&lt;em&gt;" dispEnd="&lt;/em&gt;">Print</pc> and your job goes straight to that printer. </source>
       </segment>
     </unit>
-    <unit id="welcome.frequently-asked-questions">
+    <unit id="OnceAcceptedYourDocumentWillPrintInAFewMoments">
       <notes>
-        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:83,86</note>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:78,82</note>
+      </notes>
+      <segment>
+        <source>Once accepted, your document will print in a few moments.</source>
+      </segment>
+    </unit>
+    <unit id="FrequentlyAskedQuestions">
+      <notes>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.html:93,96</note>
       </notes>
       <segment>
         <source> Frequently asked questions </source>
@@ -1326,7 +1332,7 @@
     </unit>
     <unit id="welcome.faq-1.answer">
       <notes>
-        <note category="location">packages/server/src/app/pages/welcome/welcome.component.ts:17</note>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.ts:15</note>
       </notes>
       <segment>
         <source>No. Everything happens in your phone’s web browser — there is nothing to install and no sign-in.</source>
@@ -1334,7 +1340,7 @@
     </unit>
     <unit id="welcome.faq-1.question">
       <notes>
-        <note category="location">packages/server/src/app/pages/welcome/welcome.component.ts:18</note>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.ts:16</note>
       </notes>
       <segment>
         <source>Do I need an app or an account?</source>
@@ -1342,7 +1348,7 @@
     </unit>
     <unit id="welcome.faq-2.answer">
       <notes>
-        <note category="location">packages/server/src/app/pages/welcome/welcome.component.ts:21</note>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.ts:19</note>
       </notes>
       <segment>
         <source>PDFs and photos (JPEG, PNG, and iPhone HEIC). You can send several documents at once and choose how many copies of each.</source>
@@ -1350,7 +1356,7 @@
     </unit>
     <unit id="welcome.faq-2.question">
       <notes>
-        <note category="location">packages/server/src/app/pages/welcome/welcome.component.ts:22</note>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.ts:20</note>
       </notes>
       <segment>
         <source>What can I print?</source>
@@ -1358,7 +1364,7 @@
     </unit>
     <unit id="welcome.faq-3.answer">
       <notes>
-        <note category="location">packages/server/src/app/pages/welcome/welcome.component.ts:25</note>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.ts:23</note>
       </notes>
       <segment>
         <source>Your document goes only to the printer you chose and is deleted as soon as it prints. Some printers also add a cover sheet on top so others can’t see your pages in the tray.</source>
@@ -1366,7 +1372,7 @@
     </unit>
     <unit id="welcome.faq-3.question">
       <notes>
-        <note category="location">packages/server/src/app/pages/welcome/welcome.component.ts:26</note>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.ts:24</note>
       </notes>
       <segment>
         <source>Is my document private?</source>
@@ -1374,7 +1380,7 @@
     </unit>
     <unit id="welcome.faq-4.answer">
       <notes>
-        <note category="location">packages/server/src/app/pages/welcome/welcome.component.ts:29</note>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.ts:27</note>
       </notes>
       <segment>
         <source>Each printed code only works for the dates shown under it. Ask a staff member or volunteer for a current one.</source>
@@ -1382,7 +1388,7 @@
     </unit>
     <unit id="welcome.faq-4.question">
       <notes>
-        <note category="location">packages/server/src/app/pages/welcome/welcome.component.ts:30</note>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.ts:28</note>
       </notes>
       <segment>
         <source>The QR code says it has expired or is not active yet.</source>
@@ -1390,7 +1396,7 @@
     </unit>
     <unit id="welcome.faq-5.answer">
       <notes>
-        <note category="location">packages/server/src/app/pages/welcome/welcome.component.ts:33</note>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.ts:31</note>
       </notes>
       <segment>
         <source>If the poster shows a web address and PIN, open that address in your browser and enter the 9-digit PIN when asked. Otherwise, ask for help at the front desk.</source>
@@ -1398,7 +1404,7 @@
     </unit>
     <unit id="welcome.faq-5.question">
       <notes>
-        <note category="location">packages/server/src/app/pages/welcome/welcome.component.ts:34</note>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.ts:32</note>
       </notes>
       <segment>
         <source>I can’t scan the code. Can I type the address instead?</source>
@@ -1406,7 +1412,7 @@
     </unit>
     <unit id="welcome.faq-6.answer">
       <notes>
-        <note category="location">packages/server/src/app/pages/welcome/welcome.component.ts:37</note>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.ts:35</note>
       </notes>
       <segment>
         <source>Check the status above to make sure printers are online, then ask a staff member or volunteer — they can see your job and send it to the printer again.</source>
@@ -1414,7 +1420,7 @@
     </unit>
     <unit id="welcome.faq-6.question">
       <notes>
-        <note category="location">packages/server/src/app/pages/welcome/welcome.component.ts:38</note>
+        <note category="location">packages/server/src/app/pages/welcome/welcome.component.ts:36</note>
       </notes>
       <segment>
         <source>My document didn’t print. What should I do?</source>
