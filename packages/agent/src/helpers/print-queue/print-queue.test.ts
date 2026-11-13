@@ -18,6 +18,7 @@ const request = (id: string): PrintRequest => ({
 });
 
 describe('printInOrder', () => {
+  vi.spyOn(console, 'log').mockImplementation(() => {});
   it('prints one at a time and reports each result in order, including failures', async () => {
     let active = 0;
     const print = vi.fn(async (pdf: Buffer) => {
