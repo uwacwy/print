@@ -497,6 +497,12 @@ All four `package.json` files share one version, and a `vX.Y.Z` tag publishes it
 3. pushes `ghcr.io/uwacwy/print-server` (linux/amd64) and `ghcr.io/uwacwy/print-agent` (linux/amd64,
    linux/arm64) with SBOM and provenance attestations, tagged `0.2.0`, `0.2`, and `latest`
 4. creates a GitHub release with generated notes
+5. for stable releases, redeploys https://print.uwacwy.org through
+   [`deploy.yml`](.github/workflows/deploy.yml). This uses the `production` environment, an AWS role
+   assumed through OIDC, and one fixed SSM command on the host. Production tracks a minor image tag
+   (`1.0`), so patch releases go live automatically. A new minor or major version needs `PRINT_VERSION`
+   bumped in the host stack (omega-docker `clients/unitedwayalbanycounty/scripts/print/README.md`). To
+   redeploy by hand, run `gh workflow run deploy.yml --ref vX.Y.Z`.
 
 ```bash
 npm run version:set -- 0.2.0   # updates every manifest, internal pins, and package-lock.json

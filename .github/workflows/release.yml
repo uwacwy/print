@@ -163,3 +163,12 @@ jobs:
           flags=(--repo "$GITHUB_REPOSITORY" --verify-tag --generate-notes --title "$GITHUB_REF_NAME")
           if [[ "$PRERELEASE" == true ]]; then flags+=(--prerelease); fi
           gh release create "$GITHUB_REF_NAME" "${flags[@]}"
+
+  # Stable releases only; production tracks a minor image tag, so prereleases never reach it.
+  deploy:
+    needs: [verify, images]
+    if: needs.verify.outputs.prerelease == 'false'
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/deploy.yml
